@@ -84,52 +84,20 @@ int main() {
 
         if (dt > 0.1f) dt = 0.1f;
 
-        // mouse interaction.
-        double mouseX, mouseY;
-        glfwGetCursorPos(window, &mouseX, &mouseY);
-
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-            // map window coords to grid coords.
-            int gx = (int)((mouseX / WINDOW_WIDTH) * GRID_WIDTH);
-            int gy = (int)((1.0 - (mouseY / WINDOW_HEIGHT)) * GRID_HEIGHT); // flip y for gl. 
-
-            float velX = (float)(mouseX - lastMouseX) * 0.1f;
-            float velY = (float)(lastMouseY - mouseY) * 0.1f; // flip y. 
-
-            // splat density and velocity in a small radius.
-            for (int dy = -3; dy <= 3; ++dy) {
-                for (int dx = -3; dx <= 3; ++dx) {
-                    int nx = gx + dx;
-                    int ny = gy + dy;
-                    if (nx >= 0 && nx < GRID_WIDTH && ny >= 0 && ny < GRID_HEIGHT) {
-                        int idx = ny * GRID_WIDTH + nx;
-                        grid.density[idx] = 1.0f;
-                        grid.u[idx] += velX;
-                        grid.v[idx] += velY;
-                    }
-                }
-            }
-        }
-        lastMouseX = mouseX;
-        lastMouseY = mouseY;
-
-        // move dye from 'density' to 'density_prev'.
-        Advect(GRID_WIDTH, GRID_HEIGHT, dt, 
-               grid.density_prev.data(), grid.density.data(), 
-               grid.u.data(), grid.v.data());
+        // --- SIMULATION STEP ---
         
-        // move velocity itself (self-advection).
-        Advect(GRID_WIDTH, GRID_HEIGHT, dt, 
-               grid.u_prev.data(), grid.u.data(), 
-               grid.u.data(), grid.v.data());
-        Advect(GRID_WIDTH, GRID_HEIGHT, dt, 
-               grid.v_prev.data(), grid.v.data(), 
-               grid.u.data(), grid.v.data());
-
-        // hpc pointer swap.
-        std::swap(grid.density, grid.density_prev);
+        // 1. self-advection: velocity moves itself
+        Advect(GRID_WIDTH, GRID_HEIGHT, dt, grid.u_prev.data(), grid.u.data(), grid.u.data(), grid.v.data());
+        Advect(GRID_WIDTH, GRID_HEIGHT, dt, grid.v_prev.data(), grid.v.data(), grid.u.data(), grid.v.data());
         std::swap(grid.u, grid.u_prev);
         std::swap(grid.v, grid.v_prev);
+
+        // 2. projection: make the fluid swirl and stay incompressible
+        Project(GRID_WIDTH, GRID_HEIGHT, grid.u.data(), grid.v.data(), grid.p.data(), grid.div.data());
+
+        // 3. dye-advection: transport the density using the new velocity
+        Advect(GRID_WIDTH, GRID_HEIGHT, dt, grid.density_prev.data(), grid.density.data(), grid.u.data(), grid.v.data());
+        std::swap(grid.density, grid.density_prev);
 
         glTextureSubImage2D(texture, 0, 0, 0, GRID_WIDTH, GRID_HEIGHT, GL_RED, GL_FLOAT, grid.density.data());
 
