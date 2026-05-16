@@ -1,0 +1,8 @@
+build/
+bin/
+obj/
+.vs/
+out/
+*.user
+*.suo
+*.sln.gui
