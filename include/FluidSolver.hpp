@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <algorithm>
+#include <tracy/Tracy.hpp>
 
 struct FluidGrid {
   int width, height;

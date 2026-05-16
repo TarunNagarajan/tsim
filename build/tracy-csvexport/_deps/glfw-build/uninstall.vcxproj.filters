@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\tracy-csvexport\CMakeFiles\8d1ac3405334b3dda12ae569470d03de\uninstall.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\tracy-csvexport\_deps\glfw-src\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\ultim\tsim\build\tracy-csvexport\_deps\glfw-build\CMakeFiles\uninstall" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{6ABD93A2-8BB0-3B9E-B436-E4833F6FF33C}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,13 @@
+C:/Users/ultim/tsim/build/CMakeFiles/tsim.dir
+C:/Users/ultim/tsim/build/CMakeFiles/INSTALL.dir
+C:/Users/ultim/tsim/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/ultim/tsim/build/CMakeFiles/ZERO_CHECK.dir
+C:/Users/ultim/tsim/build/_deps/glfw-build/CMakeFiles/uninstall.dir
+C:/Users/ultim/tsim/build/_deps/glfw-build/CMakeFiles/INSTALL.dir
+C:/Users/ultim/tsim/build/_deps/glfw-build/CMakeFiles/ALL_BUILD.dir
+C:/Users/ultim/tsim/build/_deps/glfw-build/src/CMakeFiles/update_mappings.dir
+C:/Users/ultim/tsim/build/_deps/glfw-build/src/CMakeFiles/glfw.dir
+C:/Users/ultim/tsim/build/_deps/glfw-build/src/CMakeFiles/INSTALL.dir
+C:/Users/ultim/tsim/build/_deps/tracy-build/CMakeFiles/TracyClient.dir
+C:/Users/ultim/tsim/build/_deps/tracy-build/CMakeFiles/INSTALL.dir
+C:/Users/ultim/tsim/build/_deps/tracy-build/CMakeFiles/ALL_BUILD.dir

@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\_deps\glfw-subbuild\CMakeFiles\b0c5a4ec71350914bc1cf31fc7fb97c1\glfw-populate-mkdir.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\_deps\glfw-subbuild\CMakeFiles\b0c5a4ec71350914bc1cf31fc7fb97c1\glfw-populate-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\_deps\glfw-subbuild\CMakeFiles\b0c5a4ec71350914bc1cf31fc7fb97c1\glfw-populate-update.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\_deps\glfw-subbuild\CMakeFiles\b0c5a4ec71350914bc1cf31fc7fb97c1\glfw-populate-patch.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\_deps\glfw-subbuild\CMakeFiles\b0c5a4ec71350914bc1cf31fc7fb97c1\glfw-populate-configure.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\_deps\glfw-subbuild\CMakeFiles\b0c5a4ec71350914bc1cf31fc7fb97c1\glfw-populate-build.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\_deps\glfw-subbuild\CMakeFiles\b0c5a4ec71350914bc1cf31fc7fb97c1\glfw-populate-install.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\_deps\glfw-subbuild\CMakeFiles\b0c5a4ec71350914bc1cf31fc7fb97c1\glfw-populate-test.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\_deps\glfw-subbuild\CMakeFiles\b5c5b2f6492f644c3ee356d7e348cf4e\glfw-populate-complete.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\_deps\glfw-subbuild\CMakeFiles\75cfe6fca1f8aae58f9246da65ba2cae\glfw-populate.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\_deps\glfw-subbuild\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\ultim\tsim\build\_deps\glfw-subbuild\CMakeFiles\glfw-populate" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{10973701-B6C3-3704-8DFD-AA5C7134855B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

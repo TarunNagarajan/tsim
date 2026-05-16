@@ -1,0 +1,14 @@
+# Target labels
+ glfw-populate
+# Source files and their labels
+C:/Users/ultim/tsim/build/_deps/glfw-subbuild/CMakeFiles/glfw-populate
+C:/Users/ultim/tsim/build/_deps/glfw-subbuild/CMakeFiles/75cfe6fca1f8aae58f9246da65ba2cae/glfw-populate.rule
+C:/Users/ultim/tsim/build/_deps/glfw-subbuild/CMakeFiles/b5c5b2f6492f644c3ee356d7e348cf4e/glfw-populate-complete.rule
+C:/Users/ultim/tsim/build/_deps/glfw-subbuild/CMakeFiles/b0c5a4ec71350914bc1cf31fc7fb97c1/glfw-populate-build.rule
+C:/Users/ultim/tsim/build/_deps/glfw-subbuild/CMakeFiles/b0c5a4ec71350914bc1cf31fc7fb97c1/glfw-populate-configure.rule
+C:/Users/ultim/tsim/build/_deps/glfw-subbuild/CMakeFiles/b0c5a4ec71350914bc1cf31fc7fb97c1/glfw-populate-download.rule
+C:/Users/ultim/tsim/build/_deps/glfw-subbuild/CMakeFiles/b0c5a4ec71350914bc1cf31fc7fb97c1/glfw-populate-install.rule
+C:/Users/ultim/tsim/build/_deps/glfw-subbuild/CMakeFiles/b0c5a4ec71350914bc1cf31fc7fb97c1/glfw-populate-mkdir.rule
+C:/Users/ultim/tsim/build/_deps/glfw-subbuild/CMakeFiles/b0c5a4ec71350914bc1cf31fc7fb97c1/glfw-populate-patch.rule
+C:/Users/ultim/tsim/build/_deps/glfw-subbuild/CMakeFiles/b0c5a4ec71350914bc1cf31fc7fb97c1/glfw-populate-test.rule
+C:/Users/ultim/tsim/build/_deps/glfw-subbuild/CMakeFiles/b0c5a4ec71350914bc1cf31fc7fb97c1/glfw-populate-update.rule

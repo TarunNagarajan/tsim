@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\_deps\glfw-subbuild\CMakeFiles\75cfe6fca1f8aae58f9246da65ba2cae\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{10973701-B6C3-3704-8DFD-AA5C7134855B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

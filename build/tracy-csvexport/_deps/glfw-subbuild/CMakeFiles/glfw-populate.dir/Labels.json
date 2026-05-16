@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/glfw-populate"
+		},
+		{
+			"file" : "C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/6392049f1bbb82cae44deb6b75875a91/glfw-populate.rule"
+		},
+		{
+			"file" : "C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/8f5e8dddec036bdc32a1cea99ef39aed/glfw-populate-complete.rule"
+		},
+		{
+			"file" : "C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-build.rule"
+		},
+		{
+			"file" : "C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-configure.rule"
+		},
+		{
+			"file" : "C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-download.rule"
+		},
+		{
+			"file" : "C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-install.rule"
+		},
+		{
+			"file" : "C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-patch.rule"
+		},
+		{
+			"file" : "C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-test.rule"
+		},
+		{
+			"file" : "C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"glfw-populate"
+		],
+		"name" : "glfw-populate"
+	}
+}

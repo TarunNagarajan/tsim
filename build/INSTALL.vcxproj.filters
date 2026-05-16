@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\ultim\tsim\build\CMakeFiles\b1fbdd4eb587fca4bfcafe3ecc3b5859\INSTALL_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{9B6D7EFE-D205-3C51-BF99-D8C3A9DAAA4E}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

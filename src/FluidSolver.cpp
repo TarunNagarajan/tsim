@@ -1,4 +1,5 @@
 #include "FluidSolver.hpp"
+#include <tracy/Tracy.hpp>
 #include <cmath>
 #include <algorithm>
 
@@ -7,7 +8,7 @@ void Advect(int width, int height, float dt,
             const float* __restrict src,
             const float* __restrict u,
             const float* __restrict v) {
-  
+  ZoneScoped;
   float dt0 = dt * std::max(height, width);
 
   for (int y = 0; y < height; ++y) {
@@ -47,12 +48,14 @@ void Advect(int width, int height, float dt,
 }
 
 void Project(int width, int height, float* u, float* v, float* p, float* div) {
-  float h = 1 / std::max(width, height);
+  ZoneScopedN("Project Iteration");
+  float h = 1.0f / std::max(width, height);
   
   // div * h^2.
   for (int y = 1; y < height - 1; y++) {
     for (int x = 1; x < width - 1; x++) {
-      div[i] = -0.5f * h * (u[i + 1] - u[i + 1] + v[i + width] - v[i - width]);
+      int i = y * width + x;
+      div[i] = -0.5f * h * (u[i + 1] - u[i - 1] + v[i + width] - v[i - width]);
       p[i] = 0;
     }
   }
@@ -60,8 +63,24 @@ void Project(int width, int height, float* u, float* v, float* p, float* div) {
   // pressure, spread the error
   for (int iter = 0; iter < 20; iter++) {
     for (int y = 1; y < height - 1; y++) {
-      for (int x = 1; x < width - 1; x++) {
-        p[i] = (div[i] + p[i + 1] + p[i - 1] + p[i + width] + p[i - width]) / 4.0f;
+      for (int x = 1; x < width - 1; x += 8) {
+        int i = y * width + x;
+
+        __m256 v_div = _mm256_loadu_ps(&div[i]);
+        __m256 v_pR = _mm256_loadu_ps(&p[i + 1]);
+        __m256 v_pL = _mm256_loadu_ps(&p[i - 1]);
+        __m256 v_pU = _mm256_loadu_ps(&p[i + width]);
+        __m256 v_pD = _mm256_loadu_ps(&p[i - width]);
+
+        __m256 v_sum = _mm256_add_ps(v_div, v_pR);
+        v_sum = _mm256_add_ps(v_sum, v_pL);
+        v_sum = _mm256_add_ps(v_sum, v_pU);
+        v_sum = _mm256_add_ps(v_sum, v_pD);
+
+        __m256 v_res = _mm256_mul_ps(v_sum, _mm256_set1_ps(0.25f));
+        _mm256_storeu_ps(&p[i], v_res);
+
+        // p[i] = (div[i] + p[i + 1] + p[i - 1] + p[i + width] + p[i - width]) / 4.0f;
       }
     }
   }
@@ -69,6 +88,7 @@ void Project(int width, int height, float* u, float* v, float* p, float* div) {
   // fix the pressure.
   for (int y = 1; y < height - 1; y++) {
     for (int x = 1; x < width - 1; x++) {
+      int i = y * width + x;
       u[i] -= 0.5f * (p[i + 1] - p[i - 1]) / h; 
       v[i] -= 0.5f * (p[i + width] - p[i - width]) / h;
     }

@@ -1,0 +1,14 @@
+# Target labels
+ glfw-populate
+# Source files and their labels
+C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/glfw-populate
+C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/6392049f1bbb82cae44deb6b75875a91/glfw-populate.rule
+C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/8f5e8dddec036bdc32a1cea99ef39aed/glfw-populate-complete.rule
+C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-build.rule
+C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-configure.rule
+C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-download.rule
+C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-install.rule
+C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-mkdir.rule
+C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-patch.rule
+C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-test.rule
+C:/Users/ultim/tsim/build/tracy-csvexport/_deps/glfw-subbuild/CMakeFiles/1aa06f2918436c5fe33b8728d7a16d07/glfw-populate-update.rule
