@@ -1,0 +1,323 @@
+diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
+--- a/src/exec/interpreter.cpp
++++ b/src/exec/interpreter.cpp
+@@ -22,6 +22,7 @@
+ //    Everything is deterministic by construction.
+ #include <algorithm>
+ #include "tsim/warp_trace.hpp"
++#include "tsim/execution_events.hpp"
+ #if defined(__x86_64__)
+ #include <immintrin.h>
+ #endif
+@@ -481,6 +482,7 @@
+   // a bar.red, an mbarrier wait -- and let the other warps run, which is what
+   // __syncthreads() in a function nvcc did not inline needs (every -G build).
+   struct Frame {
++    uint64_t event_frame = 0;
+     const EntryFn* fn = nullptr;
+     uint64_t local_base = 0;
+     std::vector<Path> paths;
+@@ -497,6 +499,7 @@
+     bool sp_valid = false;
+   };
+   std::vector<Frame> frames;
++  uint64_t event_frame = 0, next_event_frame = 0;
+   // The function this warp is executing (null: the kernel) and where its
+   // .local frame starts; the interpreter's cur_ and local_base_ follow the
+   // warp it is running.
+@@ -2224,7 +2227,7 @@
+     // A host program that set its own rounding mode before launching gets
+     // conversions that follow it, as before; see g_directed_rounding.
+     host_directed_ = std::fegetround() != FE_TONEAREST;
+-    fast_enabled_ = g_fast_path.load(std::memory_order_relaxed);
++    fast_enabled_ = g_fast_path.load(std::memory_order_relaxed) && !tsim::execution_events().enabled();
+     if (host_directed_) g_directed_rounding.fetch_add(1, std::memory_order_relaxed);
+   }
+   ~Interpreter() {
+@@ -2799,6 +2802,55 @@
+         tsim::warp_trace().issue(cfg_.tsim_launch_id, fn_.name, cur_->name, ctx.ctaid, cur_warp_,
+                                 w.paths[idx].pc, ins.line, w.paths[idx].mask,
+                                 effective, w.paths.size(), ins.text);
++      }
++      auto& events = tsim::execution_events();
++      unsigned long long event_issue = 0;
++      bool event_exec = false;
++      if (events.enabled()) {
++        Mask effective = w.paths[idx].mask;
++        if (ins.has_pred) {
++          const Mask pred = read_pred(w, ins, ins.pred);
++          effective &= ins.pred_negated ? ~pred : pred;
++        }
++        event_exec = effective != 0;
++        // Predicate guards are read for the path; ordinary operands/defs are
++        // read/written only for execution_mask. Keep their identities separate.
++        Instr unguarded = ins;
++        unguarded.has_pred = false;
++        std::vector<uint32_t> defs, uses;
++        instr_registers(unguarded, defs, uses);
++        unsigned memory_accesses = 0, memory_width = 0;
++        if (const auto* load = std::get_if<OpLd>(&ins.op)) {
++          memory_accesses = popcount_mask(effective) * load->dsts.size();
++          memory_width = load->ty.bytes();
++        } else if (const auto* store = std::get_if<OpSt>(&ins.op)) {
++          memory_accesses = popcount_mask(effective) * store->srcs.size();
++          memory_width = store->ty.bytes();
++        } else if (const auto* atom = std::get_if<OpAtom>(&ins.op); atom && atom->vec == 1 && !atom->b128) {
++          memory_accesses = popcount_mask(effective);
++          memory_width = atom->ty.bits == 16 && atom->packed_half ? 4u : atom->ty.bytes();
++        }
++        event_issue = events.issue(cfg_.tsim_launch_id, fn_.name, cur_->name, w.event_frame,
++            ctx.ctaid, cur_warp_, w.paths[idx].pc, ins.line, w.paths[idx].mask, effective,
++            ins.text, defs, uses, ins.has_pred ? static_cast<long long>(ins.pred.id * 2 + ins.pred.wide) : -1,
++            cur_->num_regs32, cur_->num_regs64, cur_->local_frame_size, memory_accesses, memory_width);
++      }
++      tsim::ExecutionEvents::Scope event_scope(events, event_issue);
++      if (event_issue && event_exec) {
++        const auto* atom = std::get_if<OpAtom>(&ins.op);
++        const bool captured = std::holds_alternative<OpLd>(ins.op) ||
++            std::holds_alternative<OpSt>(ins.op) || (atom && atom->vec == 1 && !atom->b128);
++        const InstClass category = class_of_pc(w.paths[idx].pc);
++        if (!captured && (category == InstClass::Memory || category == InstClass::Tensor || atom ||
++            std::holds_alternative<OpCall>(ins.op) || std::holds_alternative<OpMbarrier>(ins.op) ||
++            std::holds_alternative<OpTex>(ins.op) || std::holds_alternative<OpSuld>(ins.op) ||
++            std::holds_alternative<OpSust>(ins.op) || std::holds_alternative<OpWmmaLoad>(ins.op) ||
++            std::holds_alternative<OpStBulk>(ins.op) || std::holds_alternative<OpStAsync>(ins.op) ||
++            std::holds_alternative<OpTensormapReplace>(ins.op) || std::holds_alternative<OpTensormapCopy>(ins.op) ||
++            std::holds_alternative<OpClc>(ins.op) || std::holds_alternative<OpBulkGroup>(ins.op)))
++          events.gap("memory/tensor/call path not captured; call ABI dependencies incomplete");
++        if (std::holds_alternative<OpFence>(ins.op))
++          events.gap("fence ordering model not captured");
+       }
+       if (progress_ && (stats_.instructions & 0xFFFFF) == 0) report_progress();
+       // Warp-level issue count, plus the per-lane total: their ratio is the
+@@ -3487,6 +3539,43 @@
+     return addr >= kSharedVaBase && addr < kSharedVaBase + kSharedVaSize;
+   }
+ 
++  Space resolved_space(uint64_t address) const {
++    if (is_shared(address)) return Space::Shared;
++    if (is_local(address)) return Space::Local;
++    if (address >= kParamVaBase && address < kParamVaBase + kParamVaSize) return Space::Param;
++    return Space::Global;
++  }
++
++  void event_memory(uint32_t lane, uint64_t address, uint32_t bytes,
++                    const char* operation, unsigned element = 0, bool constant = false) {
++    auto& events = tsim::execution_events();
++    if (!events.enabled()) return;
++    const Space space = resolved_space(address);
++    const char* name = space == Space::Shared ? "shared" : space == Space::Local ? "local" :
++                       space == Space::Param ? "param" : constant ? "constant" : "global";
++    events.memory(lane, address, bytes, name, operation, element);
++  }
++
++  void count_resolved(const Lanes& base, uint64_t sbase, int64_t offset, Mask m,
++                      uint32_t bytes, size_t count, bool store, bool constant = false) {
++    // Constant-bank reads have separate semantics; do not invent global sectors.
++    if (constant) return;
++    Lanes addresses{};
++    std::array<Mask, 4> groups{};
++    constexpr std::array<Space, 4> spaces{Space::Global, Space::Shared, Space::Local, Space::Param};
++    for (uint32_t lane = 0; lane < W_; ++lane) {
++      if (!(m & (Mask{1} << lane))) continue;
++      addresses[lane] = sbase + base[lane] + static_cast<uint64_t>(offset);
++      const Space actual = resolved_space(addresses[lane]);
++      for (size_t i = 0; i < spaces.size(); ++i)
++        if (actual == spaces[i]) groups[i] |= Mask{1} << lane;
++    }
++    for (size_t i = 0; i < spaces.size(); ++i) if (groups[i]) {
++      count_memory(spaces[i], bytes * static_cast<uint32_t>(count), popcount_mask(groups[i]), store);
++      count_addresses(spaces[i], addresses, groups[i], bytes, count, store);
++    }
++  }
++
+   // ---- distributed shared memory ----
+ 
+   // A block of this block's cluster by rank, failing when there is no such
+@@ -4724,16 +4813,12 @@
+     if (const auto* op = std::get_if<OpLd>(&ins.op)) {
+       // Every element of a vector access: an ld.v4 moves four times the
+       // element's bytes, and counting one element undercounted it that much.
+-      count_memory(op->space, op->ty.bytes() * static_cast<uint32_t>(op->dsts.size()),
+-                   popcount_mask(m), /*is_store=*/false);
+       exec_ld(w, ctx, ins, *op, m);
+       // ld.acquire: nothing after it may be seen to happen before it.
+       if (op->acquire) std::atomic_thread_fence(std::memory_order_acquire);
+       return;
+     }
+     if (const auto* op = std::get_if<OpSt>(&ins.op)) {
+-      count_memory(op->space, op->ty.bytes() * static_cast<uint32_t>(op->srcs.size()),
+-                   popcount_mask(m), /*is_store=*/true);
+       // st.release: nothing before it may be seen to happen after it.
+       if (op->release) std::atomic_thread_fence(std::memory_order_release);
+       exec_st(w, ctx, ins, *op, m);
+@@ -9663,6 +9748,7 @@
+             uint64_t v = 0;
+             std::memcpy(&v, params_.bytes.data() + (at - kParamVaBase), size);
+             results[e][lane] = v;
++            event_memory(lane, at, size, "load", e);
+           }
+         }
+       for (size_t e = 0; e < n; ++e) write_loaded(w, op.dsts[e], m, results[e], op.ty);
+@@ -9680,6 +9766,9 @@
+                    "ld.param reads past parameter '" + op.addr.base + "'");
+         uint64_t v = 0;
+         std::memcpy(&v, params_.bytes.data() + at, size);
++        if (tsim::execution_events().enabled())
++          for (uint32_t lane = 0; lane < W_; ++lane)
++            if (m & (Mask{1} << lane)) event_memory(lane, kParamVaBase + at, size, "load", e);
+         Lanes r;  // written for every active lane below
+         r.fill(v);
+         write_loaded(w, op.dsts[e], m, r, op.ty);
+@@ -9690,14 +9779,6 @@
+     const Lanes& base = addr_base(w, ctx, ins, op.addr, _s_base);
+     uint64_t sbase = space_base(op.space);
+     uint32_t va = size * static_cast<uint32_t>(n);  // vector accesses need vector alignment
+-    {
+-      // Sectors and bank conflicts need the addresses, which only exist here.
+-      Lanes at{};
+-      for (uint32_t lane = 0; lane < W_; ++lane)
+-        if (m & (Mask{1} << lane))
+-          at[lane] = sbase + base[lane] + static_cast<uint64_t>(op.addr.offset);
+-      count_addresses(op.space, at, m, size, n, /*is_store=*/false);
+-    }
+     LaneSet results(n);
+     for (uint32_t lane = 0; lane < W_; ++lane)
+       if (m & (Mask{1} << lane)) {
+@@ -9707,9 +9788,12 @@
+                    "vector load requires " + std::to_string(va) + "-byte alignment");
+         std::unique_lock<std::mutex> whole;
+         if (op.ordered && n > 1) whole = std::unique_lock<std::mutex>(vector_lock(addr));
+-        for (size_t e = 0; e < n; ++e)
++        for (size_t e = 0; e < n; ++e) {
+           results[e][lane] = load_routed(w, ctx, ins, lane, addr + e * size, size);
+-      }
++          event_memory(lane, addr + e * size, size, "load", e, op.constant);
++        }
++      }
++    count_resolved(base, sbase, op.addr.offset, m, size, n, false, op.constant);
+     for (size_t e = 0; e < n; ++e) write_loaded(w, op.dsts[e], m, results[e], op.ty);
+   }
+ 
+@@ -9762,13 +9846,6 @@
+     const Lanes& base = addr_base(w, ctx, ins, op.addr, _s_base);
+     uint64_t sbase = space_base(op.space);
+     uint32_t va = size * static_cast<uint32_t>(n);
+-    {
+-      Lanes at{};
+-      for (uint32_t lane = 0; lane < W_; ++lane)
+-        if (m & (Mask{1} << lane))
+-          at[lane] = sbase + base[lane] + static_cast<uint64_t>(op.addr.offset);
+-      count_addresses(op.space, at, m, size, n, /*is_store=*/true);
+-    }
+     for (uint32_t lane = 0; lane < W_; ++lane)
+       if (m & (Mask{1} << lane)) {
+         uint64_t addr = sbase + base[lane] + static_cast<uint64_t>(op.addr.offset);
+@@ -9777,9 +9854,12 @@
+                    "vector store requires " + std::to_string(va) + "-byte alignment");
+         std::unique_lock<std::mutex> whole;
+         if (op.ordered && n > 1) whole = std::unique_lock<std::mutex>(vector_lock(addr));
+-        for (size_t e = 0; e < n; ++e)
++        for (size_t e = 0; e < n; ++e) {
+           store_routed(w, ctx, ins, lane, addr + e * size, size, mask_to_bits(vals[e][lane], op.ty.bits));
+-      }
++          event_memory(lane, addr + e * size, size, "store", e);
++        }
++      }
++    count_resolved(base, sbase, op.addr.offset, m, size, n, true);
+   }
+ 
+   // mbarrier: a split barrier. Arriving and waiting are different
+@@ -11037,11 +11117,13 @@
+           uint8_t* host = mem_.host_address(addr, size);
+           if (host && reinterpret_cast<uintptr_t>(host) % size == 0) {
+             r[lane] = vgpu::exec::host_atomic_rmw(host, size, compute);
++            event_memory(lane, addr, size, "atomic");
+             continue;
+           }
+         }
+         const uint64_t old = load_routed(w, ctx, ins, lane, addr, size);
+         store_routed(w, ctx, ins, lane, addr, size, compute(old));
++        event_memory(lane, addr, size, "atomic");
+         r[lane] = old;
+       }
+     // `red` performed the read-modify-write and has nowhere to put the old
+@@ -11200,6 +11282,7 @@
+     // The caller resumes after the call, so its path is saved already past it.
+     ++w.paths[step_idx_].pc;
+     Warp::Frame f;
++    f.event_frame = w.event_frame;
+     f.fn = w.fn;
+     f.local_base = w.local_base;
+     f.paths = std::move(w.paths);
+@@ -11219,6 +11302,7 @@
+     // The callee's .local frame sits above its caller's, the way a stack
+     // grows, so a pointer into the caller's frame stays valid in the callee.
+     w.local_base = (local_base_ + cur_->local_frame_size + 15) / 16 * 16;
++    w.event_frame = ++w.next_event_frame;
+     w.fn = &callee;
+     cur_ = &callee;
+     local_base_ = w.local_base;
+@@ -11251,6 +11335,7 @@
+         have_ret = true;
+       }
+     }
++    w.event_frame = f.event_frame;
+     w.fn = f.fn;
+     w.local_base = f.local_base;
+     cur_ = w.fn ? w.fn : &fn_;
+@@ -13310,8 +13395,12 @@
+                         const DeviceProfile& profile, const SymbolTable* symbols,
+                         const ProgressFn& progress, DeviceLaunches* dl) {
+   LaunchConfig with_cluster = cfg;
+-  if (std::getenv("TSIM_TRACE"))
++  auto& events = tsim::execution_events();
++  if (std::getenv("TSIM_TRACE") || events.enabled())
+     with_cluster.tsim_launch_id = tsim::warp_trace().begin_launch();
++  const auto usage = events.enabled() ? analyze_registers(fn) : RegisterUsage{};
++  tsim::ExecutionEvents::LaunchScope event_launch(events, with_cluster.tsim_launch_id, fn.name,
++      cfg.grid, cfg.block, usage.regs_per_thread, usage.peak_live, fn.static_shared_size, cfg.shared_bytes);
+   // __cluster_dims__ compiles to .reqnctapercluster and is a property of the
+   // kernel, so it applies whether or not the launch asked for a cluster. An
+   // explicit cudaLaunchAttributeClusterDimension still wins: validate() then
+diff --git a/include/vgpu/ptx/ast.hpp b/include/vgpu/ptx/ast.hpp
+--- a/include/vgpu/ptx/ast.hpp
++++ b/include/vgpu/ptx/ast.hpp
+@@ -170,7 +170,7 @@
+ // threads, so the ordering a kernel asks for has to be real on the host too.
+ // `ordered`: .relaxed, .volatile, .acquire or .release -- an access another
+ // thread may be racing with on purpose, which a vector form must perform as one.
+-struct OpLd { Space space = Space::Generic; Type ty; std::vector<Reg> dsts; Addr addr; bool acquire = false; bool ordered = false; };
++struct OpLd { Space space = Space::Generic; Type ty; std::vector<Reg> dsts; Addr addr; bool acquire = false; bool ordered = false; bool constant = false; };
+ struct OpSt { Space space = Space::Generic; Type ty; Addr addr; std::vector<Operand> srcs; bool release = false; bool ordered = false; };
+ struct OpMov { Type ty; Reg dst; Operand src; };
+ // Vector forms of mov used by inline asm to pack/unpack sub-word registers:
+diff --git a/src/ptx/parser.cpp b/src/ptx/parser.cpp
+--- a/src/ptx/parser.cpp
++++ b/src/ptx/parser.cpp
+@@ -1680,7 +1680,7 @@
+       size_t vec = 1;
+       Type ty{};
+       bool have_ty = false;
+-      bool acquire = false, release = false, b128 = false, ordered = false;
++      bool acquire = false, release = false, b128 = false, ordered = false, constant = false;
+       for (size_t i = 1; i < parts.size(); ++i) {
+         const std::string& p = parts[i];
+         if (p == "relaxed" || p == "volatile" || p == "acquire" || p == "release") ordered = true;
+@@ -1692,7 +1692,7 @@
+         // constant-bank read is a global read of a range nothing writes. The
+         // read-only-ness is a promise the program makes, not one this engine
+         // has to enforce -- a kernel that writes there is already invalid.
+-        else if (p == "const") space = Space::Global;
++        else if (p == "const") { space = Space::Global; constant = true; }
+         // A .shared::cluster address names its block itself (see mapa), so
+         // it is a shared access like any other once decoded.
+         else if (p == "shared" || p == "shared::cluster") space = Space::Shared;
+@@ -1792,6 +1792,7 @@
+       if (auto* l = std::get_if<OpLd>(&ins.op)) {
+         l->acquire = acquire;
+         l->ordered = ordered;
++        l->constant = constant;
+       }
+       if (auto* st = std::get_if<OpSt>(&ins.op)) {
+         st->release = release;

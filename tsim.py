@@ -34,6 +34,8 @@ def parser():
     s.add_argument('--gpu', default='h100')
     s.add_argument('--trace', action='store_true', help='Record real warp issues and create an HTML inspector')
     s.add_argument('--trace-limit', type=int, default=200000)
+    s.add_argument('--events', action='store_true', help='Capture typed execution and actual memory events')
+    s.add_argument('--events-limit', type=int, default=200000, help='Maximum execution event records')
     s.add_argument('--scheduler', choices=['deterministic', 'random', 'adversarial'], default='deterministic')
     s.add_argument('--seed', type=int, default=1)
     s.add_argument('--threads', type=int, default=1, help='CPU workers; one gives stable trace ordering')
@@ -51,6 +53,8 @@ def parser():
     s.add_argument('--out', type=Path)
     s = sub.add_parser('source-conformance', help='Run CUDA feature and synchronization references')
     s.add_argument('--out', type=Path)
+    s = sub.add_parser('event-conformance', help='Verify actual memory events and capture coverage')
+    s.add_argument('--out', type=Path)
     return p
 
 def run_program(args, cache, program_args=(), compiled_from=None):
@@ -60,6 +64,7 @@ def run_program(args, cache, program_args=(), compiled_from=None):
     if source.suffix != '.cu': raise RuntimeError('Expected a CUDA C++ .cu source file')
     for name in ['threads', 'trace_limit']:
         if getattr(args, name) < 1: raise RuntimeError(name + ' must be positive')
+    if getattr(args, 'events_limit', 200000) < 1: raise RuntimeError('events_limit must be positive')
     if args.timeout <= 0: raise RuntimeError('timeout must be positive')
     toolkit = cache / 'toolchain' / 'cuda'
     nvcc = toolkit / 'bin' / 'nvcc'
@@ -119,6 +124,14 @@ def run_program(args, cache, program_args=(), compiled_from=None):
     else:
         env.pop('TSIM_TRACE', None)
         env.pop('TSIM_TRACE_LIMIT', None)
+    events = out / 'execution-events.jsonl'
+    if getattr(args, 'events', False):
+        events.write_text('')
+        env['TSIM_EVENTS'] = str(events)
+        env['TSIM_EVENTS_LIMIT'] = str(getattr(args, 'events_limit', 200000))
+    else:
+        env.pop('TSIM_EVENTS', None)
+        env.pop('TSIM_EVENTS_LIMIT', None)
     gpu = args.gpu if '/' in args.gpu else 'nvidia/' + args.gpu
     command = [str(simulator), 'run', '--gpu', gpu, '--counters']
     if args.race: command.append('--race')
@@ -145,12 +158,20 @@ def run_program(args, cache, program_args=(), compiled_from=None):
                 'compilation_sha256': {name: hashlib.sha256((out / name).read_bytes()).hexdigest()
                                        for name in ['program', 'kernel.ptx']},
                 'run_command': command, 'trace_limit': args.trace_limit,
+                'events_limit': getattr(args, 'events_limit', 200000),
                 'execution_environment': {key: env[key] for key in ['VGPU_SASS', 'VGPU_THREADS',
                     'VGPU_SCHEDULER', 'VGPU_SCHEDULER_SEED', 'VGPU_MAX_STEPS', 'TSIM_TRACE',
-                    'TSIM_TRACE_LIMIT'] if key in env},
+                    'TSIM_TRACE_LIMIT', 'TSIM_EVENTS', 'TSIM_EVENTS_LIMIT'] if key in env},
                 'engine_revision': '771bb8f96abc3721700219d88fa74e10d43dcfd5'}
     (out / 'run.json').write_text(json.dumps(metadata, indent=2))
     if args.trace and trace.exists(): create_report(trace, out / 'inspector.html')
+    if getattr(args, 'events', False) and events.exists():
+        from execution_events import summarize_events
+        summary = summarize_events(events)
+        summary['process_exit_code'] = code
+        summary['timed_out'] = timed_out
+        summary['complete_supported_memory'] &= code == 0 and not timed_out
+        (out / 'execution-summary.json').write_text(json.dumps(summary, indent=2))
     print(stdout, end='')
     print(stderr, end='', file=sys.stderr)
     print('Run artifacts: ' + str(out), flush=True)
@@ -174,7 +195,8 @@ def main():
             converted += [linux_path(args.source.resolve()), '--gpu', args.gpu,
                           '--trace-limit', str(args.trace_limit), '--scheduler', args.scheduler,
                           '--seed', str(args.seed), '--threads', str(args.threads), '--timeout', str(args.timeout)]
-            for flag in ['trace', 'race', 'strict']:
+            converted += ['--events-limit', str(args.events_limit)]
+            for flag in ['trace', 'events', 'race', 'strict']:
                 if getattr(args, flag): converted.append('--' + flag)
             for value in args.nvcc_arg: converted.append('--nvcc-arg=' + value)
         if args.command == 'inspect': converted.append(linux_path(args.trace.resolve()))
@@ -207,6 +229,9 @@ def main():
     if args.command == 'source-conformance':
         from source_conformance import verify_source
         return verify_source(cache, args.out or cache / 'source-conformance')
+    if args.command == 'event-conformance':
+        from event_conformance import verify_events
+        return verify_events(cache, args.out or cache / 'event-conformance')
     if args.command == 'devices':
         return subprocess.call([str(cache / 'build' / 'vgpu'), 'list-gpus'])
     if args.command == 'doctor':

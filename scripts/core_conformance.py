@@ -12,7 +12,8 @@ def verify_core(cache, out):
     out = Path(out).resolve()
     out.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
-    env.pop('TSIM_TRACE', None)
+    for key in ['TSIM_TRACE', 'TSIM_TRACE_LIMIT', 'TSIM_EVENTS', 'TSIM_EVENTS_LIMIT']:
+        env.pop(key, None)
     (out / 'tmp').mkdir(exist_ok=True)
     env['TMPDIR'] = str(out / 'tmp')
     cmake = cache / 'toolchain/cmake-wheel/cmake/data/bin/cmake'

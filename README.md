@@ -52,6 +52,8 @@ An optional installed Chromium/Chrome/Edge browser can verify the inspector itse
 
 `python tsim.py source-conformance` runs CUDA feature references and intentional synchronization faults across A100/H100 profiles and three schedules. The [source report](docs/source-conformance.json) records 78 passing cases. It checks warp collectives, divergent device calls, numerical edge cases, memory spaces, direct and transitive publication, and counted barriers. The [compatibility inventory](docs/compatibility.json) maps each tested subset to its evidence. The [shared-memory ordering model](docs/shared-memory-ordering.md) documents the implemented happens-before rules and remaining coverage gaps. Artifacts stay under `source-conformance/`; each compiled program is replayed with verified hashes across the matrix.
 
+`python tsim.py run examples/vector_add.cu --events` records typed instruction dependencies, call-frame identities, launch resources and successful per-lane memory addresses. The [execution-event contract](docs/execution-events.md) describes scope, truncation, faults and explicit coverage gaps. `python tsim.py event-conformance` verifies 56 analytical checks, including mixed generic memory spaces, exact scalar atomic counts, four-worker parent identities and capture equivalence. The [event report](docs/event-conformance.json) records the result. Event summaries count logical accesses, not hardware transactions or cycles.
+
 ## Fidelity and boundaries
 
 This is functional GPU simulation. Warps, per-lane registers, divergence, memory spaces, barriers, and supported PTX instructions are executed by the upstream engine. tsim's trace hooks record actual interpreter state immediately before each issued instruction, including instructions on the fast execution path. The recorded PTX line refers to the compiled PTX file, not directly to the CUDA source line. Device-function calls use the currently executing function's program counter.
@@ -63,5 +65,7 @@ This project focuses on your own CUDA C++ programs and learning execution semant
 ## Source layout and licensing
 
 `tsim.py` is the CLI and WSL bridge. `scripts/setup.py` downloads verified compiler archives and builds the pinned engine. `include/tsim/warp_trace.hpp` writes bounded JSONL traces. `patches/` contains the replayable trace hook and compiler-portability changes applied to the submodule. `scripts/inspector.py` packages the report and `ui/inspector.html` renders it. `scripts/verify.py` implements the integration checks. `examples/` contains normal CUDA source.
+
+`include/tsim/execution_events.hpp` writes architecture input events; `scripts/execution_events.py` validates them. `scripts/engine_patches.py` replays the ordered patch stack from pinned Git objects, upgrades recognized older stack states and preserves unknown local edits.
 
 tsim's additions are licensed under Apache-2.0, as is PantheonSim; see `LICENSE` and `THIRD_PARTY.md`. NVIDIA compiler components retain NVIDIA's licenses and are downloaded locally, not committed or redistributed in this repository. CUDA and NVIDIA are trademarks of NVIDIA Corporation. This project is not affiliated with NVIDIA or the PantheonSim authors.

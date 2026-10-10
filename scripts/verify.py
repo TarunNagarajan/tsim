@@ -6,17 +6,24 @@ import re
 import tempfile
 from inspector import read_trace, create_report
 
-def verify(cache, out=None):
+def verify(cache, out=None, replay_from=None):
     from tsim import ROOT, run_program
     out = Path(out or cache / 'verification').resolve()
     out.mkdir(parents=True, exist_ok=True)
     results = []
+    compiled = {}
+    if replay_from:
+        for record_path in sorted(Path(replay_from).glob('*/run.json')):
+            record = json.loads(record_path.read_text())
+            source = Path(record['source'])
+            if source.is_file() and (record_path.parent / 'source.cu').read_bytes() == source.read_bytes() and not record['nvcc_args']:
+                compiled.setdefault(str(source), record_path.parent)
     def case(name, scheduler='deterministic', trace=True, limit=200000, negative=None, threads=1):
         args = argparse.Namespace(source=ROOT / 'examples' / (name + '.cu'), gpu='h100',
             trace=trace, trace_limit=limit, scheduler=scheduler, seed=7, threads=threads,
             race=True, strict=False, timeout=60, out=out / (name + '-' + scheduler + ('-trace' if trace else '-plain') + ('-cap' if limit < 100 else '') + ('-workers' + str(threads) if threads != 1 else '')),
             nvcc_arg=[])
-        code, path = run_program(args, cache)
+        code, path = run_program(args, cache, compiled_from=compiled.get(str(args.source)))
         stdout = (path / 'stdout.log').read_text()
         stderr = (path / 'stderr.log').read_text()
         if negative:

@@ -1,11 +1,24 @@
 {
   "passed": true,
-  "patches": [
-    "atomic-nan.patch",
-    "build-portability.patch",
-    "warp-trace.patch",
-    "z-shared-memory-ordering.patch"
-  ],
-  "reverse_check_passed": true,
-  "diff_sha256": "3c2f3d1319ab0eb5faa63ad77a1d1d39b5d7f3fb8c8730a65ada00ad9e9d7a50"
+  "engine_revision": "771bb8f96abc3721700219d88fa74e10d43dcfd5",
+  "patch_sha256": {
+    "atomic-nan.patch": "3a66fbe1aa7058fd114750a49229b9fe64a3136a54a2e8935e7d103323a9a8c1",
+    "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
+    "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
+    "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
+    "zz-execution-events.patch": "1a2f28296d6435fcefd9f975319866d9926ef1dc89d1f9719893d9abb56541be"
+  },
+  "target_sha256": {
+    "CMakeLists.txt": "ddc998c6a27cc06a4f8d288679a5d260b2e9e0bba06152d5700cc6ad15d82f87",
+    "amd/src/codeobject.cpp": "fd16748b319b463cbc639cd01705f61589a97433eeb1592e76f4e90a95c04662",
+    "include/vgpu/exec/launch.hpp": "618a16a75abbd558b2650ca1803092cc0a04dab35e53abaa17d53a435fa4b10c",
+    "include/vgpu/ptx/ast.hpp": "e7a2299ec2df527e37c33953711b6ddb388838007537a5c3b7711c7aaac0ccab",
+    "src/exec/interpreter.cpp": "7a78e71115fc0fcc6943ed75bf380e2d775ebb073cb715540fd16390f9d59c1e",
+    "src/ptx/parser.cpp": "e27e7a3c19bd8dd4084e26d474781519518d6074c3ddb8d987c7ba0b7702ca7a"
+  },
+  "reverse_stack_order_passed": true,
+  "idempotence_passed": true,
+  "previous_stack_upgrade_passed": true,
+  "exact_developed_diff_passed": true,
+  "diff_sha256": "de431667d2cf7274b3e24b2d597d1f32122b494ddf1d35964d9ee0a7b907a4cd"
 }
