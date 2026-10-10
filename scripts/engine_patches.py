@@ -22,6 +22,10 @@ def apply_engine_patches(engine, patches, pin, cache):
     known = {name: set() for name in targets}
     with tempfile.TemporaryDirectory(prefix='patch-replay-', dir=cache) as folder:
         replay = Path(folder)
+        # A default cache lives inside the tsim checkout. Without an isolated
+        # repository, git apply discovers that parent and silently skips Git
+        # diff paths outside its subdirectory prefix, despite returning success.
+        subprocess.run(['git', '-C', str(replay), 'init', '-q'], check=True, capture_output=True)
         for name in targets:
             data = subprocess.check_output(['git', '-C', str(engine), 'show', pin + ':' + name])
             data = data.replace(b'\r\n', b'\n')
@@ -30,6 +34,7 @@ def apply_engine_patches(engine, patches, pin, cache):
             target.write_bytes(data)
             known[name].add(data)
         for index, patch in enumerate(patches):
+            before = {name: (replay / name).read_bytes() for name in targets}
             saved = replay / ('stack-' + str(index) + '.patch')
             saved.write_bytes(contents[patch])
             for suffix in [['--check'], []]:
@@ -37,6 +42,8 @@ def apply_engine_patches(engine, patches, pin, cache):
                                         text=True, capture_output=True)
                 if result.returncode:
                     raise RuntimeError('Engine patch replay failed: ' + patch.name + '\n' + result.stderr)
+            if all((replay / name).read_bytes() == before[name] for name in targets):
+                raise RuntimeError('Engine patch replay changed no targets: ' + patch.name)
             for name in targets:
                 known[name].add((replay / name).read_bytes())
         desired = {name: (replay / name).read_bytes() for name in targets}

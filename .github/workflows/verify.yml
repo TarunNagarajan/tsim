@@ -14,7 +14,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .local
-          key: cuda-cpu-${{ runner.os }}-${{ hashFiles('scripts/setup.py', 'patches/*.patch', 'include/tsim/*.hpp', '.gitmodules') }}
+          key: cuda-cpu-${{ runner.os }}-${{ hashFiles('scripts/setup.py', 'scripts/engine_patches.py', 'patches/*.patch', 'include/tsim/*.hpp', '.gitmodules') }}
       - name: Build compiler and CPU runtime
         run: python3 tsim.py setup --jobs 2
       - name: Verify CUDA execution and tracing

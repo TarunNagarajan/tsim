@@ -10,6 +10,9 @@ from engine_patches import apply_engine_patches
 def verify_patches(cache):
     with tempfile.TemporaryDirectory(prefix='patch-model-', dir=cache) as folder:
         root = Path(folder)
+        # Match the default CI layout: cache and replay scratch inside a parent
+        # Git checkout, rather than only testing a cache outside every repo.
+        subprocess.run(['git', '-C', str(root), 'init', '-q'], check=True)
         engine = root / 'engine'; engine.mkdir()
         subprocess.run(['git', '-C', str(engine), 'init', '-q'], check=True)
         first = 'alpha\nbeta\ngamma\n'; second = 'alpha\nmanaged\ngamma\n'; third = 'alpha\nmanaged-new\ngamma\n'
@@ -21,7 +24,7 @@ def verify_patches(cache):
         pin = subprocess.check_output(['git', '-C', str(engine), 'rev-parse', 'HEAD'], text=True).strip()
         def patch(name, before, after, target):
             result = root / name
-            result.write_text(''.join(difflib.unified_diff(before.splitlines(True), after.splitlines(True),
+            result.write_text('diff --git a/' + target + ' b/' + target + '\n' + ''.join(difflib.unified_diff(before.splitlines(True), after.splitlines(True),
                                 fromfile='a/' + target, tofile='b/' + target)), newline='\r\n')
             return result
         p1 = patch('one.patch', first, second, 'one.txt')
