@@ -1,0 +1,402 @@
+{
+  "kind": "real NVIDIA compiler/cubin resource checks on CPU; no GPU hardware measurements",
+  "passed": true,
+  "checks": [
+    "compiler registers and barrier counts",
+    "stack and spill directions stay separate",
+    "user prefix local and constant bytes retained",
+    "encoded reservation not confused with prefix",
+    "wrong architecture rejected",
+    "duplicate entry rejected",
+    "missing stack rejected",
+    "missing barriers rejected",
+    "unknown field rejected",
+    "duplicate size rejected",
+    "duplicate constant bank rejected",
+    "unparented Used record rejected",
+    "missing cubin field rejected",
+    "duplicate cubin field rejected",
+    "register producer disagreement rejected",
+    "stack producer disagreement rejected",
+    "constant producer disagreement rejected",
+    "unknown shared encoding rejected",
+    "missing entry from cubin rejected",
+    "omitted zero shared prefix preserved",
+    "device stack kept apart from entry resources",
+    "cumulative stack kept separate from own frame",
+    "cubin STACK checked against cumulative requirement when supplied",
+    "duplicate cumulative stack rejected",
+    "vector-a100 complete numerical CUDA reference",
+    "vector-a100 resource provenance reload",
+    "vector-a100 positive allocated entry registers",
+    "vector-a100 compiler allocation residency provenance",
+    "vector-h100 complete numerical CUDA reference",
+    "vector-h100 resource provenance reload",
+    "vector-h100 positive allocated entry registers",
+    "vector-h100 compiler allocation residency provenance",
+    "spaces complete numerical CUDA reference",
+    "spaces resource provenance reload",
+    "spaces positive allocated entry registers",
+    "spaces compiler allocation residency provenance",
+    "compiler resource count differs from PTX liveness",
+    "physical allocation changes resource ceiling",
+    "three launch resource identities preserved",
+    "reduce complete numerical CUDA reference",
+    "reduce resource provenance reload",
+    "reduce positive allocated entry registers",
+    "reduce compiler allocation residency provenance",
+    "aligned-prefix complete numerical CUDA reference",
+    "aligned-prefix resource provenance reload",
+    "aligned-prefix positive allocated entry registers",
+    "aligned-prefix compiler allocation residency provenance",
+    "real compiler prefix includes alignment padding",
+    "real cubin shared reservation retained separately",
+    "dynamic shared plus prefix has exact rounded charge",
+    "ordinary barrier count comes from compiler",
+    "PTX-only prefix still refuses guessing",
+    "register-pressure complete numerical CUDA reference",
+    "register-pressure resource provenance reload",
+    "register-pressure positive allocated entry registers",
+    "register-pressure compiler allocation residency provenance",
+    "real launch-bound register allocation respects 32-slot budget",
+    "real compiler spill load/store bytes recorded",
+    "real stack and cumulative requirement retained",
+    "compiler spills do not become invented PTX local events",
+    "nested-stack complete numerical CUDA reference",
+    "nested-stack resource provenance reload",
+    "nested-stack positive allocated entry registers",
+    "nested-stack device function stack properties remain separate",
+    "real local array stack allocation differs from register spilling",
+    "device-calls complete numerical CUDA reference",
+    "device-calls resource provenance reload",
+    "device-calls positive allocated entry registers",
+    "device-calls device function stack properties remain separate",
+    "deliberately faulted CUDA reference fails functional execution",
+    "compiler introspection retains failed functional status",
+    "faulted capture cannot become compiler-backed residency",
+    "modified input.ptx rejected",
+    "modified module.cubin rejected",
+    "modified ptxas.log rejected",
+    "modified cuobjdump.log rejected",
+    "modified report architecture rejected",
+    "modified report gpu rejected",
+    "modified report hardware_validated rejected",
+    "modified report functional_run_exit_code rejected",
+    "modified report ptx_sha256 rejected",
+    "modified report schema rejected",
+    "report register count differs from logs rejected",
+    "unexpected compiler release rejected",
+    "modified compiler command rejected",
+    "malformed report missing fields rejected",
+    "concurrent profile change cannot retain old compilation identity",
+    "changed run identity cannot retain success marker",
+    "run PTX changed since compilation rejected",
+    "real failed ptxas compilation rejected",
+    "failed compilation cannot reuse stale success report"
+  ],
+  "hardware_validated": false,
+  "cases": [
+    {
+      "name": "vector-a100",
+      "gpu": "a100",
+      "resources": {
+        "entries": {
+          "_Z10vector_addPKfS0_Pfi": {
+            "stack_bytes": 0,
+            "spill_store_bytes": 0,
+            "spill_load_bytes": 0,
+            "registers": 12,
+            "shared_prefix_bytes": 0,
+            "local_bytes": 0,
+            "constant_banks": {
+              "0": 380
+            },
+            "barriers": 0,
+            "cubin_raw_shared_bytes": 0,
+            "encoded_system_reservation_bytes": 0,
+            "cubin_local_bytes": 0
+          }
+        },
+        "device_functions": {}
+      },
+      "ptx_sha256": "3f6932ea7f09d60dec53bdfc72c298bf4e17dfe687c4ba513a87d8877b2b4313",
+      "tools": {
+        "ptxas": {
+          "release": "V12.6.85",
+          "version": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Tue_Oct_29_23:47:06_PDT_2024\nCuda compilation tools, release 12.6, V12.6.85\nBuild cuda_12.6.r12.6/compiler.35059454_0",
+          "sha256": "81ef7761e3769ec17980aba4e416ecbc85352b8dce26cdd392b7204302a909a2"
+        },
+        "cuobjdump": {
+          "release": "V12.6.77",
+          "version": "cuobjdump: NVIDIA (R) fat binary listing tool\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Thu_Sep_12_02:18:05_PDT_2024\nCuda compilation tools, release 12.6, V12.6.77\nBuild cuda_12.6.r12.6/compiler.34841621_0",
+          "sha256": "f0299c666460f826a01444f29f3c5ff889765199fc68069e8756c69d4deb661b"
+        }
+      }
+    },
+    {
+      "name": "vector-h100",
+      "gpu": "h100",
+      "resources": {
+        "entries": {
+          "_Z10vector_addPKfS0_Pfi": {
+            "stack_bytes": 0,
+            "spill_store_bytes": 0,
+            "spill_load_bytes": 0,
+            "registers": 12,
+            "shared_prefix_bytes": 0,
+            "local_bytes": 0,
+            "constant_banks": {},
+            "barriers": 0,
+            "cubin_raw_shared_bytes": 0,
+            "encoded_system_reservation_bytes": 0,
+            "cubin_local_bytes": 0
+          }
+        },
+        "device_functions": {}
+      },
+      "ptx_sha256": "3f6932ea7f09d60dec53bdfc72c298bf4e17dfe687c4ba513a87d8877b2b4313",
+      "tools": {
+        "ptxas": {
+          "release": "V12.6.85",
+          "version": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Tue_Oct_29_23:47:06_PDT_2024\nCuda compilation tools, release 12.6, V12.6.85\nBuild cuda_12.6.r12.6/compiler.35059454_0",
+          "sha256": "81ef7761e3769ec17980aba4e416ecbc85352b8dce26cdd392b7204302a909a2"
+        },
+        "cuobjdump": {
+          "release": "V12.6.77",
+          "version": "cuobjdump: NVIDIA (R) fat binary listing tool\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Thu_Sep_12_02:18:05_PDT_2024\nCuda compilation tools, release 12.6, V12.6.77\nBuild cuda_12.6.r12.6/compiler.34841621_0",
+          "sha256": "f0299c666460f826a01444f29f3c5ff889765199fc68069e8756c69d4deb661b"
+        }
+      }
+    },
+    {
+      "name": "spaces",
+      "gpu": "h100",
+      "resources": {
+        "entries": {
+          "_Z6spacesPii": {
+            "stack_bytes": 0,
+            "spill_store_bytes": 0,
+            "spill_load_bytes": 0,
+            "registers": 14,
+            "shared_prefix_bytes": 0,
+            "local_bytes": 0,
+            "constant_banks": {},
+            "barriers": 0,
+            "cubin_raw_shared_bytes": 0,
+            "encoded_system_reservation_bytes": 0,
+            "cubin_local_bytes": 0
+          }
+        },
+        "device_functions": {}
+      },
+      "ptx_sha256": "e2177f4d8319cb186a59c32075af8b1d925debfb19cc71f2ed54212017467343",
+      "tools": {
+        "ptxas": {
+          "release": "V12.6.85",
+          "version": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Tue_Oct_29_23:47:06_PDT_2024\nCuda compilation tools, release 12.6, V12.6.85\nBuild cuda_12.6.r12.6/compiler.35059454_0",
+          "sha256": "81ef7761e3769ec17980aba4e416ecbc85352b8dce26cdd392b7204302a909a2"
+        },
+        "cuobjdump": {
+          "release": "V12.6.77",
+          "version": "cuobjdump: NVIDIA (R) fat binary listing tool\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Thu_Sep_12_02:18:05_PDT_2024\nCuda compilation tools, release 12.6, V12.6.77\nBuild cuda_12.6.r12.6/compiler.34841621_0",
+          "sha256": "f0299c666460f826a01444f29f3c5ff889765199fc68069e8756c69d4deb661b"
+        }
+      }
+    },
+    {
+      "name": "reduce",
+      "gpu": "h100",
+      "resources": {
+        "entries": {
+          "_Z13shared_reducePi": {
+            "stack_bytes": 0,
+            "spill_store_bytes": 0,
+            "spill_load_bytes": 0,
+            "registers": 10,
+            "shared_prefix_bytes": 0,
+            "local_bytes": 0,
+            "constant_banks": {},
+            "barriers": 1,
+            "cubin_raw_shared_bytes": 1024,
+            "encoded_system_reservation_bytes": 1024,
+            "cubin_local_bytes": 0
+          }
+        },
+        "device_functions": {}
+      },
+      "ptx_sha256": "34256aa2aaf0328a05997583906ffea44f8b9a6b81f1429ea21375c415da5608",
+      "tools": {
+        "ptxas": {
+          "release": "V12.6.85",
+          "version": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Tue_Oct_29_23:47:06_PDT_2024\nCuda compilation tools, release 12.6, V12.6.85\nBuild cuda_12.6.r12.6/compiler.35059454_0",
+          "sha256": "81ef7761e3769ec17980aba4e416ecbc85352b8dce26cdd392b7204302a909a2"
+        },
+        "cuobjdump": {
+          "release": "V12.6.77",
+          "version": "cuobjdump: NVIDIA (R) fat binary listing tool\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Thu_Sep_12_02:18:05_PDT_2024\nCuda compilation tools, release 12.6, V12.6.77\nBuild cuda_12.6.r12.6/compiler.34841621_0",
+          "sha256": "f0299c666460f826a01444f29f3c5ff889765199fc68069e8756c69d4deb661b"
+        }
+      }
+    },
+    {
+      "name": "aligned-prefix",
+      "gpu": "h100",
+      "resources": {
+        "entries": {
+          "_Z13shared_prefixPi": {
+            "stack_bytes": 0,
+            "spill_store_bytes": 0,
+            "spill_load_bytes": 0,
+            "registers": 12,
+            "shared_prefix_bytes": 16,
+            "local_bytes": 0,
+            "constant_banks": {},
+            "barriers": 1,
+            "cubin_raw_shared_bytes": 1040,
+            "encoded_system_reservation_bytes": 1024,
+            "cubin_local_bytes": 0
+          }
+        },
+        "device_functions": {}
+      },
+      "ptx_sha256": "b45ce97573af9737b623547b7509ff43511fcc5e159f11eed1bff81d6f6d583c",
+      "tools": {
+        "ptxas": {
+          "release": "V12.6.85",
+          "version": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Tue_Oct_29_23:47:06_PDT_2024\nCuda compilation tools, release 12.6, V12.6.85\nBuild cuda_12.6.r12.6/compiler.35059454_0",
+          "sha256": "81ef7761e3769ec17980aba4e416ecbc85352b8dce26cdd392b7204302a909a2"
+        },
+        "cuobjdump": {
+          "release": "V12.6.77",
+          "version": "cuobjdump: NVIDIA (R) fat binary listing tool\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Thu_Sep_12_02:18:05_PDT_2024\nCuda compilation tools, release 12.6, V12.6.77\nBuild cuda_12.6.r12.6/compiler.34841621_0",
+          "sha256": "f0299c666460f826a01444f29f3c5ff889765199fc68069e8756c69d4deb661b"
+        }
+      }
+    },
+    {
+      "name": "register-pressure",
+      "gpu": "h100",
+      "resources": {
+        "entries": {
+          "_Z17register_pressurePKiPi": {
+            "stack_bytes": 272,
+            "spill_store_bytes": 268,
+            "spill_load_bytes": 268,
+            "registers": 32,
+            "shared_prefix_bytes": 0,
+            "local_bytes": 0,
+            "constant_banks": {},
+            "barriers": 1,
+            "cumulative_stack_bytes": 272,
+            "cubin_raw_shared_bytes": 0,
+            "encoded_system_reservation_bytes": 0,
+            "cubin_local_bytes": 0
+          }
+        },
+        "device_functions": {}
+      },
+      "ptx_sha256": "5bc16d92983e0cb3b4bcd94b2f27af543f9ae0b3ecba86e4d4aa68cb983e7926",
+      "tools": {
+        "ptxas": {
+          "release": "V12.6.85",
+          "version": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Tue_Oct_29_23:47:06_PDT_2024\nCuda compilation tools, release 12.6, V12.6.85\nBuild cuda_12.6.r12.6/compiler.35059454_0",
+          "sha256": "81ef7761e3769ec17980aba4e416ecbc85352b8dce26cdd392b7204302a909a2"
+        },
+        "cuobjdump": {
+          "release": "V12.6.77",
+          "version": "cuobjdump: NVIDIA (R) fat binary listing tool\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Thu_Sep_12_02:18:05_PDT_2024\nCuda compilation tools, release 12.6, V12.6.77\nBuild cuda_12.6.r12.6/compiler.34841621_0",
+          "sha256": "f0299c666460f826a01444f29f3c5ff889765199fc68069e8756c69d4deb661b"
+        }
+      }
+    },
+    {
+      "name": "nested-stack",
+      "gpu": "h100",
+      "resources": {
+        "entries": {
+          "_Z12nested_stackPi": {
+            "stack_bytes": 216,
+            "spill_store_bytes": 0,
+            "spill_load_bytes": 0,
+            "registers": 22,
+            "shared_prefix_bytes": 0,
+            "local_bytes": 0,
+            "constant_banks": {},
+            "barriers": 0,
+            "cumulative_stack_bytes": 216,
+            "cubin_raw_shared_bytes": 0,
+            "encoded_system_reservation_bytes": 0,
+            "cubin_local_bytes": 0
+          }
+        },
+        "device_functions": {
+          "_Z16stacked_identityi": {
+            "stack_bytes": 0,
+            "spill_store_bytes": 0,
+            "spill_load_bytes": 0
+          }
+        }
+      },
+      "ptx_sha256": "b1bcb32810be96febd96eaba8c5c9d279fdac3744fd50e99cecc216b79ef3b57",
+      "tools": {
+        "ptxas": {
+          "release": "V12.6.85",
+          "version": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Tue_Oct_29_23:47:06_PDT_2024\nCuda compilation tools, release 12.6, V12.6.85\nBuild cuda_12.6.r12.6/compiler.35059454_0",
+          "sha256": "81ef7761e3769ec17980aba4e416ecbc85352b8dce26cdd392b7204302a909a2"
+        },
+        "cuobjdump": {
+          "release": "V12.6.77",
+          "version": "cuobjdump: NVIDIA (R) fat binary listing tool\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Thu_Sep_12_02:18:05_PDT_2024\nCuda compilation tools, release 12.6, V12.6.77\nBuild cuda_12.6.r12.6/compiler.34841621_0",
+          "sha256": "f0299c666460f826a01444f29f3c5ff889765199fc68069e8756c69d4deb661b"
+        }
+      }
+    },
+    {
+      "name": "device-calls",
+      "gpu": "h100",
+      "resources": {
+        "entries": {
+          "_Z5callsPii": {
+            "stack_bytes": 0,
+            "spill_store_bytes": 0,
+            "spill_load_bytes": 0,
+            "registers": 14,
+            "shared_prefix_bytes": 0,
+            "local_bytes": 0,
+            "constant_banks": {},
+            "barriers": 0,
+            "cubin_raw_shared_bytes": 0,
+            "encoded_system_reservation_bytes": 0,
+            "cubin_local_bytes": 0
+          }
+        },
+        "device_functions": {
+          "_Z9transformii": {
+            "stack_bytes": 0,
+            "spill_store_bytes": 0,
+            "spill_load_bytes": 0
+          }
+        }
+      },
+      "ptx_sha256": "422000b59d4dae602776b5b9a4ae815f6cb8ebeecbcdb5f08f1c91ad992e8eae",
+      "tools": {
+        "ptxas": {
+          "release": "V12.6.85",
+          "version": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Tue_Oct_29_23:47:06_PDT_2024\nCuda compilation tools, release 12.6, V12.6.85\nBuild cuda_12.6.r12.6/compiler.35059454_0",
+          "sha256": "81ef7761e3769ec17980aba4e416ecbc85352b8dce26cdd392b7204302a909a2"
+        },
+        "cuobjdump": {
+          "release": "V12.6.77",
+          "version": "cuobjdump: NVIDIA (R) fat binary listing tool\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Thu_Sep_12_02:18:05_PDT_2024\nCuda compilation tools, release 12.6, V12.6.77\nBuild cuda_12.6.r12.6/compiler.34841621_0",
+          "sha256": "f0299c666460f826a01444f29f3c5ff889765199fc68069e8756c69d4deb661b"
+        }
+      }
+    }
+  ],
+  "model_sha256": {
+    "compiler_resources.py": "652005d3e0e0b72ec2ccf87e9027681a1c53a44f88f3d4eda29c8eb682f323f1",
+    "sm_residency.py": "397d62b52a2a21d33a78df45c375d760b839b3ae814283a2fed9c37e57e792f1",
+    "memory_model.py": "61b9c29ddcfb52f3776b2f0cccce4a29212ad4c2aaddae93a19f63ef6e260e7d"
+  },
+  "total_checks": 91
+}

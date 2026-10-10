@@ -3,8 +3,8 @@
 #include <cuda_occupancy.h>
 #include <cstdio>
 int main() {
-  int major, threads, registers, shared, dynamic;
-  while (std::scanf("%d %d %d %d %d", &major, &threads, &registers, &shared, &dynamic) == 5) {
+  int major, threads, registers, shared, dynamic, barriers;
+  while (std::scanf("%d %d %d %d %d %d", &major, &threads, &registers, &shared, &dynamic, &barriers) == 6) {
     cudaOccDeviceProp device;
     device.computeMajor = major; device.computeMinor = 0;
     device.maxThreadsPerBlock = 1024; device.maxThreadsPerMultiprocessor = 2048;
@@ -15,7 +15,7 @@ int main() {
     device.reservedSharedMemPerBlock = 1024; device.numSms = 1;
     cudaOccFuncAttributes function;
     function.maxThreadsPerBlock = 1024; function.numRegs = registers;
-    function.sharedSizeBytes = shared; function.numBlockBarriers = 1;
+    function.sharedSizeBytes = shared; function.numBlockBarriers = barriers;
     function.shmemLimitConfig = FUNC_SHMEM_LIMIT_OPTIN;
     function.maxDynamicSharedSizeBytes = device.sharedMemPerBlockOptin - shared;
     cudaOccDeviceState state; state.carveoutConfig = SHAREDMEM_CARVEOUT_MAX_SHARED;

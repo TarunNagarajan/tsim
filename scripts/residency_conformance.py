@@ -33,17 +33,17 @@ def verify_residency(cache, out, replay_from=None):
         subprocess.run(['clang++', '-std=c++17', '-O2', '-I' + str(header.parent),
                         str(ROOT / 'tests/occupancy_sdk_reference.cpp'), '-o', str(binary)], check=True)
         cases = list(product([8, 9], [1, 31, 32, 33, 64, 96, 128, 192, 256, 512, 1024],
-                             [0, 8, 17, 24, 56, 72, 88, 128, 200, 255, 256], [(0, 0), (12000, 9000), (0, 20001), (0, 60 * 1024)]))
-        payload = ''.join(' '.join(map(str, [major, threads, registers, static, dynamic])) + '\n'
-                          for major, threads, registers, (static, dynamic) in cases)
+                             [0, 8, 17, 24, 56, 72, 88, 128, 200, 255, 256], [(0, 0), (12000, 9000), (0, 20001), (0, 60 * 1024)], [0, 1, 4, 16]))
+        payload = ''.join(' '.join(map(str, [major, threads, registers, static, dynamic, barriers])) + '\n'
+                          for major, threads, registers, (static, dynamic), barriers in cases)
         result = subprocess.run([str(binary)], input=payload, text=True, capture_output=True, check=True)
         lines = result.stdout.splitlines()
         check('SDK reference returns every requested case', len(lines) == len(cases))
         references = []
         for case, line in zip(cases, lines):
-            major, threads, registers, (static, dynamic) = case
+            major, threads, registers, (static, dynamic), barriers = case
             profile = profile_for('nvidia/' + ('a100' if major == 8 else 'h100'))
-            footprint = block_footprint(profile, [threads, 1, 1], registers, static, dynamic)
+            footprint = block_footprint(profile, [threads, 1, 1], registers, static, dynamic, barriers)
             ceiling = resource_ceiling(profile, footprint)
             expected = list(map(int, line.split()))
             actual = [ceiling['blocks_per_sm'], footprint.registers, footprint.shared_bytes]
@@ -55,8 +55,8 @@ def verify_residency(cache, out, replay_from=None):
                 if not sm.admit(identity, footprint): raise AssertionError('Allocator below SDK capacity: ' + str(case))
             if sm.admit(expected[0], footprint): raise AssertionError('Allocator exceeds SDK capacity: ' + str(case))
             references.append({'input': case, 'sdk': expected, 'model': actual})
-        check('968 resource ceilings and allocation charges match NVIDIA SDK', len(cases) == 968)
-        check('968 homogeneous allocator fills match NVIDIA SDK', True)
+        check('3872 resource ceilings and allocation charges match NVIDIA SDK', len(cases) == 3872)
+        check('3872 homogeneous allocator fills match NVIDIA SDK', True)
         report['sdk_differential_cases'] = len(cases)
         (out / 'sdk-comparisons.json').write_text(json.dumps(references, indent=2))
         for name, source, gpu, expected_blocks, expected_warps in [

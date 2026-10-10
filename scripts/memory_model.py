@@ -171,6 +171,20 @@ class SectorCache:
         self.stats['dirty_sectors_drained'] += len(dirty)
         return dirty
 
+def validate_compilation_artifacts(run_directory):
+    """Validate pinned run identity and unchanged compiled inputs/host binary."""
+    run = Path(run_directory).resolve()
+    metadata = json.loads((run / 'run.json').read_text())
+    if metadata['engine_revision'] != ENGINE_PIN or metadata['gpu'] not in ['nvidia/a100', 'nvidia/h100']:
+        raise ValueError('Transaction model currently requires the pinned engine and A100/H100 profiles')
+    if set(metadata['compilation_sha256']) != {'program', 'kernel.ptx'}:
+        raise ValueError('Missing compilation provenance')
+    for name, expected in metadata['compilation_sha256'].items():
+        if name not in ['program', 'kernel.ptx']: raise ValueError('Unexpected compilation artifact')
+        if hashlib.sha256((run / name).read_bytes()).hexdigest() != expected:
+            raise ValueError('Compilation artifact changed: ' + name)
+    return metadata
+
 def analyze_transactions(run_directory):
     """Analyze complete observed execution; refuse partial coverage.
 
@@ -179,19 +193,11 @@ def analyze_transactions(run_directory):
     """
     from execution_events import summarize_events
     run = Path(run_directory).resolve()
-    metadata = json.loads((run / 'run.json').read_text())
-    if metadata['engine_revision'] != ENGINE_PIN or metadata['gpu'] not in ['nvidia/a100', 'nvidia/h100']:
-        raise ValueError('Transaction model currently requires the pinned engine and A100/H100 profiles')
+    metadata = validate_compilation_artifacts(run)
     events_path = run / 'execution-events.jsonl'
     summary = summarize_events(events_path)
     if metadata['exit_code'] or metadata['timed_out'] or not summary['complete_supported_memory']:
         raise ValueError('Memory model requires successful, complete, conserved event capture without gaps')
-    if set(metadata['compilation_sha256']) != {'program', 'kernel.ptx'}:
-        raise ValueError('Missing compilation provenance')
-    for name, expected in metadata['compilation_sha256'].items():
-        if name not in ['program', 'kernel.ptx']: raise ValueError('Unexpected compilation artifact')
-        if hashlib.sha256((run / name).read_bytes()).hexdigest() != expected:
-            raise ValueError('Compilation artifact changed: ' + name)
     statements = compiled_memory_statements((run / 'kernel.ptx').read_text())
     normalize = lambda text: re.sub(r'\s+', '', text).rstrip(';')
     issues, pending = {}, defaultdict(list)

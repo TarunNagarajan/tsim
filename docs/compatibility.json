@@ -140,12 +140,19 @@
       "boundary": "Synthetic geometry/LRU/placement/fill/drain; explicit ca/cg policies; unsupported hints refused"
     },
     {
-      "sdk_cases": 968,
+      "sdk_cases": 3872,
       "evidence": "residency-conformance.json",
-      "boundary": "NVIDIA standalone SDK differential; PTX register estimate; physical allocation and achieved occupancy unverified",
-      "checks": 53,
+      "boundary": "NVIDIA standalone SDK differential including Hopper barriers; PTX estimates or verified compiler allocation; achieved occupancy unverified",
+      "checks": 61,
       "status": "SDK-verified subset",
       "feature": "SM resource ceilings and admission"
+    },
+    {
+      "feature": "NVIDIA compiler resource allocations",
+      "evidence": "compiler-conformance.json",
+      "checks": 91,
+      "status": "compiler-verified subset",
+      "boundary": "Pinned ptxas/cuobjdump allocations and artifact provenance; generated cubins not executed; dynamic spill traffic and hardware timing unverified"
     }
   ]
 }

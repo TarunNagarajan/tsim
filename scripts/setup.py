@@ -63,7 +63,7 @@ def main():
                 tar.extract(member, toolkit)
         marker.touch()
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
-        list(pool.map(component, ['cuda_nvcc', 'cuda_cudart', 'cuda_cccl']))
+        list(pool.map(component, ['cuda_nvcc', 'cuda_cudart', 'cuda_cccl', 'cuda_cuobjdump']))
     cmake = cache / 'toolchain' / 'cmake-wheel' / 'cmake' / 'data' / 'bin' / 'cmake'
     if not cmake.exists():
         data = json.load(urllib.request.urlopen('https://pypi.org/pypi/cmake/3.31.6/json', timeout=120))

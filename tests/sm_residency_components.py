@@ -4,7 +4,7 @@ from pathlib import Path
 import random
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from sm_residency import SMResidency, block_footprint, profile_for, resource_ceiling
+from sm_residency import SMResidency, block_footprint, allocation_footprint, profile_for, resource_ceiling
 
 def verify_residency_components():
     checks = []
@@ -54,7 +54,7 @@ def verify_residency_components():
     sm.release(4)
     check('released partition resources can be reused', sm.admit(9, large))
     for identity in list(sm.live): sm.release(identity)
-    check('complete release conserves every resource', sm.snapshot() == {'blocks': 0, 'warps': 0, 'threads': 0, 'shared_bytes': 0, 'partition_registers': [0] * 4})
+    check('complete release conserves every resource', sm.snapshot() == {'blocks': 0, 'warps': 0, 'threads': 0, 'shared_bytes': 0, 'barriers': 0, 'partition_registers': [0] * 4})
     reject('double release rejected', lambda: sm.release(0))
     rng = random.Random(457)
     for step in range(300):
@@ -67,6 +67,24 @@ def verify_residency_components():
                 snapshot['shared_bytes'] == sum(f.shared_bytes for f, _ in sm.live.values())):
             raise AssertionError('mixed admission conservation step ' + str(step))
     check('300 mixed admission/release steps conserve budgets', True)
+    prefix = allocation_footprint(h100, [32, 1, 1], 12, 16, 124, 1)
+    check('compiler prefix preserves padding and charges reservation once', prefix.shared_user_bytes == 140 and prefix.shared_bytes == 1280)
+    many = block_footprint(h100, [32, 1, 1], 12, barriers=16)
+    check('Hopper barrier-limited ceiling', resource_ceiling(h100, many)['blocks_per_sm'] == 4 and
+          resource_ceiling(h100, many)['limiting_resources'] == ['barriers'])
+    none = block_footprint(h100, [32, 1, 1], 12, barriers=0)
+    check('no barrier kernel has no artificial barrier ceiling', resource_ceiling(h100, none)['blocks_per_sm'] == 32)
+    reject('negative barriers rejected', lambda: block_footprint(h100, [32, 1, 1], 12, barriers=-1))
+    reject('too many block barriers rejected', lambda: block_footprint(h100, [32, 1, 1], 12, barriers=17))
+    pool = SMResidency(h100)
+    for identity in range(4):
+        if not pool.admit(identity, many): raise AssertionError('barrier capacity under-admission')
+    before = pool.snapshot()
+    check('barrier admission refusal is atomic', not pool.admit(4, many) and pool.snapshot() == before and before['barriers'] == 64)
+    pool.release(1)
+    check('released barriers can be reused', pool.admit(4, many) and pool.snapshot()['barriers'] == 64)
+    for identity in list(pool.live): pool.release(identity)
+    check('barrier allocations completely returned', pool.snapshot()['barriers'] == 0)
     return checks
 
 if __name__ == '__main__':
