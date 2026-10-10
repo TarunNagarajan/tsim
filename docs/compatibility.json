@@ -174,11 +174,21 @@
     {
       "feature": "Configured SM execution replay",
       "evidence": "execution-conformance.json",
-      "checks": 133,
+      "checks": 238,
       "analytical_component_checks": 52,
-      "audited_schedules": 30,
+      "audited_schedules": 62,
       "status": "uncalibrated modeled subset",
-      "boundary": "Observed warp paths, SDK-verified admission/placement, virtual RAW/WAR/WAW readiness and finite pipelines; control regeneration, full scoreboard, transaction/cache service and hardware calibration open"
+      "boundary": "Observed paths, SDK admission/placement, virtual hazards and asynchronous weak global load/store queues/writebacks with cross-launch port continuity; full control/scoreboard, data/ordering, other spaces and calibration open",
+      "asynchronous_sm_checks": 30,
+      "global_store_component_checks": 29
+    },
+    {
+      "feature": "Staged global load/store and dirty writeback service",
+      "evidence": "sector-memory-conformance.json",
+      "checks": 29,
+      "read_base_checks": 54,
+      "status": "uncalibrated modeled subset",
+      "boundary": "Actual fills/miss merging and finite LSU/L2/MSHR/writeback resources; store L2 commits, dirty victim blocking and shared backing tails; no data/coherence/weak-memory/atomic/DRAM-bank calibration claim"
     }
   ]
 }

@@ -60,7 +60,7 @@
   ],
   "hardware_cycles": false,
   "model_sha256": {
-    "sector_read_service.py": "82217f49cfb0473823470c848384cf28fb649771e97419e15036214f3e4d6cf4",
+    "sector_read_service.py": "9facad473fdf0e174d03f8b024c9c0d48067ea8a83ee95de6f124fdae744a064",
     "memory_model.py": "61b9c29ddcfb52f3776b2f0cccce4a29212ad4c2aaddae93a19f63ef6e260e7d"
   },
   "reference_sha256": "608c23749b054a1703071945ca4e09c5cbe1bef4c3c2ab0e50083d7d0379e7be"

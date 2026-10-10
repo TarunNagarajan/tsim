@@ -5,6 +5,7 @@ graph, queue definitions and physical admission budgets.
 """
 from collections import defaultdict
 from math import isclose
+from sector_service_reference import verify_service
 
 def verify_schedule(report, graph):
     nodes = {n['sequence']: n for n in graph['nodes']}
@@ -20,7 +21,7 @@ def verify_schedule(report, graph):
         slot = (row['sm'], row['partition'], begin)
         assert slot not in seen, 'Partition issue bandwidth'; seen.add(slot)
         pipe = pipes[row['pipeline']]
-        assert end - begin == pipe['latency'], 'Configured latency'
+        if not row.get('memory'): assert end - begin == pipe['latency'], 'Configured latency'
         key = (row['sm'], row['pipeline'], row['partition'] if pipe['scope'] == 'partition' else -1)
         totals[key].append((begin, end))
         node = nodes[sequence]
@@ -45,10 +46,34 @@ def verify_schedule(report, graph):
             assert 0 <= active <= pipe['capacity'], 'Pipeline capacity'
             peaks[key] = max(peaks[key], active)
         assert active == 0, 'Pipeline drain'
-    previous_end = 0
+    previous_end = 0; previous_pipeline = previous_memory = None
+    lsu_starts = defaultdict(list); l2_starts, backing_starts = [], []
     for launch in report['launches']:
         assert launch['start_cycle'] == previous_end, 'Sequential launch origin'
-        assert launch['end_cycle'] == max(r['complete_cycle'] for r in launch['issues']), 'Launch retirement'
+        assert launch['initial_pipeline_readiness'] == previous_pipeline, 'Persistent pipeline readiness'
+        previous_pipeline = launch['next_pipeline_readiness']
+        instruction_end = max(r['complete_cycle'] for r in launch['issues'])
+        assert launch['instruction_end_cycle'] == instruction_end, 'Instruction retirement'
+        if launch['memory_service']:
+            service = launch['memory_service']; assert service['config'] == report['memory_config'], 'Memory configuration identity'
+            assert service['initial_port_readiness'] == previous_memory, 'Persistent memory readiness'
+            initial = previous_memory or {'lsu': [0] * count, 'l2': 0, 'backing': 0}
+            previous_memory = service['next_port_readiness']
+            assert verify_service(service, launch['issues'], launch['start_cycle'], launch['end_cycle'])
+            for sm in range(count):
+                starts = [r['submit_cycle'] for r in service['requests'] if r['sm'] == sm]
+                assert not starts or min(starts) >= initial['lsu'][sm], 'Prior LSU deadline'
+                assert previous_memory['lsu'][sm] == (max(starts) + service['config']['lsu_interval'] if starts else initial['lsu'][sm]), 'Next LSU deadline'
+                lsu_starts[sm].extend(starts)
+            for name, source, interval, aggregate in [('l2', service['lookup_records'], 'l2_interval', l2_starts),
+                                                     ('backing', service['dram_reads'] + service['writebacks'], 'dram_interval', backing_starts)]:
+                starts = [r['start_cycle'] for r in source]
+                assert not starts or min(starts) >= initial[name], 'Prior ' + name + ' deadline'
+                assert previous_memory[name] == (max(starts) + service['config'][interval] if starts else initial[name]), 'Next ' + name + ' deadline'
+                aggregate.extend(starts)
+            last_backing = max((r['complete_cycle'] for r in service['writebacks']), default=instruction_end)
+            assert launch['end_cycle'] == max(instruction_end, last_backing), 'Backing drain boundary'
+        else: assert launch['end_cycle'] == instruction_end, 'Launch retirement'
         previous_end = launch['end_cycle']
         footprint = launch['footprint']; areas = [0] * count; sweeps = [[] for _ in range(count)]
         mapping = {tuple(b['block']): b for b in launch['blocks']}
@@ -90,5 +115,10 @@ def verify_schedule(report, graph):
             local_peaks[key] = maximum
         assert local_peaks == {(p['sm'], p['pipeline'], p['partition']): p['inflight_peak'] for p in launch['pipeline_peaks'] if p['inflight_peak']}, 'Pipeline peaks'
     assert previous_end == report['model_cycles'], 'Total duration'
+    if report['memory_config']:
+        config = report['memory_config']
+        for starts, interval in [(v, config['lsu_interval']) for v in lsu_starts.values()] + [(l2_starts, config['l2_interval']), (backing_starts, config['dram_interval'])]:
+            ordered = sorted(starts)
+            assert all(b - a >= interval for a, b in zip(ordered, ordered[1:])), 'Memory throughput across launches'
     assert report['hardware_cycles'] is report['calibrated'] is report['complete_scoreboard_dependencies'] is False, 'Evidence boundaries'
     return True

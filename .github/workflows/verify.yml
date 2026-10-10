@@ -40,7 +40,9 @@ jobs:
       - name: Verify SM issue scheduling, finite pipelines and resource lifetimes
         run: python3 tsim.py execution-conformance
       - name: Verify staged read fills, merged misses and finite service queues
-        run: python3 tests/sector_read_components.py --out .local/sector-read-conformance
+        run: |
+          python3 tests/sector_read_components.py --out .local/sector-read-conformance
+          python3 tests/sector_memory_components.py --out .local/sector-memory-conformance
       - name: Preserve test reports and trace inspectors
         if: always()
         uses: actions/upload-artifact@v4
@@ -58,4 +60,5 @@ jobs:
             .local/compiler-conformance
             .local/execution-conformance
             .local/sector-read-conformance
+            .local/sector-memory-conformance
           if-no-files-found: ignore

@@ -1,0 +1,43 @@
+{
+  "kind": "independent staged global load/store and writeback references; uncalibrated",
+  "passed": true,
+  "total_checks": 29,
+  "checks": [
+    "cold global store bypasses L1 and acknowledges at eighteen",
+    "cold store conservatively fetches ownership before L2 commit at sixteen",
+    "store data is dirty in L2 and not written to backing at acknowledgement",
+    "warm store acknowledges after only lookup plus return",
+    "terminal dirty drain writes one latest sector and holds backing tail to thirty-six",
+    "terminal write is explicitly attributed and reserves storage until completion",
+    "finished service refuses new requests",
+    "finished service refuses duplicate flush",
+    "load and store missing the same sector merge one ownership read",
+    "merged store commits at seventeen and both requests acknowledge at nineteen",
+    "store bypass does not invent L1 coherence or invalidate a modeled read fill",
+    "dirty eviction remains live after the store acknowledges",
+    "dirty eviction uses the shared backing port with exact retained identity",
+    "read of an evicted dirty sector cannot precede its pending backing write",
+    "read returns at fifty-eight while another dirty eviction holds drain to sixty-seven",
+    "clean final cache requires no extra terminal write",
+    "full writeback storage parks completed fills without discarding dirty victims",
+    "blocked dirty replacements resume only at available writeback credits",
+    "store acknowledgement precedes backing drain while all ownership misses remain conserved",
+    "eviction and terminal packets together write every distinct dirty sector once",
+    "final controller has no requests, misses, queues, fills or backing reservations",
+    "independent writeback interval sweep matches queue peak and conservation",
+    "reads and writes obey one shared backing initiation interval",
+    "too-small victim storage refused",
+    "boolean writeback capacity refused",
+    "zero backing interval refused",
+    "atomic service refused until explicitly modeled",
+    "unknown operation refused before resource mutation",
+    "unsupported operation leaves an empty controller"
+  ],
+  "hardware_cycles": false,
+  "model_sha256": {
+    "sector_memory_service.py": "42f1a046a38fc85c911116a660e79d476cb2f6c84408e88e0798f79c6054035f",
+    "sector_read_service.py": "9facad473fdf0e174d03f8b024c9c0d48067ea8a83ee95de6f124fdae744a064",
+    "memory_model.py": "61b9c29ddcfb52f3776b2f0cccce4a29212ad4c2aaddae93a19f63ef6e260e7d"
+  },
+  "reference_sha256": "a4c12c1ecea607bb9b7b5707bff94d28fe391c8611dd92201dd77c51ca29dfca"
+}

@@ -13,16 +13,20 @@ def verify_execution(cache, out, replay_from=None):
     from sm_execution import analyze_execution, default_config, Pipeline, classify_issue, load_config
     from register_dependencies import analyze_dependencies
     from compiler_resources import compile_resources
+    from sector_memory_service import MemoryConfig, load_memory_config
     sys.path.insert(0, str(ROOT / 'tests'))
     from sm_execution_components import verify_execution_components
     from sm_schedule_reference import verify_schedule
+    from sm_memory_components import verify_sm_memory
+    from sector_memory_components import verify_sector_memory
     out = Path(out).resolve(); out.mkdir(parents=True, exist_ok=True)
     checks = verify_execution_components()
+    checks.extend(verify_sm_memory()); checks.extend(verify_sector_memory())
     def digest(path): return hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
     report = {'kind': 'hand-solved SM execution and independently audited CUDA schedule replay; uncalibrated',
               'passed': False, 'checks': checks, 'cases': [], 'hardware_cycles': False,
-              'model_sha256': {n: digest(ROOT / 'scripts' / n) for n in ['sm_execution.py', 'sm_residency.py', 'register_dependencies.py', 'execution_events.py', 'collective_events.py', 'memory_model.py', 'execution_conformance.py']},
-              'reference_sha256': {n: digest(ROOT / 'tests' / n) for n in ['sm_execution_components.py', 'sm_schedule_reference.py', 'conformance/carry_dependencies.cu', 'conformance/collective_dependencies.cu', 'conformance/collective_discarded.cu', 'conformance/execution_launches.cu', 'conformance/collective_wait_reads.cu', 'conformance/device_calls.cu']},
+              'model_sha256': {n: digest(ROOT / 'scripts' / n) for n in ['sm_execution.py', 'sm_residency.py', 'register_dependencies.py', 'execution_events.py', 'collective_events.py', 'memory_model.py', 'cache_hierarchy.py', 'sector_read_service.py', 'sector_memory_service.py', 'execution_conformance.py']},
+              'reference_sha256': {n: digest(ROOT / 'tests' / n) for n in ['sm_execution_components.py', 'sm_schedule_reference.py', 'sm_memory_components.py', 'sector_memory_components.py', 'sector_service_reference.py', 'conformance/carry_dependencies.cu', 'conformance/collective_dependencies.cu', 'conformance/collective_discarded.cu', 'conformance/execution_launches.cu', 'conformance/collective_wait_reads.cu', 'conformance/device_calls.cu', 'conformance/cache_policies.cu', 'conformance/cache_hint.cu', 'conformance/memory_spaces.cu']},
               'example_sha256': {n: digest(ROOT / 'examples' / n) for n in ['vector_add.cu', 'shared_reduce.cu']},
               'writer_sha256': digest(ROOT / 'include/tsim/execution_events.hpp'),
               'patch_sha256': {p.name: digest(p) for p in sorted((ROOT / 'patches').glob('*.patch'))}}
@@ -48,18 +52,20 @@ def verify_execution(cache, out, replay_from=None):
         code, path = run_program(args, cache, compiled_from=compiled.get(str(source)))
         compiled.setdefault(str(source), path); check(name + ' complete numerical reference', code == 0)
         return path
-    def audit(name, path, config=None, compiler=None):
-        result = analyze_execution(path, config, compiler); graph = analyze_dependencies(path)
+    def audit(name, path, config=None, compiler=None, memory=None):
+        result = analyze_execution(path, config, compiler, memory); graph = analyze_dependencies(path)
         check(name + ' independent hazard/port/queue/admission/retirement interval audit', verify_schedule(result, graph))
         (path / (name + '-sm-execution.json')).write_text(json.dumps(result, indent=2))
         report['cases'].append({'name': name, 'event_sha256': result['event_sha256'], 'ptx_sha256': result['ptx_sha256'],
+                                'artifact_directory': path.name, 'timed_memory': memory is not None,
                                 'config_sha256': hashlib.sha256(json.dumps(result['config'], sort_keys=True).encode()).hexdigest(),
+                                'memory_config_sha256': hashlib.sha256(json.dumps(result['memory_config'], sort_keys=True).encode()).hexdigest() if memory else None,
                                 'model_cycles': result['model_cycles'], 'issues': len(graph['nodes']),
                                 'compiler_artifact_sha256': result['compiler_artifact_sha256'],
                                 'physical_register_allocation_verified': result['physical_register_allocation_verified']})
         return result, graph
     try:
-        base = default_config(); vector = None
+        base = default_config(); memory = MemoryConfig(); vector = None; timed_reference = None
         for gpu in ['a100', 'h100']:
             for schedule in ['deterministic', 'random', 'adversarial']:
                 for label, source in [('vector', ROOT / 'examples/vector_add.cu'),
@@ -68,13 +74,18 @@ def verify_execution(cache, out, replay_from=None):
                                       ('discarded', ROOT / 'tests/conformance/collective_discarded.cu')]:
                     name = label + '-' + gpu + '-' + schedule
                     path = run(name, source, gpu, schedule); result, graph = audit(name, path)
+                    staged, _ = audit(name + '-staged', path, memory=memory)
                     if label == 'vector' and gpu == 'h100' and schedule == 'deterministic': vector = (path, result, graph)
+                    if label == 'vector' and gpu == 'h100' and schedule == 'deterministic': timed_reference = staged
         path, reference, graph = vector
         shared_pipes = {name: Pipeline(p.latency, 2, 1, 'sm') for name, p in base.pipelines.items()}
         for count in [1, 2]: audit('vector-shared-ports-' + str(count) + '-sm', path, replace(base, sm_count=count, pipelines=shared_pipes))
         audit('vector-control-resolution', path, replace(base, pipelines=dict(base.pipelines, control=Pipeline(7, 1, 4))))
         compile_resources(path, cache)
         physical, _ = audit('vector-physical-registers', path, compiler=path / 'compiler-resources')
+        audit('vector-physical-staged', path, compiler=path / 'compiler-resources', memory=memory)
+        audit('vector-finite-miss-queues', path, memory=replace(memory, mshrs=1, l2_slots=1, l2_queue=1, writeback_slots=4))
+        audit('vector-two-sm-staged', path, config=replace(base, sm_count=2), memory=replace(memory, sm_count=2))
         check('physical allocation enters admission without replacing virtual dependency identities', physical['physical_register_allocation_verified'] and
               physical['launches'][0]['compiler_allocation']['registers'] != physical['launches'][0]['ptx_estimated_registers_per_thread'] and
               physical['launches'][0]['ptx_estimated_registers_per_thread'] == reference['launches'][0]['ptx_estimated_registers_per_thread'])
@@ -88,9 +99,33 @@ def verify_execution(cache, out, replay_from=None):
             else: raise AssertionError('Independent audit accepted ' + name)
         multiple = run('multiple-launches', ROOT / 'tests/conformance/execution_launches.cu')
         result, _ = audit('multiple-launches', multiple)
+        audit('multiple-launches-staged', multiple, memory=memory)
+        audit('multiple-launches-slow-ports', multiple,
+              config=replace(base, pipelines={n: replace(p, interval=100) for n, p in base.pipelines.items()}),
+              memory=replace(memory, lsu_interval=100, l2_interval=100, dram_interval=100))
         check('separate launch lifetimes drain sequentially', len(result['launches']) > 1)
         parallel = run('inplace-four-workers', ROOT / 'tests/conformance/collective_dependencies.cu', workers=4)
         audit('inplace-four-workers', parallel)
+        audit('inplace-four-workers-staged', parallel, memory=memory)
+        policy_path = run('cache-policies', ROOT / 'tests/conformance/cache_policies.cu')
+        policy_result, _ = audit('cache-policies', policy_path, memory=memory)
+        check('actual independent ca/cg loads preserve L1 bypass and overlapping miss merges',
+              any(r['policy']['cache_operator'] == 'ca' for r in policy_result['memory_policies']) and
+              any(r['policy']['cache_operator'] == 'cg' for r in policy_result['memory_policies']) and
+              policy_result['launches'][0]['memory_service']['stats']['merged_miss_sectors'] > 0)
+        warm_result, _ = audit('cache-policies-one-lsu-slot', policy_path, memory=replace(memory, lsu_slots_per_sm=1))
+        check('actual repeated ca load observes a completed fill when one LSU slot serializes requests', warm_result['launches'][0]['memory_service']['stats']['l1_hit_sectors'] > 0)
+        for label, source, message in [('cache-hint', ROOT / 'tests/conformance/cache_hint.cu', 'Unsupported timed cache policy'),
+                                      ('other-spaces', ROOT / 'tests/conformance/memory_spaces.cu', 'global load/store')]:
+            unsupported = run('unsupported-' + label, source)
+            reject(label + ' refuses undeclared timed memory behavior', lambda path=unsupported: analyze_execution(path, memory_config=memory), message)
+        for label, mutation in [('invented memory response', lambda r: r['launches'][0]['memory_service']['requests'][0].update(complete_cycle=0)),
+                                 ('missing reservation history', lambda r: r['launches'][0]['memory_service']['resource_records'].pop()),
+                                 ('invented backing bandwidth', lambda r: r['launches'][0]['memory_service']['writebacks'][0].update(start_cycle=0))]:
+            altered = deepcopy(timed_reference); mutation(altered)
+            try: verify_schedule(altered, graph)
+            except AssertionError: checks.append('independent audit rejects ' + label)
+            else: raise AssertionError('Independent audit accepted ' + label)
         for label, source, message in [('volatile', ROOT / 'tests/conformance/collective_wait_reads.cu', 'Memory ordering'),
                                        ('barrier', ROOT / 'examples/shared_reduce.cu', 'execution pipeline'),
                                        ('device-call', ROOT / 'tests/conformance/device_calls.cu', 'call ABI')]:
@@ -116,6 +151,14 @@ def verify_execution(cache, out, replay_from=None):
             data = deepcopy(base.record()); mutation(data); config_path.write_text(json.dumps(data))
             reject(label + ' refused', lambda: load_config(config_path))
         config_path.write_text(json.dumps(base.record(), indent=2))
+        memory_path = out / 'memory assumptions.json'; memory_path.write_text(json.dumps(memory.record(), indent=2))
+        check('memory configuration round trip preserves declared assumptions', load_memory_config(memory_path).record() == memory.record())
+        for label, mutation in [('unknown memory field', lambda d: d.update(guessed=True)),
+                               ('unverified memory calibration', lambda d: d.update(provenance_kind='measured')),
+                               ('boolean memory schema', lambda d: d.update(schema=True))]:
+            data = deepcopy(memory.record()); mutation(data); memory_path.write_text(json.dumps(data))
+            reject(label + ' refused', lambda: load_memory_config(memory_path))
+        memory_path.write_text(json.dumps(memory.record(), indent=2))
         report['passed'] = True
     finally:
         report['total_checks'] = len(checks); (out / 'results.json').write_text(json.dumps(report, indent=2))

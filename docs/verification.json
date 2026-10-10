@@ -336,5 +336,14 @@
     "all_workflow_steps": "passed",
     "execution_checks": 133,
     "audited_schedules": 30
+  },
+  "sector_read_clean_checkout": {
+    "commit": "db671a3bc2728777b5a1f474c47a344eae8752c6",
+    "run_url": "https://github.com/TarunNagarajan/tsim/actions/runs/38094037179",
+    "job": 114336131822,
+    "build": "passed",
+    "all_workflow_steps": "passed",
+    "execution_checks": 133,
+    "sector_read_checks": 54
   }
 }

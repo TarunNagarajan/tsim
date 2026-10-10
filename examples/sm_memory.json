@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "provenance_kind": "assumption",
+  "sm_count": 1,
+  "lsu_slots_per_sm": 8,
+  "lsu_interval": 1,
+  "l1_latency": 3,
+  "l2_latency": 5,
+  "return_latency": 2,
+  "dram_latency": 11,
+  "dram_interval": 1,
+  "l2_interval": 1,
+  "l2_queue": 8,
+  "l2_slots": 4,
+  "mshrs": 4,
+  "max_sectors_per_request": 128,
+  "cache_sets": 4,
+  "cache_ways": 2,
+  "provenance": "Synthetic load/store service: assumed ports, geometry, latency, ownership reads and dirty drains; no hardware calibration",
+  "writeback_slots": 8
+}

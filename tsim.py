@@ -85,6 +85,7 @@ def parser():
     s = sub.add_parser('execution-report', help='Model SM placement, hazards and finite pipelines using explicit timing assumptions')
     s.add_argument('run_directory', type=Path)
     s.add_argument('--config', type=Path)
+    s.add_argument('--memory-config', type=Path, help='Use conserved global load/store sectors and staged cache/writeback queues')
     s.add_argument('--compiler-resources', type=Path)
     s.add_argument('--out', type=Path)
     s = sub.add_parser('execution-conformance', help='Verify hand-solved SM execution and actual CUDA capture replay')
@@ -238,6 +239,7 @@ def main():
         if args.command == 'inspect': converted.append(linux_path(args.trace.resolve()))
         if args.command in ['memory-report', 'cache-report', 'residency-report', 'compile-resources', 'dependency-report', 'execution-report']: converted.append(linux_path(args.run_directory.resolve()))
         if getattr(args, 'config', None): converted += ['--config', linux_path(args.config.resolve())]
+        if getattr(args, 'memory_config', None): converted += ['--memory-config', linux_path(args.memory_config.resolve())]
         if getattr(args, 'compiler_resources', None): converted += ['--compiler-resources', linux_path(args.compiler_resources.resolve())]
         if getattr(args, 'profile', None): converted += ['--profile', linux_path(args.profile.resolve())]
         if getattr(args, 'out', None): converted += ['--out', linux_path(args.out.resolve())]
@@ -323,7 +325,9 @@ def main():
         return verify_residency(cache, args.out or cache / 'residency-conformance')
     if args.command == 'execution-report':
         from sm_execution import analyze_execution, load_config
-        report = analyze_execution(args.run_directory, load_config(args.config) if args.config else None, args.compiler_resources)
+        from sector_memory_service import load_memory_config
+        report = analyze_execution(args.run_directory, load_config(args.config) if args.config else None, args.compiler_resources,
+                                   load_memory_config(args.memory_config) if args.memory_config else None)
         target = args.out or args.run_directory / 'sm-execution.json'
         target.write_text(json.dumps(report, indent=2))
         print('Configured SM execution report: ' + str(target.resolve()))
