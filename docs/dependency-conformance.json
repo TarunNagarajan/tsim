@@ -91,6 +91,34 @@
     "shuffle predicate falsely depends on data rejected",
     "dispatch after wait rejected",
     "duplicate wait rejected",
+    "in-place swap reads both previous lane versions",
+    "shuffle predicate excludes transferred data dependencies",
+    "collective snapshot never depends on own writes",
+    "collective data and predicate results publish actual writers",
+    "collective anti-dependency covers only actual source lanes",
+    "selector alias retains same-lane reads alongside data routing",
+    "inactive shuffle source remains explicit undefined output",
+    "unknown collective producer preserves exact destination pairing",
+    "wide-source multi-output match preserves all eight directed pairs",
+    "wide collective source never aliases narrow file",
+    "match output 4 keeps separate destination lanes",
+    "match output 6 keeps separate destination lanes",
+    "parked attempt has zero executed lanes",
+    "parked selection uncertainty is explicit",
+    "parked destination keeps earlier writer",
+    "constant collective data invents no virtual producer",
+    "incomplete maps rejected before graph mutation",
+    "failed conservation leaves versions and sequence intact",
+    "collective without records rejected",
+    "wrong-parent transfer rejected",
+    "non-increasing child sequence rejected",
+    "ordinary instruction rejects collective records",
+    "valid issue succeeds after failed bundles",
+    "collective guard still reads full selected path",
+    "predicated-off collective result has no writer",
+    "disjoint groups read snapshot of same preceding issue",
+    "groups cannot change operand class within one issue",
+    "discarded data output refuses unrecorded source routing",
     "thirty-eight parser/AST operand role references passed",
     "vector-a100 numerical process",
     "vector-a100 single-definition registers have RAW without artificial overwrite hazards",
@@ -140,44 +168,44 @@
     "actual indirect calls capture one wide target register",
     "indirect target capture does not imply complete call ABI",
     "collectives numerical process",
-    "cross-lane graph refuses missing lane-transfer model",
+    "shuffle/vote/reduction/match graph consumes actual transfer records",
     "actual shuffle source maps agree with twenty independent width/mode references per warp",
     "members-a100-deterministic numerical process",
     "members-a100-deterministic dynamic member and bit-search sources retained",
     "members-a100-deterministic runtime vote/reduction/match dispatch disjoint sixteen-lane groups",
     "members-a100-deterministic actual XOR shuffle reads opposite neighbor",
     "members-a100-deterministic collective source maps invariant across profiles and schedules",
-    "members-a100-deterministic explicit membership operands do not imply cross-lane graph coverage",
+    "members-a100-deterministic collective graph preserves directed lane identities",
     "members-a100-random numerical process",
     "members-a100-random dynamic member and bit-search sources retained",
     "members-a100-random runtime vote/reduction/match dispatch disjoint sixteen-lane groups",
     "members-a100-random actual XOR shuffle reads opposite neighbor",
     "members-a100-random collective source maps invariant across profiles and schedules",
-    "members-a100-random explicit membership operands do not imply cross-lane graph coverage",
+    "members-a100-random collective graph preserves directed lane identities",
     "members-a100-adversarial numerical process",
     "members-a100-adversarial dynamic member and bit-search sources retained",
     "members-a100-adversarial runtime vote/reduction/match dispatch disjoint sixteen-lane groups",
     "members-a100-adversarial actual XOR shuffle reads opposite neighbor",
     "members-a100-adversarial collective source maps invariant across profiles and schedules",
-    "members-a100-adversarial explicit membership operands do not imply cross-lane graph coverage",
+    "members-a100-adversarial collective graph preserves directed lane identities",
     "members-h100-deterministic numerical process",
     "members-h100-deterministic dynamic member and bit-search sources retained",
     "members-h100-deterministic runtime vote/reduction/match dispatch disjoint sixteen-lane groups",
     "members-h100-deterministic actual XOR shuffle reads opposite neighbor",
     "members-h100-deterministic collective source maps invariant across profiles and schedules",
-    "members-h100-deterministic explicit membership operands do not imply cross-lane graph coverage",
+    "members-h100-deterministic collective graph preserves directed lane identities",
     "members-h100-random numerical process",
     "members-h100-random dynamic member and bit-search sources retained",
     "members-h100-random runtime vote/reduction/match dispatch disjoint sixteen-lane groups",
     "members-h100-random actual XOR shuffle reads opposite neighbor",
     "members-h100-random collective source maps invariant across profiles and schedules",
-    "members-h100-random explicit membership operands do not imply cross-lane graph coverage",
+    "members-h100-random collective graph preserves directed lane identities",
     "members-h100-adversarial numerical process",
     "members-h100-adversarial dynamic member and bit-search sources retained",
     "members-h100-adversarial runtime vote/reduction/match dispatch disjoint sixteen-lane groups",
     "members-h100-adversarial actual XOR shuffle reads opposite neighbor",
     "members-h100-adversarial collective source maps invariant across profiles and schedules",
-    "members-h100-adversarial explicit membership operands do not imply cross-lane graph coverage",
+    "members-h100-adversarial collective graph preserves directed lane identities",
     "corrupted collective missing transfer rejected",
     "corrupted collective wrong source mask rejected",
     "corrupted collective wrong group owner rejected",
@@ -186,26 +214,50 @@
     "wait-a100-deterministic actual parked collective attempts captured",
     "wait-a100-deterministic four-worker groups retain exact block ownership",
     "wait-a100-deterministic reconverged shuffle source is original lane zero",
+    "wait-a100-deterministic parked graph issues never write destinations",
     "wait-a100-random numerical process",
     "wait-a100-random actual parked collective attempts captured",
     "wait-a100-random four-worker groups retain exact block ownership",
     "wait-a100-random reconverged shuffle source is original lane zero",
+    "wait-a100-random parked graph issues never write destinations",
     "wait-a100-adversarial numerical process",
     "wait-a100-adversarial actual parked collective attempts captured",
     "wait-a100-adversarial four-worker groups retain exact block ownership",
     "wait-a100-adversarial reconverged shuffle source is original lane zero",
+    "wait-a100-adversarial parked graph issues never write destinations",
     "wait-h100-deterministic numerical process",
     "wait-h100-deterministic actual parked collective attempts captured",
     "wait-h100-deterministic four-worker groups retain exact block ownership",
     "wait-h100-deterministic reconverged shuffle source is original lane zero",
+    "wait-h100-deterministic parked graph issues never write destinations",
     "wait-h100-random numerical process",
     "wait-h100-random actual parked collective attempts captured",
     "wait-h100-random four-worker groups retain exact block ownership",
     "wait-h100-random reconverged shuffle source is original lane zero",
+    "wait-h100-random parked graph issues never write destinations",
     "wait-h100-adversarial numerical process",
     "wait-h100-adversarial actual parked collective attempts captured",
     "wait-h100-adversarial four-worker groups retain exact block ownership",
     "wait-h100-adversarial reconverged shuffle source is original lane zero",
+    "wait-h100-adversarial parked graph issues never write destinations",
+    "lane-writers-a100-deterministic numerical process",
+    "lane-writers-a100-deterministic actual four-warp in-place shuffles present",
+    "lane-writers-a100-deterministic every swapped lane depends on opposite parity original writer",
+    "lane-writers-a100-random numerical process",
+    "lane-writers-a100-random actual four-warp in-place shuffles present",
+    "lane-writers-a100-random every swapped lane depends on opposite parity original writer",
+    "lane-writers-a100-adversarial numerical process",
+    "lane-writers-a100-adversarial actual four-warp in-place shuffles present",
+    "lane-writers-a100-adversarial every swapped lane depends on opposite parity original writer",
+    "lane-writers-h100-deterministic numerical process",
+    "lane-writers-h100-deterministic actual four-warp in-place shuffles present",
+    "lane-writers-h100-deterministic every swapped lane depends on opposite parity original writer",
+    "lane-writers-h100-random numerical process",
+    "lane-writers-h100-random actual four-warp in-place shuffles present",
+    "lane-writers-h100-random every swapped lane depends on opposite parity original writer",
+    "lane-writers-h100-adversarial numerical process",
+    "lane-writers-h100-adversarial actual four-warp in-place shuffles present",
+    "lane-writers-h100-adversarial every swapped lane depends on opposite parity original writer",
     "cap numerical process",
     "capped capture refuses dependency graph",
     "fault numerical process",
@@ -307,12 +359,207 @@
         "WAR": 9
       },
       "event_sha256": "c0d00462b403ec40aaad3a1815d360169c7b519e4834e0dfb9ff59ff52e2ab61"
+    },
+    {
+      "name": "collectives",
+      "nodes": 194,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 2102
+      },
+      "event_sha256": "2820c466203e1194e31777f314395941461c30d9c2ce5fc906ff78f62caa1cae"
+    },
+    {
+      "name": "members-a100-deterministic",
+      "nodes": 108,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 512
+      },
+      "event_sha256": "d3dfe31501b8063deb379f5c0b870cf06ed2698e08c5c003196a49a7894e1835"
+    },
+    {
+      "name": "members-a100-random",
+      "nodes": 108,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 512
+      },
+      "event_sha256": "43ddc6bbcaab654a8e47f25d423224e547e52200f90b219b9fff828759963de6"
+    },
+    {
+      "name": "members-a100-adversarial",
+      "nodes": 108,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 512
+      },
+      "event_sha256": "c87259a18379eb66079179a748e719473f17aa04db49461158f1d48d70358156"
+    },
+    {
+      "name": "members-h100-deterministic",
+      "nodes": 108,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 512
+      },
+      "event_sha256": "d3dfe31501b8063deb379f5c0b870cf06ed2698e08c5c003196a49a7894e1835"
+    },
+    {
+      "name": "members-h100-random",
+      "nodes": 108,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 512
+      },
+      "event_sha256": "43ddc6bbcaab654a8e47f25d423224e547e52200f90b219b9fff828759963de6"
+    },
+    {
+      "name": "members-h100-adversarial",
+      "nodes": 108,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 512
+      },
+      "event_sha256": "c87259a18379eb66079179a748e719473f17aa04db49461158f1d48d70358156"
+    },
+    {
+      "name": "wait-a100-deterministic",
+      "nodes": 8692,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 9196,
+        "WAW": 8448,
+        "WAR": 248
+      },
+      "event_sha256": "ad31d98094dd7dc2839d70b471420645aa1bc9cd301a01d34b5c9067f50cb7aa"
+    },
+    {
+      "name": "wait-a100-random",
+      "nodes": 8692,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 9196,
+        "WAW": 8448,
+        "WAR": 248
+      },
+      "event_sha256": "c4dca3714766c1ec0ccf31f3bd4e3488fbc9e3e91907dc64d688f9b04b28f7d4"
+    },
+    {
+      "name": "wait-a100-adversarial",
+      "nodes": 8692,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 9196,
+        "WAW": 8448,
+        "WAR": 248
+      },
+      "event_sha256": "c4dca3714766c1ec0ccf31f3bd4e3488fbc9e3e91907dc64d688f9b04b28f7d4"
+    },
+    {
+      "name": "wait-h100-deterministic",
+      "nodes": 8692,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 9196,
+        "WAW": 8448,
+        "WAR": 248
+      },
+      "event_sha256": "2c9520c9fcf0ec777ffdc8fbfb0b5370a65fc92da40713b1d2981601af04d28b"
+    },
+    {
+      "name": "wait-h100-random",
+      "nodes": 8692,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 9196,
+        "WAW": 8448,
+        "WAR": 248
+      },
+      "event_sha256": "c4dca3714766c1ec0ccf31f3bd4e3488fbc9e3e91907dc64d688f9b04b28f7d4"
+    },
+    {
+      "name": "wait-h100-adversarial",
+      "nodes": 8692,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 9196,
+        "WAW": 8448,
+        "WAR": 248
+      },
+      "event_sha256": "c4dca3714766c1ec0ccf31f3bd4e3488fbc9e3e91907dc64d688f9b04b28f7d4"
+    },
+    {
+      "name": "lane-writers-a100-deterministic",
+      "nodes": 64,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 192,
+        "WAW": 8
+      },
+      "event_sha256": "ce7bc6abb8fe0c09cd6d9c39919ba1511ff7dbe397490cdbd9975dbdd1b0b219"
+    },
+    {
+      "name": "lane-writers-a100-random",
+      "nodes": 64,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 192,
+        "WAW": 8
+      },
+      "event_sha256": "8af06ecd929130cc296620c7ce22385303f7239e52da87efa8a394257256cd55"
+    },
+    {
+      "name": "lane-writers-a100-adversarial",
+      "nodes": 64,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 192,
+        "WAW": 8
+      },
+      "event_sha256": "0fcc5139fc587cbd866b7c6cba6a73258d2559bffb14b7c3b3c77d9fa55e3192"
+    },
+    {
+      "name": "lane-writers-h100-deterministic",
+      "nodes": 64,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 192,
+        "WAW": 8
+      },
+      "event_sha256": "9137faaa91230eed81d276000b59654dd8a34ed51e3fe00e65ed3ee678f1c540"
+    },
+    {
+      "name": "lane-writers-h100-random",
+      "nodes": 64,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 192,
+        "WAW": 8
+      },
+      "event_sha256": "8af06ecd929130cc296620c7ce22385303f7239e52da87efa8a394257256cd55"
+    },
+    {
+      "name": "lane-writers-h100-adversarial",
+      "nodes": 64,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 192,
+        "WAW": 8
+      },
+      "event_sha256": "0fcc5139fc587cbd866b7c6cba6a73258d2559bffb14b7c3b3c77d9fa55e3192"
     }
   ],
   "model_sha256": {
-    "register_dependencies.py": "f8d548cf7eb03d32476f4749c9bd32147e50e5542145c2f2d7f03f008e9f4bfc",
+    "register_dependencies.py": "4e6b03337cd357e34eccaa1753e8908d991a992dda75d5499acca263ba05805e",
     "execution_events.py": "4f88a4af7a273273b83a3200841783b83e84c11dd3d31a1f0d55996672d9842f",
     "collective_events.py": "2ac5c93cda74b30e5131e69f51c3c5b7d14d3fd4244babfda13859ee0d467b4e"
+  },
+  "reference_sha256": {
+    "register_dependency_components.py": "a702ca3f62cecb04de90c173e51e09d96f58d3806ada3d9803b3a6e775365dd6",
+    "collective_event_components.py": "cbee17c3f978695f7c4380d15e4ce58c669f44df3c2e24b6b776499775d5f17d",
+    "collective_dependency_components.py": "dea350887be79f53e4b62baba265c522fca0515cd406c37032a9b7f14ad9c8a2",
+    "conformance/collective_dependencies.cu": "175140a91f07c9f4a7135d0f6ac71cd4afd7de2e2d22752dee2cda77b1ff9279"
   },
   "writer_sha256": "52d0d019abdb1e95f55930431116e258560ec8a1791b497c4c4d9385325ae987",
   "patch_sha256": {
@@ -323,5 +570,5 @@
     "zz-execution-events.patch": "8a989262b1115efeb601be1ba3724390ae4f0bce8dd2ded90d2b58177f2e078d"
   },
   "operand_role_references": 38,
-  "total_checks": 219
+  "total_checks": 271
 }

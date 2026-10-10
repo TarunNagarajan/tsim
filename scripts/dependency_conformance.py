@@ -16,13 +16,18 @@ def verify_dependencies(cache, out, replay_from=None):
     sys.path.insert(0, str(ROOT / 'tests'))
     from register_dependency_components import verify_dependency_components
     from collective_event_components import verify_collective_components
+    from collective_dependency_components import verify_collective_dependencies
     out = Path(out).resolve(); out.mkdir(parents=True, exist_ok=True)
     checks = verify_dependency_components()
     checks.extend(verify_collective_components())
+    checks.extend(verify_collective_dependencies())
     report = {'kind': 'lane-aware observed PTX register/carry hazards; not hardware scoreboard validation',
               'passed': False, 'checks': checks, 'hardware_cycles': False, 'cases': [],
               'model_sha256': {name: hashlib.sha256((ROOT / 'scripts' / name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
                                for name in ['register_dependencies.py', 'execution_events.py', 'collective_events.py']},
+              'reference_sha256': {name: hashlib.sha256((ROOT / 'tests' / name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+                                   for name in ['register_dependency_components.py', 'collective_event_components.py',
+                                                'collective_dependency_components.py', 'conformance/collective_dependencies.cu']},
               'writer_sha256': hashlib.sha256((ROOT / 'include/tsim/execution_events.hpp').read_bytes().replace(b'\r\n', b'\n')).hexdigest(),
               'patch_sha256': {p.name: hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
                                for p in sorted((ROOT / 'patches').glob('*.patch'))}}
@@ -129,7 +134,10 @@ def verify_dependencies(cache, out, replay_from=None):
         check('actual indirect calls capture one wide target register', calls and all(len(e['uses']) == 1 and e['uses'][0] & 1 for e in calls))
         reject('indirect target capture does not imply complete call ABI', lambda: analyze_dependencies(path), 'coverage gaps')
         path = run('collectives', ROOT / 'tests/conformance/warp_collectives.cu')
-        reject('cross-lane graph refuses missing lane-transfer model', lambda: analyze_dependencies(path), 'Cross-lane')
+        collective_model = analyze_dependencies(path); save(path, collective_model)
+        check('shuffle/vote/reduction/match graph consumes actual transfer records',
+              collective_model['schema'] == 2 and any('destination_resource' in edge
+              for node in collective_model['nodes'] for edge in node['edges']))
         events = list(map(json.loads, (path / 'execution-events.jsonl').read_text().splitlines()))
         parents = {e['sequence']: e for e in events if e['type'] == 'issue'}
         groups = [e for e in events if e['type'] == 'collective_group' and e['kind'] == 'shfl']
@@ -179,8 +187,10 @@ def verify_dependencies(cache, out, replay_from=None):
                                    for e in groups)
                 if collective_reference is None: collective_reference = signature; collective_original = path
                 check(name + ' collective source maps invariant across profiles and schedules', signature == collective_reference)
-                reject(name + ' explicit membership operands do not imply cross-lane graph coverage',
-                       lambda: analyze_dependencies(path), 'Cross-lane')
+                model = analyze_dependencies(path); save(path, model)
+                check(name + ' collective graph preserves directed lane identities', any(
+                      edge.get('destination_lane_mask', 0) != edge['lane_mask']
+                      for node in model['nodes'] for edge in node['edges'] if 'destination_resource' in edge))
         captured = list(map(json.loads, (collective_original / 'execution-events.jsonl').read_text().splitlines()))
         negative_collective = out / 'negative-collective.jsonl'
         for name, change in [
@@ -214,6 +224,35 @@ def verify_dependencies(cache, out, replay_from=None):
                 check(name + ' reconverged shuffle source is original lane zero', all(
                       e['source_mask'] == 1 for e in events if e['type'] == 'collective_transfer' and
                       by_id[e['group']]['kind'] == 'shfl'))
+                model = analyze_dependencies(path); save(path, model)
+                check(name + ' parked graph issues never write destinations', all(
+                      node['actual_execution_mask'] == 0 and not any(edge['kind'] in ['WAW', 'WAR'] for edge in node['edges'])
+                      for node in model['nodes'] if node.get('collective_wait')))
+        for gpu in ['a100', 'h100']:
+            for scheduler in ['deterministic', 'random', 'adversarial']:
+                name = 'lane-writers-' + gpu + '-' + scheduler
+                path = run(name, ROOT / 'tests/conformance/collective_dependencies.cu', gpu, scheduler, workers=4)
+                events = list(map(json.loads, (path / 'execution-events.jsonl').read_text().splitlines()))
+                parents = {e['sequence']: e for e in events if e['type'] == 'issue'}
+                model = analyze_dependencies(path); save(path, model)
+                shuffles = [node for node in model['nodes'] if node.get('collective_kind') == 'shfl' and not node['collective_wait']]
+                check(name + ' actual four-warp in-place shuffles present', len(shuffles) == 4 and all(
+                      parents[node['sequence']]['defs'] == parents[node['sequence']]['uses'] for node in shuffles))
+                correct = True
+                for node in shuffles:
+                    parent = parents[node['sequence']]; key = parent['defs'][0]
+                    producers = [e for e in parents.values() if e['sequence'] < parent['sequence'] and
+                                 e['block'] == parent['block'] and e['warp'] == parent['warp'] and
+                                 e['defs'] == [key] and 'add.u32' in e['instruction']]
+                    even = [e for e in producers if e['execution_mask'] == 0x55555555]
+                    odd = [e for e in producers if e['execution_mask'] == 0xaaaaaaaa]
+                    routed = [e for e in node['edges'] if 'destination_resource' in e]
+                    correct &= bool(even and odd) and len(routed) == 32
+                    if even and odd:
+                        expected = {lane: (odd[-1]['sequence'] if lane % 2 == 0 else even[-1]['sequence'], 1 << (lane ^ 1)) for lane in range(32)}
+                        actual = {e['destination_lane_mask'].bit_length() - 1: (e['source'], e['lane_mask']) for e in routed}
+                        correct &= actual == expected and all(e['resource'] == e['destination_resource'] for e in routed)
+                check(name + ' every swapped lane depends on opposite parity original writer', correct)
         path = run('cap', ROOT / 'examples/vector_add.cu', limit=37)
         reject('capped capture refuses dependency graph', lambda: analyze_dependencies(path), 'complete capture')
         path = run('fault', ROOT / 'examples/out_of_bounds.cu', negative=True)
