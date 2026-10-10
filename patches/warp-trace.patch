@@ -1,0 +1,67 @@
+diff --git a/include/vgpu/exec/launch.hpp b/include/vgpu/exec/launch.hpp
+index 0be0d93..7f1b922 100644
+--- a/include/vgpu/exec/launch.hpp
++++ b/include/vgpu/exec/launch.hpp
+@@ -58,6 +58,8 @@ struct DeviceGraphLauncher {
+ };
+ 
+ struct LaunchConfig {
++  // Optional observer identity, assigned once per grid by tsim's trace hook.
++  uint64_t tsim_launch_id = 0;
+   std::array<uint32_t, 3> grid{1, 1, 1};
+   std::array<uint32_t, 3> block{1, 1, 1};
+   uint32_t shared_bytes = 0;
+diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
+index 581bd76..e253968 100644
+--- a/src/exec/interpreter.cpp
++++ b/src/exec/interpreter.cpp
+@@ -21,6 +21,7 @@
+ //    barriers or retirement. Blocks run sequentially in a fixed order.
+ //    Everything is deterministic by construction.
+ #include <algorithm>
++#include "tsim/warp_trace.hpp"
+ #if defined(__x86_64__)
+ #include <immintrin.h>
+ #endif
+@@ -983,9 +984,12 @@ struct LaneSet {
+ 
+ // The position of an instruction kind in the Op variant, for switching on
+ // ins.op.index() instead of testing the alternatives one at a time.
+-template <class T>
++template <class T, size_t I = 0>
+ constexpr size_t op_index() {
+-  return Op(std::in_place_type<T>).index();
++  // Query the type list without constructing a variant in constant evaluation.
++  static_assert(I < std::variant_size_v<Op>, "instruction kind is absent from Op");
++  if constexpr (std::is_same_v<T, std::variant_alternative_t<I, Op>>) return I;
++  else return op_index<T, I + 1>();
+ }
+ 
+ // D = A x B + C for a 16x16 tile, K deep, in f32: each element accumulates
+@@ -2802,6 +2806,17 @@ class Interpreter {
+         continue;
+       }
+       const Instr& ins = cur_->body[w.paths[idx].pc];
++      static const bool tsim_trace_enabled = std::getenv("TSIM_TRACE") != nullptr;
++      if (tsim_trace_enabled) {
++        Mask effective = w.paths[idx].mask;
++        if (ins.has_pred) {
++          Mask pred = read_pred(w, ins, ins.pred);
++          effective &= ins.pred_negated ? ~pred : pred;
++        }
++        tsim::warp_trace().issue(cfg_.tsim_launch_id, fn_.name, cur_->name, ctx.ctaid, cur_warp_,
++                                w.paths[idx].pc, ins.line, w.paths[idx].mask,
++                                effective, w.paths.size(), ins.text);
++      }
+       if (progress_ && (stats_.instructions & 0xFFFFF) == 0) report_progress();
+       // Warp-level issue count, plus the per-lane total: their ratio is the
+       // average lane utilisation, which is divergence measured directly.
+@@ -13326,6 +13341,8 @@ LaunchStats launch_grid(const EntryFn& fn, const LaunchConfig& cfg,
+                         const DeviceProfile& profile, const SymbolTable* symbols,
+                         const ProgressFn& progress, DeviceLaunches* dl) {
+   LaunchConfig with_cluster = cfg;
++  if (std::getenv("TSIM_TRACE"))
++    with_cluster.tsim_launch_id = tsim::warp_trace().begin_launch();
+   // __cluster_dims__ compiles to .reqnctapercluster and is a property of the
+   // kernel, so it applies whether or not the launch asked for a cluster. An
+   // explicit cudaLaunchAttributeClusterDimension still wins: validate() then

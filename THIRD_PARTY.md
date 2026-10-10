@@ -1,0 +1,9 @@
+# Third-party components
+
+The CPU execution engine is PantheonSim, https://github.com/pantheongpu/pantheonsim, pinned to commit `771bb8f96abc3721700219d88fa74e10d43dcfd5`. It is included as the `third_party/pantheonsim` Git submodule under its Apache-2.0 license. Its own `LICENSE`, `THIRD_PARTY_NOTICES.md`, and register-map license files remain with the source. Execution semantics, PTX parser, virtual memory, scheduling, and CUDA runtime/driver APIs are upstream work.
+
+tsim applies two local patches. `build-portability.patch` defers recursive MessagePack member instantiation for Clang/libstdc++, exposes a release LTO option, and adds a target-scoped observer include directory that supports paths containing spaces. `warp-trace.patch` queries a variant's type index without constexpr object construction, adds a per-launch observer identifier, and calls tsim's trace writer before actual PTX instruction dispatch. All modifications are stored in patches; the upstream gitlink remains pinned. A configured submodule therefore shows local modifications by design.
+
+CUDA compiler, CUDA runtime headers/library, and CCCL archives are downloaded from NVIDIA's CUDA 12.6.3 redistribution manifest. The archive SHA-256 values come from that manifest and are checked before extraction. NVIDIA's archive `LICENSE` files apply to their respective components. The merged local toolkit directory is a convenience layout for the compiler; downloaded archives preserve their original license text. These components are not part of the Git repository.
+
+CMake 3.31.6 is downloaded from its PyPI wheel distribution, with the wheel's published SHA-256 checked. Its license information remains in the extracted wheel. GNU and LLVM host compilers are prerequisites supplied by the local operating system; this repository does not distribute them.

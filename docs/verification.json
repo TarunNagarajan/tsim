@@ -1,0 +1,276 @@
+{
+  "passed": true,
+  "verified_on": "2026-10-10",
+  "environment": {
+    "host": "Intel Core i5-1135G7, Windows, Ubuntu 24.04 WSL",
+    "backend": "CPU PTX interpreter; VGPU_SASS=0",
+    "compiler": "NVIDIA nvcc 12.6.85, GCC 13.3, Clang 18.1.3",
+    "ptx_target": "compute_80",
+    "device_profile": "nvidia/h100",
+    "engine_revision": "771bb8f96abc3721700219d88fa74e10d43dcfd5"
+  },
+  "execution_checks": [
+    {
+      "case": "vector_add",
+      "scheduler": "deterministic",
+      "trace": true,
+      "exit_code": 0,
+      "events": 209,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "vector_add",
+      "scheduler": "deterministic",
+      "trace": false,
+      "exit_code": 0,
+      "events": 0,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "vector_add",
+      "scheduler": "deterministic",
+      "trace": true,
+      "exit_code": 0,
+      "events": 209,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "vector_add",
+      "scheduler": "deterministic",
+      "trace": true,
+      "exit_code": 0,
+      "events": 209,
+      "passed": true,
+      "threads": 4,
+      "trace_limit": 200000
+    },
+    {
+      "case": "divergence",
+      "scheduler": "deterministic",
+      "trace": true,
+      "exit_code": 0,
+      "events": 68,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "shared_reduce",
+      "scheduler": "deterministic",
+      "trace": true,
+      "exit_code": 0,
+      "events": 391,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "shared_reduce",
+      "scheduler": "adversarial",
+      "trace": true,
+      "exit_code": 0,
+      "events": 391,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "shared_reduce",
+      "scheduler": "random",
+      "trace": true,
+      "exit_code": 0,
+      "events": 391,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "warp_atomic",
+      "scheduler": "deterministic",
+      "trace": true,
+      "exit_code": 0,
+      "events": 136,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "warp_atomic",
+      "scheduler": "adversarial",
+      "trace": true,
+      "exit_code": 0,
+      "events": 136,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "index_3d",
+      "scheduler": "deterministic",
+      "trace": true,
+      "exit_code": 0,
+      "events": 184,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "multiple_launches",
+      "scheduler": "deterministic",
+      "trace": true,
+      "exit_code": 0,
+      "events": 14,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "tiled_matmul",
+      "scheduler": "adversarial",
+      "trace": true,
+      "exit_code": 0,
+      "events": 3441,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "out_of_bounds",
+      "scheduler": "deterministic",
+      "trace": true,
+      "exit_code": 2,
+      "events": 6,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "shared_race",
+      "scheduler": "adversarial",
+      "trace": true,
+      "exit_code": 2,
+      "events": 21,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 200000
+    },
+    {
+      "case": "vector_add",
+      "scheduler": "deterministic",
+      "trace": true,
+      "exit_code": 0,
+      "events": 5,
+      "passed": true,
+      "threads": 1,
+      "trace_limit": 5
+    }
+  ],
+  "trace_alignment": {
+    "passed": true,
+    "runs": [
+      {
+        "run": "divergence-deterministic-trace",
+        "events": 68,
+        "truncated": false
+      },
+      {
+        "run": "index_3d-deterministic-trace",
+        "events": 184,
+        "truncated": false
+      },
+      {
+        "run": "multiple_launches-deterministic-trace",
+        "events": 14,
+        "truncated": false
+      },
+      {
+        "run": "out_of_bounds-deterministic-trace",
+        "events": 6,
+        "truncated": false
+      },
+      {
+        "run": "shared_race-adversarial-trace",
+        "events": 21,
+        "truncated": false
+      },
+      {
+        "run": "shared_reduce-adversarial-trace",
+        "events": 391,
+        "truncated": false
+      },
+      {
+        "run": "shared_reduce-deterministic-trace",
+        "events": 391,
+        "truncated": false
+      },
+      {
+        "run": "shared_reduce-random-trace",
+        "events": 391,
+        "truncated": false
+      },
+      {
+        "run": "tiled_matmul-adversarial-trace",
+        "events": 3441,
+        "truncated": false
+      },
+      {
+        "run": "vector_add-deterministic-trace",
+        "events": 209,
+        "truncated": false
+      },
+      {
+        "run": "vector_add-deterministic-trace-cap",
+        "events": 5,
+        "truncated": true
+      },
+      {
+        "run": "vector_add-deterministic-trace-workers4",
+        "events": 209,
+        "truncated": false
+      },
+      {
+        "run": "warp_atomic-adversarial-trace",
+        "events": 136,
+        "truncated": false
+      },
+      {
+        "run": "warp_atomic-deterministic-trace",
+        "events": 136,
+        "truncated": false
+      }
+    ]
+  },
+  "browser_checks": [
+    "32 lanes rendered",
+    "kernel choices populated",
+    "warp choices populated",
+    "actual instruction stream rendered",
+    "next instruction works",
+    "previous instruction works",
+    "slider reaches final instruction",
+    "playback advances",
+    "warp selection resets position",
+    "source rendered as text",
+    "PTX instruction highlighted",
+    "partial mask renders correct active lanes",
+    "instruction navigation preserves page position"
+  ],
+  "additional_checks": [
+    "Fresh CMake build of CPU interpreter and CUDA runtime/driver shims",
+    "Both patches apply to a pristine copy of the pinned engine",
+    "Patched pristine-engine diff exactly matches the locally built engine",
+    "Windows CUDA source and output paths containing spaces execute successfully",
+    "Traced and untraced numerical outputs match",
+    "Deterministic trace replay is byte-identical",
+    "Independent numerical summary references and complete CUDA host references pass",
+    "Trace cap and inert HTML data embedding pass"
+  ],
+  "inspector_template_sha256": "fb0c361d45f6aa71a6234ce7332b499cba6676b65d844e02d90fac6add078496",
+  "limits": "Functional simulation, not cycle accuracy or GPU performance. No physical-GPU differential validation."
+}

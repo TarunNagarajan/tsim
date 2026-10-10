@@ -1,0 +1,8 @@
+* text=auto
+*.py text eol=lf
+*.patch text eol=lf
+*.patch whitespace=-blank-at-eol
+*.html text eol=lf
+*.cu text eol=lf
+*.cuh text eol=lf
+*.hpp text eol=lf

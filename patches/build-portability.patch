@@ -1,0 +1,77 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index dff634d..ca359dc 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -15,7 +15,8 @@ add_compile_options(-Wall -Wextra)
+ # supports it, so debug builds and odd toolchains are unaffected.
+ include(CheckIPOSupported)
+ check_ipo_supported(RESULT VGPU_HAVE_LTO OUTPUT _lto_msg)
+-if(VGPU_HAVE_LTO AND CMAKE_BUILD_TYPE STREQUAL "Release")
++option(VGPU_ENABLE_LTO "Enable release link-time optimization" ON)
++if(VGPU_ENABLE_LTO AND VGPU_HAVE_LTO AND CMAKE_BUILD_TYPE STREQUAL "Release")
+   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+   message(STATUS "Link-time optimization enabled for Release")
+ endif()
+@@ -191,6 +192,11 @@ add_library(vgpu STATIC
+   nvidia/src/device_attributes.cpp
+ )
+ target_include_directories(vgpu PUBLIC include nvidia/include amd/include "${_gen_dir}")
++set(TSIM_INCLUDE_DIR "" CACHE PATH "Optional tsim observer headers")
++message(STATUS "tsim observer headers: ${TSIM_INCLUDE_DIR}")
++if(TSIM_INCLUDE_DIR)
++  target_include_directories(vgpu PRIVATE "${TSIM_INCLUDE_DIR}")
++endif()
+ 
+ # libvgpucuda: the CUDA Driver API shim external programs link against.
+ add_library(vgpucuda SHARED nvidia/src/driver_api.cpp nvidia/src/driver_graph.cpp nvidia/src/fatbin.cpp nvidia/src/fatbin_sass.cpp)
+diff --git a/amd/src/codeobject.cpp b/amd/src/codeobject.cpp
+index 592698d..79ae3c5 100644
+--- a/amd/src/codeobject.cpp
++++ b/amd/src/codeobject.cpp
+@@ -51,6 +51,12 @@ struct Reader {
+ // strings, integers and booleans -- and anything else is an error rather than
+ // a value quietly misread.
+ struct Msgpack {
++  Msgpack();
++  ~Msgpack();
++  Msgpack(const Msgpack&);
++  Msgpack(Msgpack&&) noexcept;
++  Msgpack& operator=(const Msgpack&);
++  Msgpack& operator=(Msgpack&&) noexcept;
+   enum class Kind { Int, Str, Array, Map, Bool, Nil };
+   Kind kind = Kind::Nil;
+   int64_t i = 0;
+@@ -59,11 +65,7 @@ struct Msgpack {
+   std::vector<Msgpack> list;
+   std::vector<std::pair<Msgpack, Msgpack>> map;
+ 
+-  const Msgpack* at(const std::string& key) const {
+-    for (const auto& [k, v] : map)
+-      if (k.kind == Kind::Str && k.s == key) return &v;
+-    return nullptr;
+-  }
++  const Msgpack* at(const std::string& key) const;
+   int64_t number(const std::string& key, int64_t fallback = 0) const {
+     const Msgpack* v = at(key);
+     return v && v->kind == Kind::Int ? v->i : fallback;
+@@ -74,6 +76,20 @@ struct Msgpack {
+   }
+ };
+ 
++// Defer recursive member instantiation until Msgpack is complete.
++Msgpack::Msgpack() = default;
++Msgpack::~Msgpack() = default;
++Msgpack::Msgpack(const Msgpack&) = default;
++Msgpack::Msgpack(Msgpack&&) noexcept = default;
++Msgpack& Msgpack::operator=(const Msgpack&) = default;
++Msgpack& Msgpack::operator=(Msgpack&&) noexcept = default;
++
++const Msgpack* Msgpack::at(const std::string& key) const {
++  for (const auto& [k, v] : map)
++    if (k.kind == Kind::Str && k.s == key) return &v;
++  return nullptr;
++}
++
+ // A big-endian field of `n` bytes.
+ uint64_t be(const Reader& r, uint64_t at, uint32_t n) {
+   uint64_t v = 0;

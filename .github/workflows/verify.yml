@@ -1,0 +1,28 @@
+name: CPU CUDA verification
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  cuda-on-cpu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install host build prerequisites
+        run: sudo apt-get update && sudo apt-get install -y clang-18 g++-13 make
+      - name: Cache local toolchain and build
+        uses: actions/cache@v4
+        with:
+          path: .local
+          key: cuda-cpu-${{ runner.os }}-${{ hashFiles('scripts/setup.py', 'patches/*.patch', 'include/tsim/*.hpp', '.gitmodules') }}
+      - name: Build compiler and CPU runtime
+        run: python3 tsim.py setup --jobs 2
+      - name: Verify CUDA execution and tracing
+        run: python3 tsim.py test
+      - name: Preserve test reports and trace inspectors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-cuda-verification
+          path: .local/verification
+          if-no-files-found: ignore
