@@ -1,0 +1,73 @@
+{
+  "engine_revision": "771bb8f96abc3721700219d88fa74e10d43dcfd5",
+  "kind": "upstream functional conformance; not hardware differential testing",
+  "build_exit_code": 0,
+  "suites": [
+    {
+      "suite": "test_ptx",
+      "exit_code": 0,
+      "passed": 31,
+      "total": 31,
+      "failures": [],
+      "success": true
+    },
+    {
+      "suite": "test_exec",
+      "exit_code": 0,
+      "passed": 24,
+      "total": 24,
+      "failures": [],
+      "success": true
+    },
+    {
+      "suite": "test_exec2",
+      "exit_code": 0,
+      "passed": 12,
+      "total": 12,
+      "failures": [],
+      "success": true
+    },
+    {
+      "suite": "test_exec3",
+      "exit_code": 0,
+      "passed": 186,
+      "total": 186,
+      "failures": [],
+      "success": true
+    },
+    {
+      "suite": "test_fastpath",
+      "exit_code": 0,
+      "passed": 7,
+      "total": 7,
+      "failures": [],
+      "success": true
+    },
+    {
+      "suite": "test_barriers",
+      "exit_code": 0,
+      "passed": 5,
+      "total": 5,
+      "failures": [],
+      "success": true
+    },
+    {
+      "suite": "test_memory",
+      "exit_code": 0,
+      "passed": 66,
+      "total": 66,
+      "failures": [],
+      "success": true
+    },
+    {
+      "suite": "test_regalloc",
+      "exit_code": 0,
+      "passed": 12,
+      "total": 12,
+      "failures": [],
+      "success": true
+    }
+  ],
+  "passed": true,
+  "total_checks": 343
+}

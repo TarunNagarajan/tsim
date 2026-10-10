@@ -1,0 +1,18 @@
+diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
+index 581bd76..8094e64 100644
+--- a/src/exec/interpreter.cpp
++++ b/src/exec/interpreter.cpp
+@@ -10995,7 +11010,12 @@ class Interpreter {
+               // operand order the compiler chose, and a sanitizer build chose
+               // differently.
+               case AtomOp::Add:
+-                res = std::isnan(y) ? y : std::isnan(x) ? x : x + y;
++                // Classify and return the raw bits before any FP operation.
++                // Clang may speculatively add before a floating-point select,
++                // which quiets a signalling NaN even on the selected pass-through.
++                if ((b & 0x7fffffffffffffffull) > 0x7ff0000000000000ull) return b;
++                if ((old & 0x7fffffffffffffffull) > 0x7ff0000000000000ull) return old;
++                res = x + y;
+                 break;
+               case AtomOp::Exch: res = y; break;
+               case AtomOp::Min: res = std::fmin(x, y); break;

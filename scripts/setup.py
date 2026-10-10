@@ -79,7 +79,22 @@ def main():
     subprocess.run(['git', '-C', str(ROOT), 'submodule', 'update', '--init', '--recursive'], check=True)
     actual = subprocess.check_output(['git', '-C', str(ENGINE), 'rev-parse', 'HEAD'], text=True).strip()
     if actual != PIN: raise RuntimeError('Unexpected engine revision: ' + actual)
-    for patch in sorted((ROOT / 'patches').glob('*.patch')):
+    patches = sorted((ROOT / 'patches').glob('*.patch'))
+    # A Windows checkout and a Linux checkout may have different newlines.
+    # Canonicalize only patch targets, keeping the patch application identical.
+    for patch in patches:
+        content = patch.read_bytes().replace(b'\r\n', b'\n')
+        if content != patch.read_bytes(): patch.write_bytes(content)
+        for line in content.decode().splitlines():
+            if not line.startswith('+++ b/'): continue
+            target = (ENGINE / line[6:]).resolve()
+            if not target.is_relative_to(ENGINE.resolve()):
+                raise RuntimeError('Patch target outside engine')
+            if target.is_file():
+                data = target.read_bytes()
+                canonical = data.replace(b'\r\n', b'\n')
+                if data != canonical: target.write_bytes(canonical)
+    for patch in patches:
         check = subprocess.run(['git', '-C', str(ENGINE), 'apply', '--reverse', '--check', str(patch)], capture_output=True)
         if check.returncode:
             subprocess.run(['git', '-C', str(ENGINE), 'apply', '--check', str(patch)], check=True)

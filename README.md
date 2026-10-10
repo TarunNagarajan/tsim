@@ -2,6 +2,8 @@
 
 Write CUDA C++ on a CPU-only machine and inspect the GPU execution model. `tsim` uses NVIDIA's real `nvcc` compiler to produce PTX, then executes that PTX through a CPU interpreter. CUDA kernel launch syntax, `threadIdx`, `blockIdx`, shared memory, barriers, warp intrinsics, and runtime memory operations remain ordinary CUDA source.
 
+Development is continuing toward broader CUDA conformance and detailed GPU architecture modeling. The [replication roadmap](docs/replication-roadmap.md) records the required tracks and evidence. The current implementation is a functional foundation; the larger replication goal remains open.
+
 The execution engine is [PantheonSim](https://github.com/pantheongpu/pantheonsim), pinned as a submodule rather than presented as original tsim code. tsim adds a reproducible local compiler/runtime setup, Windows-to-WSL launcher, bounded instruction tracing, an offline interactive warp inspector, CUDA examples, and integration verification. The original fluid simulator is preserved in Git history at `1b33446da9fe7b0a8aee40f923a47c4a67a4c087`.
 
 ## Get started
@@ -45,6 +47,8 @@ Use `--out PATH` to choose the run directory. `python tsim.py inspect PATH/warp-
 The [recorded verification report](docs/verification.json) documents 16 passing CUDA execution checks on an Intel i5-1135G7 with Ubuntu WSL, exact PTX alignment for 5,602 recorded issues across 14 saved runs, and 13 actual browser checks of the inspector. A separate [clean-checkout GitHub run](https://github.com/TarunNagarajan/tsim/actions/runs/38073798643) built the toolchain/runtime and passed all 16 execution checks. Intentional invalid kernels pass their checks by returning the expected diagnostic and nonzero exit.
 
 An optional installed Chromium/Chrome/Edge browser can verify the inspector itself with `python scripts/browser_check.py PATH/inspector.html --browser PATH_TO_BROWSER --out PATH_TO_UI_RESULTS`. It runs the actual HTML in headless mode, checks navigation, playback, selection and lane-mask rendering, and writes a screenshot and result JSON. Browser profiles and temporary files stay in the selected output directory.
+
+`python tsim.py conformance` builds and executes eight pinned upstream PTX, execution, fast-path, barrier, memory and register-allocation suites. The [core report](docs/core-conformance.json) records 343 passing checks after repairing a Clang signaling-NaN regression in double atomic addition. These are functional regression tests, not physical-GPU differential validation. Build and individual suite logs are retained under `core-conformance/` in the selected cache.
 
 ## Fidelity and boundaries
 

@@ -19,10 +19,14 @@ jobs:
         run: python3 tsim.py setup --jobs 2
       - name: Verify CUDA execution and tracing
         run: python3 tsim.py test
+      - name: Verify core PTX conformance
+        run: python3 tsim.py conformance
       - name: Preserve test reports and trace inspectors
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cpu-cuda-verification
-          path: .local/verification
+          path: |
+            .local/verification
+            .local/core-conformance
           if-no-files-found: ignore

@@ -46,6 +46,8 @@ def parser():
     s.add_argument('--out', type=Path)
     s = sub.add_parser('test', help='Run independently checked CUDA integration tests')
     s.add_argument('--out', type=Path)
+    s = sub.add_parser('conformance', help='Build and run the pinned core PTX conformance suites')
+    s.add_argument('--out', type=Path)
     return p
 
 def run_program(args, cache, program_args=()):
@@ -177,6 +179,9 @@ def main():
     if args.command == 'test':
         from verify import verify
         return verify(cache, args.out)
+    if args.command == 'conformance':
+        from core_conformance import verify_core
+        return verify_core(cache, args.out or cache / 'core-conformance')
     if args.command == 'devices':
         return subprocess.call([str(cache / 'build' / 'vgpu'), 'list-gpus'])
     if args.command == 'doctor':
