@@ -63,7 +63,8 @@ class ExecutionEvents {
       write("\"type\":\"stream\",\"schema\":1,\"backend\":\"CPU PTX interpreter\","
             "\"execution_path\":\"reference\",\"address_encoding\":\"hexadecimal virtual address\","
             "\"memory_coverage\":\"ld/st and scalar atom/red; other paths emit gaps\","
-            "\"dependency_coverage\":\"virtual register operands; call ABI and implicit state incomplete\","
+            "\"dependency_schema\":2,"
+            "\"dependency_coverage\":\"virtual registers and CC.CF; call ABI and other implicit state incomplete\","
             "\"hardware_cycles\":false");
     } catch (...) { std::fclose(file_); file_ = nullptr; throw; }
   }
@@ -81,7 +82,8 @@ class ExecutionEvents {
       const std::string& instruction, const std::vector<uint32_t>& defs,
       const std::vector<uint32_t>& uses, long long predicate,
       unsigned regs32, unsigned regs64, unsigned local_bytes,
-      unsigned memory_accesses = 0, unsigned memory_width = 0) {
+      unsigned memory_accesses = 0, unsigned memory_width = 0,
+      bool carry_read = false, bool carry_write = false) {
     std::ostringstream s;
     s << "\"type\":\"issue\",\"launch\":" << launch << ",\"kernel\":" << quoted(kernel)
       << ",\"function\":" << quoted(function) << ",\"frame\":" << frame
@@ -95,6 +97,8 @@ class ExecutionEvents {
       s << ']';
     };
     regs("defs", defs); regs("uses", uses);
+    s << ",\"implicit_uses\":[" << (carry_read ? "\"CC.CF\"" : "") << ']'
+      << ",\"implicit_defs\":[" << (carry_write ? "\"CC.CF\"" : "") << ']';
     s << ",\"predicate_use\":" << predicate
       << ",\"virtual_registers32\":" << regs32 << ",\"virtual_registers64\":" << regs64
       << ",\"declared_local_bytes\":" << local_bytes

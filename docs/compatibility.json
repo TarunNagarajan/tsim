@@ -153,6 +153,13 @@
       "checks": 91,
       "status": "compiler-verified subset",
       "boundary": "Pinned ptxas/cuobjdump allocations and artifact provenance; generated cubins not executed; dynamic spill traffic and hardware timing unverified"
+    },
+    {
+      "feature": "Observed lane-aware register and carry hazards",
+      "evidence": "dependency-conformance.json",
+      "checks": 111,
+      "status": "modeled subset",
+      "boundary": "Virtual RAW/WAR/WAW, predicate and CC.CF lane masks; exact instruction provenance; call ABI, cross-lane transfers and complete scoreboard remain open"
     }
   ]
 }

@@ -1,0 +1,216 @@
+{
+  "kind": "lane-aware observed PTX register/carry hazards; not hardware scoreboard validation",
+  "passed": true,
+  "checks": [
+    "new definitions do not invent predecessors",
+    "two-lane RAW combines exact masks",
+    "partial overwrite has separate WAW and WAR edges",
+    "lanes retain different last writers",
+    "32-bit and 64-bit files do not alias same register index",
+    "read-modify-write has no self edge",
+    "duplicate operands do not duplicate hazard edges",
+    "read-modify-write preserves preceding reader anti-dependency",
+    "overwritten version clears previous readers",
+    "all outstanding readers precede overwrite",
+    "guard predicate reads full path while operand reads execution lanes",
+    "fully predicated-off issue still reads predicate",
+    "predicated-off issue has no ordinary live-ins",
+    "predicated-off destinations do not become writers",
+    "carry RAW and WAW dependencies are explicit",
+    "carry versions are lane-specific",
+    "restored caller frame retains original register version",
+    "distinct call generations do not alias registers",
+    "warp resource ownership is isolated",
+    "block resource ownership is isolated",
+    "launch resource ownership is isolated",
+    "boolean register rejected",
+    "register beyond file rejected",
+    "wide register beyond file rejected",
+    "negative register rejected",
+    "floating register rejected",
+    "boolean file capacity rejected",
+    "wide predicate rejected",
+    "missing guard predicate rejected",
+    "unexpected guard predicate rejected",
+    "negative frame rejected",
+    "overflow lane mask rejected",
+    "lanes outside path rejected",
+    "missing carry rejected",
+    "invented carry rejected",
+    "unknown implicit state rejected",
+    "duplicate carry rejected",
+    "missing operand metadata rejected",
+    "non-increasing issue identities rejected",
+    "frame aliasing function rejected",
+    "frame layout changes rejected",
+    "invalid frame layout does not consume sequence identity",
+    "inline instructions match actual source line",
+    "multiline instructions keep start line",
+    "predicated spelling retains guard identity",
+    "commented fake instruction does not establish provenance",
+    "eleven parser/AST operand role references passed",
+    "vector-a100 numerical process",
+    "vector-a100 single-definition registers have RAW without artificial overwrite hazards",
+    "vector-a100 no fabricated live-in register roots",
+    "vector-h100 numerical process",
+    "vector-h100 single-definition registers have RAW without artificial overwrite hazards",
+    "vector-h100 no fabricated live-in register roots",
+    "carry-a100-deterministic numerical process",
+    "carry-a100-deterministic guarded carry writes use even executing lanes",
+    "carry-a100-deterministic guarded carry reads use odd executing lanes",
+    "carry-a100-deterministic final carry sources preserve distinct even/odd writers",
+    "carry-a100-deterministic carry hazards invariant across profiles and schedules",
+    "carry-a100-deterministic graph explicitly lacks complete scoreboard claim",
+    "carry-a100-random numerical process",
+    "carry-a100-random guarded carry writes use even executing lanes",
+    "carry-a100-random guarded carry reads use odd executing lanes",
+    "carry-a100-random final carry sources preserve distinct even/odd writers",
+    "carry-a100-random carry hazards invariant across profiles and schedules",
+    "carry-a100-random graph explicitly lacks complete scoreboard claim",
+    "carry-a100-adversarial numerical process",
+    "carry-a100-adversarial guarded carry writes use even executing lanes",
+    "carry-a100-adversarial guarded carry reads use odd executing lanes",
+    "carry-a100-adversarial final carry sources preserve distinct even/odd writers",
+    "carry-a100-adversarial carry hazards invariant across profiles and schedules",
+    "carry-a100-adversarial graph explicitly lacks complete scoreboard claim",
+    "carry-h100-deterministic numerical process",
+    "carry-h100-deterministic guarded carry writes use even executing lanes",
+    "carry-h100-deterministic guarded carry reads use odd executing lanes",
+    "carry-h100-deterministic final carry sources preserve distinct even/odd writers",
+    "carry-h100-deterministic carry hazards invariant across profiles and schedules",
+    "carry-h100-deterministic graph explicitly lacks complete scoreboard claim",
+    "carry-h100-random numerical process",
+    "carry-h100-random guarded carry writes use even executing lanes",
+    "carry-h100-random guarded carry reads use odd executing lanes",
+    "carry-h100-random final carry sources preserve distinct even/odd writers",
+    "carry-h100-random carry hazards invariant across profiles and schedules",
+    "carry-h100-random graph explicitly lacks complete scoreboard claim",
+    "carry-h100-adversarial numerical process",
+    "carry-h100-adversarial guarded carry writes use even executing lanes",
+    "carry-h100-adversarial guarded carry reads use odd executing lanes",
+    "carry-h100-adversarial final carry sources preserve distinct even/odd writers",
+    "carry-h100-adversarial carry hazards invariant across profiles and schedules",
+    "carry-h100-adversarial graph explicitly lacks complete scoreboard claim",
+    "calls numerical process",
+    "call ABI graph refuses incomplete capture",
+    "indirect numerical process",
+    "actual indirect calls capture one wide target register",
+    "indirect target capture does not imply complete call ABI",
+    "collectives numerical process",
+    "cross-lane graph refuses missing lane-transfer model",
+    "cap numerical process",
+    "capped capture refuses dependency graph",
+    "fault numerical process",
+    "faulted capture refuses dependency graph",
+    "modified unknown register rejected",
+    "modified missing carry rejected",
+    "modified missing predicate guard rejected",
+    "modified frame layout alias rejected",
+    "modified wrong launch kernel rejected",
+    "modified nonexistent warp rejected",
+    "modified nonexistent block rejected",
+    "modified instruction line rejects provenance",
+    "older capture remains readable for memory conservation",
+    "older capture cannot imply complete carry dependencies",
+    "modified compiled PTX rejects dependency report"
+  ],
+  "hardware_cycles": false,
+  "cases": [
+    {
+      "name": "vector-a100",
+      "nodes": 209,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 204
+      },
+      "event_sha256": "82fec35fbdbdd07c2f9126c920b4e97ef9d89ffee7c5f4699a44149046ea94bd"
+    },
+    {
+      "name": "vector-h100",
+      "nodes": 209,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 204
+      },
+      "event_sha256": "82fec35fbdbdd07c2f9126c920b4e97ef9d89ffee7c5f4699a44149046ea94bd"
+    },
+    {
+      "name": "carry-a100-deterministic",
+      "nodes": 141,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 174,
+        "WAW": 18,
+        "WAR": 9
+      },
+      "event_sha256": "28394d6eaff8d2da8ac62bf112b6860da25de59ea13c0f3c4b0b716e067efb67"
+    },
+    {
+      "name": "carry-a100-random",
+      "nodes": 141,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 174,
+        "WAW": 18,
+        "WAR": 9
+      },
+      "event_sha256": "381938998d61d40e1b22190ef0b7577334cf1a091c5e7653b77c4c428ab96442"
+    },
+    {
+      "name": "carry-a100-adversarial",
+      "nodes": 141,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 174,
+        "WAW": 18,
+        "WAR": 9
+      },
+      "event_sha256": "69ea599ceb7c9c196071d79bcd7af042aec1505da78bd86878f22c9cefbc71aa"
+    },
+    {
+      "name": "carry-h100-deterministic",
+      "nodes": 141,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 174,
+        "WAW": 18,
+        "WAR": 9
+      },
+      "event_sha256": "28394d6eaff8d2da8ac62bf112b6860da25de59ea13c0f3c4b0b716e067efb67"
+    },
+    {
+      "name": "carry-h100-random",
+      "nodes": 141,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 174,
+        "WAW": 18,
+        "WAR": 9
+      },
+      "event_sha256": "381938998d61d40e1b22190ef0b7577334cf1a091c5e7653b77c4c428ab96442"
+    },
+    {
+      "name": "carry-h100-adversarial",
+      "nodes": 141,
+      "counts": {
+        "live_in_lane_reads": 0,
+        "RAW": 174,
+        "WAW": 18,
+        "WAR": 9
+      },
+      "event_sha256": "69ea599ceb7c9c196071d79bcd7af042aec1505da78bd86878f22c9cefbc71aa"
+    }
+  ],
+  "model_sha256": {
+    "register_dependencies.py": "f8d548cf7eb03d32476f4749c9bd32147e50e5542145c2f2d7f03f008e9f4bfc",
+    "execution_events.py": "8491848646bf940d1d2663aa7ccd57cc040fc9e7831f1895cb28f4d6d65ce83d"
+  },
+  "patch_sha256": {
+    "atomic-nan.patch": "3a66fbe1aa7058fd114750a49229b9fe64a3136a54a2e8935e7d103323a9a8c1",
+    "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
+    "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
+    "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
+    "zz-execution-events.patch": "57ca1b90c675dced7ae82b884923843ba5f47162cad8ce6e2e84e2d0a3686d5e"
+  },
+  "total_checks": 111
+}

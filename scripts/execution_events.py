@@ -4,6 +4,49 @@ import json
 from pathlib import Path
 import re
 
+def validate_dependency_issue(event):
+    """Validate schema-2 register-file identities and lane masks."""
+    try: _validate_dependency_issue(event)
+    except (KeyError, TypeError, AttributeError) as error:
+        raise ValueError('Malformed dependency issue') from error
+
+def _validate_dependency_issue(event):
+    def integer(value, name, minimum=0):
+        if type(value) is not int or value < minimum: raise ValueError('Invalid dependency ' + name)
+        return value
+    for name in ['frame', 'warp', 'pc', 'ptx_line', 'virtual_registers32', 'virtual_registers64', 'declared_local_bytes']:
+        integer(event[name], name)
+    integer(event['sequence'], 'sequence', 1)
+    integer(event['launch'], 'launch', 1)
+    if not isinstance(event['block'], list) or len(event['block']) != 3: raise ValueError('Invalid dependency block identity')
+    for dimension in event['block']: integer(dimension, 'block dimension')
+    if not isinstance(event['function'], str) or not event['function']: raise ValueError('Missing dependency function identity')
+    for name in ['path_mask', 'execution_mask']:
+        if integer(event[name], name) >= 1 << 32: raise ValueError('Dependency capture requires 32-lane masks')
+    if event['execution_mask'] & ~event['path_mask']: raise ValueError('Execution lanes outside path')
+    def register(key):
+        integer(key, 'register key')
+        if key >> 1 >= event['virtual_registers64' if key & 1 else 'virtual_registers32']:
+            raise ValueError('Dependency register outside declared file')
+    for name in ['defs', 'uses']:
+        if not isinstance(event[name], list): raise ValueError('Invalid dependency operand list')
+        for key in event[name]: register(key)
+    predicate = integer(event['predicate_use'], 'predicate key', -1)
+    if not isinstance(event['instruction'], str) or not event['instruction'].strip(): raise ValueError('Missing dependency instruction')
+    guarded = bool(re.match(r'^\s*@', event['instruction']))
+    if guarded != (predicate != -1): raise ValueError('Predicate guard dependency differs from instruction')
+    if predicate != -1:
+        register(predicate)
+        if predicate & 1: raise ValueError('Predicate cannot use 64-bit register file')
+    for name in ['implicit_uses', 'implicit_defs']:
+        if event[name] not in [[], ['CC.CF']]: raise ValueError('Unknown or duplicate implicit dependency')
+    instruction = re.sub(r'^\s*@\s*!?\s*\S+\s+', '', event['instruction']).strip()
+    modifiers = instruction.split()[0].split('.')
+    carry_read = modifiers[0] in ['addc', 'subc', 'madc']
+    carry_write = modifiers[0] in ['add', 'addc', 'sub', 'subc', 'mad', 'madc'] and 'cc' in modifiers
+    if event['implicit_uses'] != (['CC.CF'] if carry_read else []) or event['implicit_defs'] != (['CC.CF'] if carry_write else []):
+        raise ValueError('Carry dependency differs from instruction')
+
 def summarize_events(path):
     issues, launches, ends, launch_ends = {}, {}, {}, {}
     traffic = Counter()
@@ -34,6 +77,7 @@ def summarize_events(path):
                 if stream is not None or previous != 1 or event['schema'] != 1:
                     raise ValueError('Unsupported or duplicate execution event header')
                 stream = event
+                if event.get('dependency_schema', 1) not in [1, 2]: raise ValueError('Unsupported dependency schema')
             elif kind == 'stream_end':
                 if stream is None:
                     raise ValueError('Stream completion without header')
@@ -53,6 +97,7 @@ def summarize_events(path):
                     raise ValueError('Issue outside live launch')
                 if event['execution_mask'] & ~event['path_mask']:
                     raise ValueError('Execution lanes outside path')
+                if stream and stream.get('dependency_schema') == 2: validate_dependency_issue(event)
                 expected = event['expected_memory_accesses']
                 lanes = event['execution_mask'].bit_count()
                 if expected < 0 or (lanes and expected % lanes) or (not lanes and expected):
@@ -111,4 +156,5 @@ def summarize_events(path):
             'unfinished_launches': len(launches) - len(launch_ends),
             'stream_finished': stream_end,
             'complete_supported_memory': complete,
+            'dependency_schema': stream.get('dependency_schema', 1) if stream else None,
             'complete_scoreboard_dependencies': False}

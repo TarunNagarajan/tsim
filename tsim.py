@@ -71,6 +71,11 @@ def parser():
     s.add_argument('--out', type=Path)
     s = sub.add_parser('compiler-conformance', help='Verify NVIDIA compiler resources and residency provenance')
     s.add_argument('--out', type=Path)
+    s = sub.add_parser('dependency-report', help='Analyze observed lane-aware register and carry hazards')
+    s.add_argument('run_directory', type=Path)
+    s.add_argument('--out', type=Path)
+    s = sub.add_parser('dependency-conformance', help='Verify register hazards, predication and implicit carry capture')
+    s.add_argument('--out', type=Path)
     s = sub.add_parser('residency-report', help='Analyze SM resource ceilings from PTX estimates or compiler allocations')
     s.add_argument('run_directory', type=Path)
     s.add_argument('--compiler-resources', type=Path)
@@ -224,7 +229,7 @@ def main():
                 if getattr(args, flag): converted.append('--' + flag)
             for value in args.nvcc_arg: converted.append('--nvcc-arg=' + value)
         if args.command == 'inspect': converted.append(linux_path(args.trace.resolve()))
-        if args.command in ['memory-report', 'cache-report', 'residency-report', 'compile-resources']: converted.append(linux_path(args.run_directory.resolve()))
+        if args.command in ['memory-report', 'cache-report', 'residency-report', 'compile-resources', 'dependency-report']: converted.append(linux_path(args.run_directory.resolve()))
         if getattr(args, 'compiler_resources', None): converted += ['--compiler-resources', linux_path(args.compiler_resources.resolve())]
         if getattr(args, 'profile', None): converted += ['--profile', linux_path(args.profile.resolve())]
         if getattr(args, 'out', None): converted += ['--out', linux_path(args.out.resolve())]
@@ -295,6 +300,16 @@ def main():
     if args.command == 'compiler-conformance':
         from compiler_conformance import verify_compiler
         return verify_compiler(cache, args.out or cache / 'compiler-conformance')
+    if args.command == 'dependency-report':
+        from register_dependencies import analyze_dependencies
+        report = analyze_dependencies(args.run_directory)
+        target = args.out or args.run_directory / 'register-dependencies.json'
+        target.write_text(json.dumps(report, indent=2))
+        print('Register dependency report: ' + str(target.resolve()))
+        return 0
+    if args.command == 'dependency-conformance':
+        from dependency_conformance import verify_dependencies
+        return verify_dependencies(cache, args.out or cache / 'dependency-conformance')
     if args.command == 'residency-conformance':
         from residency_conformance import verify_residency
         return verify_residency(cache, args.out or cache / 'residency-conformance')

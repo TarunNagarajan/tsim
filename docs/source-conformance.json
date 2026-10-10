@@ -7,7 +7,7 @@
     "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
     "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
     "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
-    "zz-execution-events.patch": "1a2f28296d6435fcefd9f975319866d9926ef1dc89d1f9719893d9abb56541be"
+    "zz-execution-events.patch": "57ca1b90c675dced7ae82b884923843ba5f47162cad8ce6e2e84e2d0a3686d5e"
   },
   "shared_race_model": "passed",
   "cases": [
