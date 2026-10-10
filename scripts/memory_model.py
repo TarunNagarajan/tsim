@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 import hashlib
 import json
 from pathlib import Path
+import re
 
 BEST_PRACTICES = 'https://docs.nvidia.com/cuda/archive/12.6.3/cuda-c-best-practices-guide/index.html'
 PROGRAMMING = 'https://docs.nvidia.com/cuda/archive/12.6.3/cuda-c-programming-guide/index.html'
@@ -84,6 +85,22 @@ def constant_scalar_request(accesses):
         raise ValueError('Constant topology currently supports scalar 32-bit reads')
     return len({int(r['address'], 16) for r in accesses})
 
+def compiled_memory_statements(ptx):
+    """Locate complete memory statements, including inline/multiline operands.
+
+    Semicolons terminate ld/st/atom/red operands; comments must not create fake
+    statements. Preserve comment newlines to retain the compiler's line IDs.
+    """
+    clean = re.sub(r'/\*.*?\*/|//[^\n]*', lambda match: '\n' * match[0].count('\n'), ptx, flags=re.S)
+    pattern = r'(?:@\s*!?\s*%[A-Za-z0-9_$]+\s+)?(?:ld|st|atom|red)\.[A-Za-z0-9_.:$]+(?=\s|\[|\{)[^;]*;'
+    result = defaultdict(set)
+    for match in re.finditer(pattern, clean):
+        if match.start() and (clean[match.start() - 1].isalnum() or clean[match.start() - 1] in '_.$%'):
+            continue
+        line = clean.count('\n', 0, match.start()) + 1
+        result[line].add(re.sub(r'\s+', '', match[0]).rstrip(';'))
+    return result
+
 @dataclass
 class CacheLine:
     valid: set = field(default_factory=set)
@@ -144,6 +161,16 @@ class SectorCache:
             self.stats['write_access_sectors' if write else 'read_access_sectors'] += len(requested)
         return {'hits': hits, 'misses': misses, 'evicted_dirty': evicted_dirty}
 
+    def drain_dirty(self):
+        """Explicit model-boundary writeback; not inferred hardware behavior."""
+        dirty = []
+        for bucket in self.sets:
+            for (namespace, line), entry in bucket.items():
+                dirty.extend((namespace, line * self.sectors_per_line + i) for i in sorted(entry.dirty))
+                entry.dirty.clear()
+        self.stats['dirty_sectors_drained'] += len(dirty)
+        return dirty
+
 def analyze_transactions(run_directory):
     """Analyze complete observed execution; refuse partial coverage.
 
@@ -165,13 +192,20 @@ def analyze_transactions(run_directory):
         if name not in ['program', 'kernel.ptx']: raise ValueError('Unexpected compilation artifact')
         if hashlib.sha256((run / name).read_bytes()).hexdigest() != expected:
             raise ValueError('Compilation artifact changed: ' + name)
+    statements = compiled_memory_statements((run / 'kernel.ptx').read_text())
+    normalize = lambda text: re.sub(r'\s+', '', text).rstrip(';')
     issues, pending = {}, defaultdict(list)
     totals = Counter()
     requests = []
     with events_path.open() as source:
         for line in source:
             event = json.loads(line)
-            if event['type'] == 'issue': issues[event['sequence']] = event
+            if event['type'] == 'issue':
+                line_number = event['ptx_line']
+                if event['expected_memory_accesses'] and (isinstance(line_number, bool) or not isinstance(line_number, int) or
+                        normalize(event['instruction']) not in statements.get(line_number, set())):
+                    raise ValueError('Captured instruction differs from compiled PTX')
+                issues[event['sequence']] = event
             elif event['type'] == 'memory': pending[event['issue']].append(event)
             elif event['type'] == 'issue_end':
                 issue = issues.pop(event['issue'])
@@ -180,11 +214,13 @@ def analyze_transactions(run_directory):
                 for (space, operation), accesses in groups.items():
                     record = {'issue': event['issue'], 'launch': issue['launch'], 'block': issue['block'],
                               'warp': issue['warp'], 'space': space, 'operation': operation,
+                              'instruction': issue['instruction'],
                               'lane_accesses': len(accesses), 'requested_bytes': sum(r['bytes'] for r in accesses)}
                     if space in ['global', 'local']:
                         spans = local_spans(accesses) if space == 'local' else [(int(r['address'], 16), r['bytes']) for r in accesses]
                         sectors = sectors_for_spans(spans)
                         record['sectors'] = len(sectors)
+                        record['sector_ids'] = [hex(s) for s in sorted(sectors)]
                         record['sector_bytes'] = len(sectors) * 32
                         if space == 'local': record['ownership'] = 'private to launch/block/warp/lane; word-striped model'
                     elif space == 'shared':

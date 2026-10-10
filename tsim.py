@@ -60,6 +60,12 @@ def parser():
     s.add_argument('--out', type=Path)
     s = sub.add_parser('memory-conformance', help='Verify transaction and sector-cache model components')
     s.add_argument('--out', type=Path)
+    s = sub.add_parser('cache-report', help='Replay a configurable sector-cache hierarchy from complete events')
+    s.add_argument('run_directory', type=Path)
+    s.add_argument('--profile', type=Path)
+    s.add_argument('--out', type=Path)
+    s = sub.add_parser('cache-conformance', help='Verify cache policies and two-level traffic')
+    s.add_argument('--out', type=Path)
     return p
 
 def run_program(args, cache, program_args=(), compiled_from=None):
@@ -105,9 +111,11 @@ def run_program(args, cache, program_args=(), compiled_from=None):
             saved = previous / name
             if hashlib.sha256(saved.read_bytes()).hexdigest() != record['compilation_sha256'][name]:
                 raise RuntimeError('Compilation replay artifact changed: ' + str(saved))
-            shutil.copy2(saved, out / name)
+            if saved.resolve() != (out / name).resolve():
+                shutil.copy2(saved, out / name)
         commands = record['compile_commands']
-        shutil.copy2(previous / 'compile.log', out / 'compile.log')
+        if previous != out:
+            shutil.copy2(previous / 'compile.log', out / 'compile.log')
     else:
         compile_log = []
         for command in commands:
@@ -205,7 +213,8 @@ def main():
                 if getattr(args, flag): converted.append('--' + flag)
             for value in args.nvcc_arg: converted.append('--nvcc-arg=' + value)
         if args.command == 'inspect': converted.append(linux_path(args.trace.resolve()))
-        if args.command == 'memory-report': converted.append(linux_path(args.run_directory.resolve()))
+        if args.command in ['memory-report', 'cache-report']: converted.append(linux_path(args.run_directory.resolve()))
+        if getattr(args, 'profile', None): converted += ['--profile', linux_path(args.profile.resolve())]
         if getattr(args, 'out', None): converted += ['--out', linux_path(args.out.resolve())]
         if program_args: converted += ['--'] + [linux_path(x) for x in program_args]
         distro = args.distro if '--distro' in argv else saved.get('distro', args.distro)
@@ -248,6 +257,17 @@ def main():
     if args.command == 'memory-conformance':
         from memory_conformance import verify_memory
         return verify_memory(cache, args.out or cache / 'memory-conformance')
+    if args.command == 'cache-report':
+        from cache_hierarchy import analyze_cache
+        profile = json.loads(args.profile.read_text()) if args.profile else None
+        report = analyze_cache(args.run_directory, profile)
+        target = args.out or args.run_directory / 'cache-hierarchy.json'
+        target.write_text(json.dumps(report, indent=2))
+        print('Cache hierarchy report: ' + str(target.resolve()))
+        return 0
+    if args.command == 'cache-conformance':
+        from cache_conformance import verify_cache
+        return verify_cache(cache, args.out or cache / 'cache-conformance')
     if args.command == 'devices':
         return subprocess.call([str(cache / 'build' / 'vgpu'), 'list-gpus'])
     if args.command == 'doctor':

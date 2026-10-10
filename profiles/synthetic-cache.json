@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "name": "synthetic-two-level",
+  "sm_count": 1,
+  "l1": {"sets": 64, "ways": 4, "line_bytes": 128, "sector_bytes": 32},
+  "l2": {"sets": 256, "ways": 8, "line_bytes": 128, "sector_bytes": 32},
+  "placement": "linear-block-modulo-sm",
+  "replacement": "LRU",
+  "fill": "requested-sectors",
+  "write_miss": "read-for-ownership",
+  "launch_boundary": "cold-start-drain-dirty",
+  "ordering": "captured-completion-order",
+  "provenance": "model assumptions; no NVIDIA geometry, scheduling or latency calibration"
+}

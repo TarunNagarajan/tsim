@@ -46,7 +46,11 @@ def verify_events(cache, out, replay_from=None):
         subprocess.run(['clang++', '-std=c++20', '-O2', '-pthread', '-I' + str(ROOT / 'include'),
                         str(ROOT / 'tests/execution_events_model.cpp'), '-o', str(unit)], check=True)
         def writer(name, path=None, limit=200000):
-            env = os.environ.copy(); env['TSIM_EVENTS'] = str(path or out / (name + '.jsonl'))
+            target = path or out / (name + '.jsonl')
+            # The runtime intentionally appends. Each fixture represents one
+            # process stream, including when CI restores or reuses this folder.
+            if path is None: target.unlink(missing_ok=True)
+            env = os.environ.copy(); env['TSIM_EVENTS'] = str(target)
             env['TSIM_EVENTS_LIMIT'] = str(limit)
             return subprocess.run([str(unit)], env=env, text=True, capture_output=True)
         check('four-worker writer exits', writer('writer').returncode == 0)
@@ -56,6 +60,10 @@ def verify_events(cache, out, replay_from=None):
         check('thread-local parents preserve high 64-bit addresses', len(memory) == 120 and all(
             int(r['address'], 16) == 0xfedcba9876540000 + parents[r['issue']]['block'][0] for r in memory))
         check('writer escapes instruction strings', all(r['instruction'] == 'quoted"\n\\instruction' for r in parents.values()))
+        check('writer rerun exits', writer('writer').returncode == 0)
+        rerun = [json.loads(line) for line in (out / 'writer.jsonl').read_text().splitlines()]
+        check('reused output has exactly one stream and expected memory count', sum(r['type'] == 'stream' for r in rerun) == 1 and
+              sum(r['type'] == 'memory' for r in rerun) == 120)
         check('bounded writer exits', writer('writer-cap', limit=97).returncode == 0)
         capped = [json.loads(line) for line in (out / 'writer-cap.jsonl').read_text().splitlines()]
         check('cap emits one terminal marker', len(capped) == 98 and capped[-1] == {'type': 'truncated', 'limit': 97})

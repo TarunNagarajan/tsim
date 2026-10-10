@@ -13,8 +13,10 @@ jobs:
       - name: Cache local toolchain and build
         uses: actions/cache@v4
         with:
-          path: .local
-          key: cuda-cpu-${{ runner.os }}-${{ hashFiles('scripts/setup.py', 'scripts/engine_patches.py', 'patches/*.patch', 'include/tsim/*.hpp', '.gitmodules') }}
+          path: |
+            .local/toolchain
+            .local/build
+          key: cuda-cpu-build-v2-${{ runner.os }}-${{ hashFiles('scripts/setup.py', 'scripts/engine_patches.py', 'patches/*.patch', 'include/tsim/*.hpp', '.gitmodules') }}
       - name: Build compiler and CPU runtime
         run: python3 tsim.py setup --jobs 2
       - name: Verify CUDA execution and tracing
@@ -27,6 +29,8 @@ jobs:
         run: python3 tsim.py event-conformance
       - name: Verify memory transactions and cache components
         run: python3 tsim.py memory-conformance
+      - name: Verify cache policy preservation and hierarchy traffic
+        run: python3 tsim.py cache-conformance
       - name: Preserve test reports and trace inspectors
         if: always()
         uses: actions/upload-artifact@v4
@@ -38,4 +42,5 @@ jobs:
             .local/source-conformance
             .local/event-conformance
             .local/memory-conformance
+            .local/cache-conformance
           if-no-files-found: ignore

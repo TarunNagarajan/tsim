@@ -32,6 +32,9 @@
     "constant broadcast has one address request",
     "constant divergent words have thirty-two requests",
     "wide constant topology rejected",
+    "inline memory statements share correct source line",
+    "multiline vector statement preserves predicate starting line",
+    "comment memory spellings cannot spoof provenance",
     "cache cold sector miss",
     "cache same-tag absent-sector miss",
     "cache warm sector hit",
@@ -79,8 +82,8 @@
   "passed": true,
   "hardware_cycles": false,
   "component_sha256": {
-    "scripts/memory_model.py": "493c2d0290e5d1c47948f408eefebd7ad816e801d738ac554736181ed5251752",
+    "scripts/memory_model.py": "4e75369d9ec12417fb8b51bc050d7ebc2a98ea05f3c09df0b78d1e30921514c7",
     "scripts/execution_events.py": "2dcb4fab4fdb3fa90d663c376da9b6cc5044032c69cc2394ee15428f694e8329"
   },
-  "total_checks": 74
+  "total_checks": 77
 }

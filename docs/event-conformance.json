@@ -5,6 +5,8 @@
     "four-worker writer exits",
     "thread-local parents preserve high 64-bit addresses",
     "writer escapes instruction strings",
+    "writer rerun exits",
+    "reused output has exactly one stream and expected memory count",
     "bounded writer exits",
     "cap emits one terminal marker",
     "writer rejects invalid caps",
@@ -66,5 +68,5 @@
     "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
     "zz-execution-events.patch": "1a2f28296d6435fcefd9f975319866d9926ef1dc89d1f9719893d9abb56541be"
   },
-  "total_checks": 56
+  "total_checks": 58
 }

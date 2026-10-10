@@ -3,7 +3,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from memory_model import (SectorCache, sectors_for_spans, shared_scalar_request,
-                          constant_scalar_request, local_spans, LOCAL_BASE, SHARED_BASE)
+                          constant_scalar_request, compiled_memory_statements, local_spans, LOCAL_BASE, SHARED_BASE)
 
 def verify_components():
     checks = []
@@ -57,6 +57,15 @@ def verify_components():
     check('constant broadcast has one address request', constant_scalar_request(accesses([0] * 32)) == 1)
     check('constant divergent words have thirty-two requests', constant_scalar_request(accesses([4 * i for i in range(32)])) == 32)
     reject('wide constant topology rejected', lambda: constant_scalar_request(accesses([0], 8)))
+    compiled = compiled_memory_statements('''// ld.global.cg.u32 %r9,[%rd9];
+{ .reg .u32 scratch; ld.global.ca.u32 %r0,[%rd0]; st.global.cg.u32[%rd1], %r0; }
+@!%p0 ld.global.v2.u32 {%r1,
+%r2}, [%rd2];
+/* atom.global.add.u32 %r3,[%rd3],1; */
+''')
+    check('inline memory statements share correct source line', compiled[2] == {'ld.global.ca.u32%r0,[%rd0]', 'st.global.cg.u32[%rd1],%r0'})
+    check('multiline vector statement preserves predicate starting line', compiled[3] == {'@!%p0ld.global.v2.u32{%r1,%r2},[%rd2]'})
+    check('comment memory spellings cannot spoof provenance', 1 not in compiled and 5 not in compiled)
 
     cache = SectorCache(1, 2)
     check('cache cold sector miss', cache.request({0})['misses'] == {0})
