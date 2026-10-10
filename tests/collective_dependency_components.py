@@ -59,7 +59,7 @@ def verify_collective_dependencies():
               {pair[4] for pair in routed(match) if pair[3][-1] == destination} == {1, 2})
     model = LaneDependencies(); model.issue(issue(1, defs=[4]))
     wait = [dict(type='collective_wait', sequence=11, issue=10)]
-    parked = model.issue(issue(10, defs=[4], uses=[0], instruction='shfl.sync.idx.b32 r2,r0,0,31,3'), wait)
+    parked = model.issue(issue(10, defs=[4], uses=[0], instruction='shfl.sync.idx.b32 r2,r0,0,31,3'), wait, collective_schema=1)
     check('parked attempt has zero executed lanes', parked['collective_wait'] and parked['actual_execution_mask'] == 0)
     check('parked selection uncertainty is explicit', parked['conservative_selection_reads'])
     check('parked destination keeps earlier writer', model.issue(issue(20, uses=[4]))['edges'][0]['source'] == 1)

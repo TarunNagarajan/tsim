@@ -8,7 +8,9 @@ def collective_kind(instruction):
     return name if name in ['shfl', 'vote', 'redux', 'match'] else None
 
 class CollectiveEvents:
-    def __init__(self, issues):
+    def __init__(self, issues, schema=1):
+        if type(schema) is not int or schema not in [1, 2]: raise ValueError('Unsupported collective schema')
+        self.schema = schema
         self.issues = issues
         self.groups = {}
         self.group_ids = {}
@@ -35,6 +37,16 @@ class CollectiveEvents:
         if record == 'collective_wait':
             if issue in self.waits or self.masks.get(issue) or not parent['execution_mask']:
                 raise ValueError('Invalid or duplicate collective wait')
+            if self.schema == 2:
+                opcode = re.sub(r'^\s*@\s*!?\s*\S+\s+', '', parent['instruction']).strip().split()[0]
+                if 'sync' not in opcode.split('.'):
+                    raise ValueError('Legacy collective cannot park for membership synchronization')
+                member = integer(event['member_use'], -1); lanes = mask(event['member_lane_mask'])
+                if member >= 0 and (not parent['uses'] or member != parent['uses'][-1]):
+                    raise ValueError('Collective wait membership differs from last explicit operand')
+                expected = parent['execution_mask'] & -parent['execution_mask'] if member >= 0 else 0
+                if lanes != expected: raise ValueError('Collective wait must read only first selected member lane')
+                self.counts['member_lane_reads'] += lanes.bit_count()
             self.waits.add(issue); self.counts['wait_attempts'] += 1
         elif record == 'collective_group':
             lanes = mask(event['execution_mask'])

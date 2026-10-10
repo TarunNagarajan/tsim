@@ -64,7 +64,7 @@ class ExecutionEvents {
             "\"execution_path\":\"reference\",\"address_encoding\":\"hexadecimal virtual address\","
             "\"memory_coverage\":\"ld/st and scalar atom/red; other paths emit gaps\","
             "\"dependency_schema\":2,"
-            "\"collective_schema\":1,\"collective_coverage\":\"executed shfl/vote/redux/match groups and virtual data-source lanes\","
+            "\"collective_schema\":2,\"collective_coverage\":\"executed groups, virtual data-source lanes and exact parked membership reads\","
             "\"dependency_coverage\":\"virtual registers and CC.CF; call ABI and other implicit state incomplete\","
             "\"hardware_cycles\":false");
     } catch (...) { std::fclose(file_); file_ = nullptr; throw; }
@@ -137,8 +137,9 @@ class ExecutionEvents {
       << ",\"destination_lane\":" << destination_lane << ",\"source_mask\":" << source_mask;
     write(s.str());
   }
-  void collective_wait() {
-    if (parent_) write("\"type\":\"collective_wait\",\"issue\":" + std::to_string(parent_));
+  void collective_wait(long long member_use, unsigned long long member_lane_mask) {
+    if (parent_) write("\"type\":\"collective_wait\",\"issue\":" + std::to_string(parent_) +
+        ",\"member_use\":" + std::to_string(member_use) + ",\"member_lane_mask\":" + std::to_string(member_lane_mask));
   }
   class LaunchScope {
     ExecutionEvents& stream_;

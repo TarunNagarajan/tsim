@@ -157,18 +157,19 @@
     {
       "feature": "Observed lane-aware register and carry hazards",
       "evidence": "dependency-conformance.json",
-      "checks": 271,
+      "checks": 359,
       "status": "modeled subset",
-      "boundary": "Virtual RAW/WAR/WAW, predicate and CC.CF; actual directed shfl/vote/redux/match transfers and in-place old-version reads; parked selection reads conservative; ABI, control/synchronization readiness and full scoreboard open",
-      "operand_role_references": 38,
-      "directed_collective_component_checks": 28
+      "boundary": "Virtual RAW/WAR/WAW, predicate and CC.CF; directed collective transfers, in-place old versions and exact schema-2 parked membership reads; ABI/control/synchronization readiness and full scoreboard open",
+      "operand_role_references": 43,
+      "directed_collective_component_checks": 28,
+      "exact_wait_component_checks": 26
     },
     {
       "feature": "Executed collective dispatch groups and virtual source lanes",
       "evidence": "dependency-conformance.json",
       "analytical_component_checks": 43,
       "status": "captured tested subset",
-      "boundary": "Actual shfl/vote/redux/match dispatch and waits feed directed hazard graph; maps checked across profiles/schedules/four workers; hardware readiness remains open"
+      "boundary": "Actual groups, precise schema-2 waits and legal match result sinks feed directed hazard graph; profiles/schedules/four workers plus five pinned-assembler syntax checks; hardware readiness open"
     }
   ]
 }

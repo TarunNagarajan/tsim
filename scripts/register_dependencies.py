@@ -46,7 +46,7 @@ class LaneDependencies:
         self.contexts = {}
         self.last_sequence = 0
 
-    def issue(self, event, collective=None):
+    def issue(self, event, collective=None, collective_schema=2):
         validate_dependency_issue(event)
         sequence = event['sequence']
         if type(sequence) is not int or sequence <= self.last_sequence:
@@ -59,7 +59,7 @@ class LaneDependencies:
         groups, transfers, waiting = {}, [], False
         if kind:
             if collective is None: raise ValueError('Collective dependencies require executed lane-transfer records')
-            validator = CollectiveEvents({sequence: event})
+            validator = CollectiveEvents({sequence: event}, collective_schema)
             previous = sequence
             for child in collective:
                 if child.get('issue') != sequence or type(child.get('sequence')) is not int or child['sequence'] <= previous:
@@ -82,9 +82,12 @@ class LaneDependencies:
         execution = 0 if waiting else event['execution_mask']
         uses = list(event['uses'])
         if groups and next(iter(groups.values()))['data_use'] >= 0: uses.pop(0)
-        # A parked attempt selects membership but performs no data operation.
-        # Without a group its data operand class cannot be established: retain
-        # conservative selection reads, explicitly distinguished in the node.
+        if waiting and collective_schema == 2:
+            uses = []
+            wait = next(child for child in collective if child['type'] == 'collective_wait')
+            if wait['member_use'] >= 0: add(reads, reg(wait['member_use']), wait['member_lane_mask'])
+        # Legacy captures do not identify the pre-dispatch membership read.
+        # Retain their explicitly conservative selected-operand dependencies.
         for key in uses: add(reads, reg(key), event['execution_mask'])
         for key in event['defs']: add(writes, reg(key), execution)
         if event['predicate_use'] != -1: add(reads, reg(event['predicate_use']), event['path_mask'])
@@ -138,7 +141,7 @@ class LaneDependencies:
                              for (resource, destination, destination_mask), mask in sorted(live_ins.items())]}
         if kind:
             node.update(collective_kind=kind, collective_wait=waiting, actual_execution_mask=execution,
-                        conservative_selection_reads=waiting, undefined_results=undefined)
+                        conservative_selection_reads=waiting and collective_schema == 1, undefined_results=undefined)
         return node
 
 def analyze_dependencies(run_directory):
@@ -178,7 +181,7 @@ def analyze_dependencies(run_directory):
         if event['warp'] >= warps: raise ValueError('Dependency warp outside block')
         valid_lanes = min(32, threads - event['warp'] * 32)
         if event['path_mask'] >= 1 << valid_lanes: raise ValueError('Dependency path has nonexistent block lanes')
-        node = graph.issue(event, children.pop(event['sequence'], [])); nodes.append(node)
+        node = graph.issue(event, children.pop(event['sequence'], []), summary['collective_schema'] or 2); nodes.append(node)
         for edge in node['edges']: counts[edge['kind']] += 1
         counts['live_in_lane_reads'] += sum(item['lane_mask'].bit_count() for item in node['live_ins'])
     return {'schema': 2, 'kind': 'observed lane-aware PTX register hazard graph; not a complete GPU scoreboard',
@@ -189,6 +192,6 @@ def analyze_dependencies(run_directory):
             'limits': ['explicit virtual operands plus CC.CF; no physical register mapping',
                        'register layout and frame checks do not prove all opcode operand extraction complete',
                        'call ABI, control transitions, election and block synchronization ordering require additional modeling',
-                       'parked collective selection reads are conservative; inactive shuffle values have unknown origins',
+                       'legacy schema-1 parked selection reads are conservative; inactive shuffle values have unknown origins',
                        'memory dependence and latency are separate from register hazards',
                        'live-in lane reads are preserved as unknown origins rather than assumed ready values']}

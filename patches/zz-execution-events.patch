@@ -140,19 +140,31 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
    // ---- distributed shared memory ----
  
    // A block of this block's cluster by rank, failing when there is no such
-@@ -4077,8 +4172,10 @@
+@@ -4077,8 +4172,9 @@
        return;
      }
  
 -    if (const Operand* members = sync_members(ins); members && m != 0 && wait_for_members(w, ctx, ins, idx, *members, m))
 +    if (const Operand* members = sync_members(ins); members && m != 0 && wait_for_members(w, ctx, ins, idx, *members, m)) {
-+      tsim::execution_events().collective_wait();
        return;
 +    }
  
      if (m != 0) {
        try {
-@@ -4724,16 +4821,12 @@
+@@ -4210,6 +4306,12 @@
+       if (i == idx || !(w.paths[i].mask & named)) continue;
+       if (select_other_runnable(w, idx) == idx) return false;
+       w.paths[idx].parked = Path::kAtBarrier;
++      if (sync_members(ins)) {
++        const auto* source = std::get_if<RegOperand>(&members);
++        const long long key = source && source->reg.id != kNoReg ?
++            static_cast<long long>(source->reg.id * 2 + source->reg.wide) : -1;
++        tsim::execution_events().collective_wait(key, key >= 0 ? Mask{1} << first_set(m) : 0);
++      }
+       return true;
+     }
+     return false;
+@@ -4724,16 +4826,12 @@
      if (const auto* op = std::get_if<OpLd>(&ins.op)) {
        // Every element of a vector access: an ld.v4 moves four times the
        // element's bytes, and counting one element undercounted it that much.
@@ -169,7 +181,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        // st.release: nothing before it may be seen to happen after it.
        if (op->release) std::atomic_thread_fence(std::memory_order_release);
        exec_st(w, ctx, ins, *op, m);
-@@ -5278,6 +5371,8 @@
+@@ -5278,6 +5376,8 @@
        require_warp32(ins, "redux.sync");
        Lanes _s_a;
        const Lanes& a = read_operand(w, ctx, ins, op->src, _s_a);
@@ -178,7 +190,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        // Every participating lane contributes and every one receives the result.
        // The active mask is the membership: a lane not executing this
        // instruction is not in the warp's reduction.
-@@ -5755,6 +5850,8 @@
+@@ -5755,6 +5855,8 @@
        require_warp32(ins, "match.sync");
        Lanes _s_a;
        const Lanes& a = read_operand(w, ctx, ins, op->a, _s_a);
@@ -187,7 +199,16 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        Lanes r;
        Mask all_agreed = 0;
        for (uint32_t lane = 0; lane < W_; ++lane) {
-@@ -6203,6 +6300,8 @@
+@@ -5772,7 +5874,7 @@
+         if (same == members) all_agreed |= (Mask{1} << lane);
+         r[lane] = op->all ? (same == members ? static_cast<uint64_t>(members) : 0) : static_cast<uint64_t>(same);
+       }
+-      write_reg(w, op->dst, m, r, 32);
++      if (op->dst.id != kNoReg) write_reg(w, op->dst, m, r, 32);
+       if (op->all && op->pred_dst.id != kNoReg) {
+         Mask& p = pred_slot(w, op->pred_dst);
+         p = (p & ~m) | (all_agreed & m);
+@@ -6203,6 +6305,8 @@
      if (const auto* op = std::get_if<OpVote>(&ins.op)) {
        require_warp32(ins, "vote/ballot");
        Mask p = read_pred(w, ins, op->src);
@@ -196,7 +217,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        if (op->negate_src) p = ~p;
        Mask voters = p & m;
        if (op->ballot) {
-@@ -6671,6 +6770,25 @@
+@@ -6671,6 +6775,25 @@
    // Warp shuffle: a lane reads another lane's register. This is a plain index
    // into the warp's lane vector — the operation the warp-vectorized register
    // file makes trivial (see ARCHITECTURE.md D1).
@@ -222,7 +243,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
    void exec_shfl(Warp& w, const BlockCtx& ctx, const Instr& ins, const OpShfl& op, Mask m) {
      Lanes _s_a;
        const Lanes& a = read_operand(w, ctx, ins, op.a, _s_a);
-@@ -6678,6 +6796,7 @@
+@@ -6678,6 +6801,7 @@
        const Lanes& b = read_operand(w, ctx, ins, op.b, _s_b);
        Lanes _s_c;
        const Lanes& c = read_operand(w, ctx, ins, op.c, _s_c);
@@ -230,7 +251,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      Lanes r;  // written for every active lane below
      Mask pred_out = 0;
      for (uint32_t lane = 0; lane < W_; ++lane) {
-@@ -6715,6 +6834,7 @@
+@@ -6715,6 +6839,7 @@
        // register holds (an RTX 3060: lanes 0-15 of a diverged warp shuffling
        // from lane 17 read 0).
        r[lane] = (m >> (j & 0x1F)) & 1 ? a[j & 0x1F] : 0;
@@ -238,7 +259,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        if (pred) pred_out |= (Mask{1} << lane);
      }
      write_reg(w, op.dst, m, r, 32);
-@@ -9663,6 +9783,7 @@
+@@ -9663,6 +9788,7 @@
              uint64_t v = 0;
              std::memcpy(&v, params_.bytes.data() + (at - kParamVaBase), size);
              results[e][lane] = v;
@@ -246,7 +267,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
            }
          }
        for (size_t e = 0; e < n; ++e) write_loaded(w, op.dsts[e], m, results[e], op.ty);
-@@ -9680,6 +9801,9 @@
+@@ -9680,6 +9806,9 @@
                     "ld.param reads past parameter '" + op.addr.base + "'");
          uint64_t v = 0;
          std::memcpy(&v, params_.bytes.data() + at, size);
@@ -256,7 +277,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
          Lanes r;  // written for every active lane below
          r.fill(v);
          write_loaded(w, op.dsts[e], m, r, op.ty);
-@@ -9690,14 +9814,6 @@
+@@ -9690,14 +9819,6 @@
      const Lanes& base = addr_base(w, ctx, ins, op.addr, _s_base);
      uint64_t sbase = space_base(op.space);
      uint32_t va = size * static_cast<uint32_t>(n);  // vector accesses need vector alignment
@@ -271,7 +292,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      LaneSet results(n);
      for (uint32_t lane = 0; lane < W_; ++lane)
        if (m & (Mask{1} << lane)) {
-@@ -9707,9 +9823,12 @@
+@@ -9707,9 +9828,12 @@
                     "vector load requires " + std::to_string(va) + "-byte alignment");
          std::unique_lock<std::mutex> whole;
          if (op.ordered && n > 1) whole = std::unique_lock<std::mutex>(vector_lock(addr));
@@ -286,7 +307,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      for (size_t e = 0; e < n; ++e) write_loaded(w, op.dsts[e], m, results[e], op.ty);
    }
  
-@@ -9762,13 +9881,6 @@
+@@ -9762,13 +9886,6 @@
      const Lanes& base = addr_base(w, ctx, ins, op.addr, _s_base);
      uint64_t sbase = space_base(op.space);
      uint32_t va = size * static_cast<uint32_t>(n);
@@ -300,7 +321,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      for (uint32_t lane = 0; lane < W_; ++lane)
        if (m & (Mask{1} << lane)) {
          uint64_t addr = sbase + base[lane] + static_cast<uint64_t>(op.addr.offset);
-@@ -9777,9 +9889,12 @@
+@@ -9777,9 +9894,12 @@
                     "vector store requires " + std::to_string(va) + "-byte alignment");
          std::unique_lock<std::mutex> whole;
          if (op.ordered && n > 1) whole = std::unique_lock<std::mutex>(vector_lock(addr));
@@ -315,7 +336,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
    }
  
    // mbarrier: a split barrier. Arriving and waiting are different
-@@ -11037,11 +11152,13 @@
+@@ -11037,11 +11157,13 @@
            uint8_t* host = mem_.host_address(addr, size);
            if (host && reinterpret_cast<uintptr_t>(host) % size == 0) {
              r[lane] = vgpu::exec::host_atomic_rmw(host, size, compute);
@@ -329,7 +350,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
          r[lane] = old;
        }
      // `red` performed the read-modify-write and has nowhere to put the old
-@@ -11200,6 +11317,7 @@
+@@ -11200,6 +11322,7 @@
      // The caller resumes after the call, so its path is saved already past it.
      ++w.paths[step_idx_].pc;
      Warp::Frame f;
@@ -337,7 +358,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      f.fn = w.fn;
      f.local_base = w.local_base;
      f.paths = std::move(w.paths);
-@@ -11219,6 +11337,7 @@
+@@ -11219,6 +11342,7 @@
      // The callee's .local frame sits above its caller's, the way a stack
      // grows, so a pointer into the caller's frame stays valid in the callee.
      w.local_base = (local_base_ + cur_->local_frame_size + 15) / 16 * 16;
@@ -345,7 +366,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      w.fn = &callee;
      cur_ = &callee;
      local_base_ = w.local_base;
-@@ -11251,6 +11370,7 @@
+@@ -11251,6 +11375,7 @@
          have_ret = true;
        }
      }
@@ -353,7 +374,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      w.fn = f.fn;
      w.local_base = f.local_base;
      cur_ = w.fn ? w.fn : &fn_;
-@@ -13310,8 +13430,12 @@
+@@ -13310,8 +13435,12 @@
                          const DeviceProfile& profile, const SymbolTable* symbols,
                          const ProgressFn& progress, DeviceLaunches* dl) {
    LaunchConfig with_cluster = cfg;
@@ -418,6 +439,25 @@ diff --git a/src/ptx/parser.cpp b/src/ptx/parser.cpp
        }
        if (auto* st = std::get_if<OpSt>(&ins.op)) {
          st->release = release;
+@@ -4024,10 +4028,14 @@
+       auto mty = parse_type_token(parts[3]);
+       if (!mty || (mty->bits != 32 && mty->bits != 64))
+         return unsupported("match type '." + parts[3] + "' (only .b32 and .b64)");
+-      op.dst = expect_reg_operand("match destination");
+-      if (op.all && peek_punct("|")) {
+-        next();
+-        op.pred_dst = expect_reg_operand("match.all predicate destination");
++      if (op.all && peek().text == "_") next();
++      else op.dst = expect_reg_operand("match destination");
++      if (op.all) {
++        expect_punct("|");
++        if (peek().text == "_") next();
++        else op.pred_dst = expect_reg_operand("match.all predicate destination");
++        if (op.dst.id == kNoReg && op.pred_dst.id == kNoReg)
++          return unsupported("match.all requires at least one result register");
+       }
+       expect_punct(",");
+       op.a = parse_operand();
 diff --git a/src/ptx/regalloc.cpp b/src/ptx/regalloc.cpp
 --- a/src/ptx/regalloc.cpp
 +++ b/src/ptx/regalloc.cpp

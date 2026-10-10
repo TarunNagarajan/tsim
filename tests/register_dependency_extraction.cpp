@@ -40,6 +40,19 @@ int main() {
     check("vote.sync.ballot.b32 %r1,%p1,%r4", {"%r1"}, {"%p1", "%r4"});
     check("redux.sync.add.u32 %r1,%r2,%r3", {"%r1"}, {"%r2", "%r3"});
     check("match.any.sync.b32 %r1,%r2,%r3", {"%r1"}, {"%r2", "%r3"});
+    check("match.all.sync.b32 _|%p1,%r2,%r3", {"%p1"}, {"%r2", "%r3"});
+    check("match.all.sync.b32 %r1|_,%r2,%r3", {"%r1"}, {"%r2", "%r3"});
+    for (const std::string instruction : {"match.all.sync.b32 _|_,%r2,%r3",
+                                          "match.all.sync.b32 %r1,%r2,%r3",
+                                          "match.any.sync.b32 _,%r2,%r3"}) {
+      bool rejected = false;
+      try {
+        parse(".version 8.5\n.target sm_90\n.address_size 64\n.visible .entry k(){"
+              ".reg .b32 %r<5>; .reg .pred %p<3>; " + instruction + "; ret; }");
+      } catch (const std::exception&) { rejected = true; }
+      if (!rejected) throw std::runtime_error("Invalid match result syntax accepted: " + instruction);
+      ++checks;
+    }
     check("elect.sync %r1|%p1,%r2", {"%r1", "%p1"}, {"%r2"});
     check("bar.sync %r1,%r2", {}, {"%r1", "%r2"});
     check("bar.warp.sync %r1", {}, {"%r1"});

@@ -13,21 +13,26 @@ def verify_dependencies(cache, out, replay_from=None):
     from tsim import ROOT, run_program
     from register_dependencies import analyze_dependencies
     from execution_events import summarize_events
+    from compiler_resources import compile_resources, load_resources
     sys.path.insert(0, str(ROOT / 'tests'))
     from register_dependency_components import verify_dependency_components
     from collective_event_components import verify_collective_components
     from collective_dependency_components import verify_collective_dependencies
+    from collective_wait_components import verify_collective_wait_reads
     out = Path(out).resolve(); out.mkdir(parents=True, exist_ok=True)
     checks = verify_dependency_components()
     checks.extend(verify_collective_components())
     checks.extend(verify_collective_dependencies())
+    checks.extend(verify_collective_wait_reads())
     report = {'kind': 'lane-aware observed PTX register/carry hazards; not hardware scoreboard validation',
-              'passed': False, 'checks': checks, 'hardware_cycles': False, 'cases': [],
+              'passed': False, 'checks': checks, 'hardware_cycles': False, 'cases': [], 'compiler_syntax_checks': [],
               'model_sha256': {name: hashlib.sha256((ROOT / 'scripts' / name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
-                               for name in ['register_dependencies.py', 'execution_events.py', 'collective_events.py']},
+                               for name in ['register_dependencies.py', 'execution_events.py', 'collective_events.py', 'dependency_conformance.py']},
               'reference_sha256': {name: hashlib.sha256((ROOT / 'tests' / name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
-                                   for name in ['register_dependency_components.py', 'collective_event_components.py',
-                                                'collective_dependency_components.py', 'conformance/collective_dependencies.cu']},
+                                   for name in ['register_dependency_components.py', 'register_dependency_extraction.cpp', 'collective_event_components.py',
+                                                'collective_dependency_components.py', 'collective_wait_components.py',
+                                                'conformance/collective_dependencies.cu', 'conformance/collective_wait_reads.cu',
+                                                'conformance/collective_discarded.cu', 'conformance/collective_nonvirtual_wait.cu']},
               'writer_sha256': hashlib.sha256((ROOT / 'include/tsim/execution_events.hpp').read_bytes().replace(b'\r\n', b'\n')).hexdigest(),
               'patch_sha256': {p.name: hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
                                for p in sorted((ROOT / 'patches').glob('*.patch'))}}
@@ -80,8 +85,8 @@ def verify_dependencies(cache, out, replay_from=None):
                         '-lvgpu', '-Wl,-rpath,' + str(Path(cache) / 'build'), '-o', str(binary)], check=True)
         result = subprocess.run([str(binary)], text=True, capture_output=True, check=True)
         (out / 'extraction.log').write_text(result.stdout + result.stderr)
-        check('thirty-eight parser/AST operand role references passed', 'checks=38' in result.stdout)
-        report['operand_role_references'] = 38
+        check('forty-three parser/AST operand role and syntax references passed', 'checks=43' in result.stdout)
+        report['operand_role_references'] = 43
         for gpu in ['a100', 'h100']:
             path = run('vector-' + gpu, ROOT / 'examples/vector_add.cu', gpu)
             model = analyze_dependencies(path); save(path, model)
@@ -228,6 +233,65 @@ def verify_dependencies(cache, out, replay_from=None):
                 check(name + ' parked graph issues never write destinations', all(
                       node['actual_execution_mask'] == 0 and not any(edge['kind'] in ['WAW', 'WAR'] for edge in node['edges'])
                       for node in model['nodes'] if node.get('collective_wait')))
+                waits = [e for e in events if e['type'] == 'collective_wait']
+                check(name + ' immediate membership has no parked virtual data reads',
+                      summary['collective_schema'] == 2 and all(e['member_use'] == -1 and e['member_lane_mask'] == 0 for e in waits) and
+                      all(not node['edges'] and not node['live_ins'] and not node['conservative_selection_reads']
+                          for node in model['nodes'] if node.get('collective_wait')))
+        for gpu in ['a100', 'h100']:
+            for scheduler in ['deterministic', 'random', 'adversarial']:
+                name = 'wait-reads-' + gpu + '-' + scheduler
+                path = run(name, ROOT / 'tests/conformance/collective_wait_reads.cu', gpu, scheduler, workers=4)
+                events = list(map(json.loads, (path / 'execution-events.jsonl').read_text().splitlines()))
+                parents = {e['sequence']: e for e in events if e['type'] == 'issue'}
+                waits = [e for e in events if e['type'] == 'collective_wait']
+                check(name + ' actual variable-membership waits from both kernels', len(waits) >= 8 and
+                      len({parents[e['issue']]['launch'] for e in waits}) == 2 and all(e['member_use'] >= 0 and
+                      e['member_lane_mask'] == (parents[e['issue']]['execution_mask'] & -parents[e['issue']]['execution_mask']) for e in waits))
+                groups = [e for e in events if e['type'] == 'collective_group']
+                check(name + ' emitted vote predicate registers retained for both CUDA variants', len(groups) == 8 and
+                      all(e['data_use'] >= 0 and e['data_use'] == parents[e['issue']]['uses'][0] for e in groups))
+                model = analyze_dependencies(path); save(path, model)
+                by_id = {node['sequence']: node for node in model['nodes']}
+                check(name + ' parked graph has exactly one real membership RAW', all(
+                      not by_id[e['issue']]['conservative_selection_reads'] and not by_id[e['issue']]['live_ins'] and
+                      len(by_id[e['issue']]['edges']) == 1 and
+                      by_id[e['issue']]['edges'] == [dict(source=by_id[e['issue']]['edges'][0]['source'], target=e['issue'], kind='RAW',
+                          resource=['register', parents[e['issue']]['frame'], e['member_use']], lane_mask=e['member_lane_mask'])]
+                      for e in waits))
+        for gpu in ['a100', 'h100']:
+            for scheduler in ['deterministic', 'random', 'adversarial']:
+                name = 'nonvirtual-wait-' + gpu + '-' + scheduler
+                path = run(name, ROOT / 'tests/conformance/collective_nonvirtual_wait.cu', gpu, scheduler, workers=4)
+                events = list(map(json.loads, (path / 'execution-events.jsonl').read_text().splitlines()))
+                parents = {e['sequence']: e for e in events if e['type'] == 'issue'}
+                waits = [e for e in events if e['type'] == 'collective_wait']
+                groups = [e for e in events if e['type'] == 'collective_group']
+                check(name + ' immediate shuffle data keeps virtual runtime membership identity', len(groups) == 4 and
+                      all(e['data_use'] == -1 for e in groups) and len(waits) >= 4 and
+                      all(parents[e['issue']]['uses'] == [e['member_use']] and e['member_use'] >= 0 for e in waits))
+                check(name + ' immediate data creates no virtual source transfer', not any(e['type'] == 'collective_transfer' for e in events))
+                model = analyze_dependencies(path); save(path, model)
+                nodes = {node['sequence']: node for node in model['nodes']}
+                check(name + ' immediate-data parked graph reads membership without guessing operand positions', all(
+                      len(nodes[e['issue']]['edges']) == 1 and nodes[e['issue']]['edges'][0]['kind'] == 'RAW' and
+                      nodes[e['issue']]['edges'][0]['resource'][-1] == e['member_use'] and
+                      nodes[e['issue']]['edges'][0]['lane_mask'] == e['member_lane_mask'] and
+                      not nodes[e['issue']]['conservative_selection_reads'] for e in waits))
+        path = run('discarded', ROOT / 'tests/conformance/collective_discarded.cu')
+        events = list(map(json.loads, (path / 'execution-events.jsonl').read_text().splitlines()))
+        groups = [e for e in events if e['type'] == 'collective_group']
+        transfers = [e for e in events if e['type'] == 'collective_transfer']
+        check('discarded match data or predicate outputs retain all contributor maps', len(groups) == 4 and
+              all(e['kind'] == 'match' and e['data_use'] >= 0 and len(e['data_defs']) == 1 for e in groups) and len(transfers) == 128 and
+              all(e['source_mask'] == 0xffffffff for e in transfers))
+        model = analyze_dependencies(path); save(path, model)
+        nodes = {node['sequence']: node for node in model['nodes']}
+        check('discarded match graph retains all thirty-two surviving result lane dependencies', all(
+              len([edge for edge in nodes[group['issue']]['edges'] if 'destination_resource' in edge]) == 32 and
+              all(edge['kind'] == 'RAW' and edge['resource'][-1] == group['data_use'] and edge['lane_mask'] == 0xffffffff and
+                  edge['destination_resource'][-1] == group['data_defs'][0]
+                  for edge in nodes[group['issue']]['edges'] if 'destination_resource' in edge) for group in groups))
         for gpu in ['a100', 'h100']:
             for scheduler in ['deterministic', 'random', 'adversarial']:
                 name = 'lane-writers-' + gpu + '-' + scheduler
@@ -253,6 +317,17 @@ def verify_dependencies(cache, out, replay_from=None):
                         actual = {e['destination_lane_mask'].bit_length() - 1: (e['source'], e['lane_mask']) for e in routed}
                         correct &= actual == expected and all(e['resource'] == e['destination_resource'] for e in routed)
                 check(name + ' every swapped lane depends on opposite parity original writer', correct)
+        # Validate unusual immediate-data and discarded-output forms with the
+        # actual NVIDIA assembler, separately from interpreter acceptance.
+        for name in ['wait-reads-a100-deterministic', 'wait-reads-h100-deterministic',
+                     'nonvirtual-wait-a100-deterministic', 'nonvirtual-wait-h100-deterministic', 'discarded']:
+            path = out / name
+            resource = compile_resources(path, cache)
+            verified = load_resources(path / 'compiler-resources', path)
+            check(name + ' pinned NVIDIA assembler accepts exact captured PTX', resource == verified)
+            report['compiler_syntax_checks'].append({'name': name, 'architecture': resource['architecture'],
+                'ptx_sha256': resource['ptx_sha256'], 'artifact_sha256': resource['artifact_sha256'],
+                'tools': resource['tools'], 'hardware_validated': False})
         path = run('cap', ROOT / 'examples/vector_add.cu', limit=37)
         reject('capped capture refuses dependency graph', lambda: analyze_dependencies(path), 'complete capture')
         path = run('fault', ROOT / 'examples/out_of_bounds.cu', negative=True)

@@ -81,11 +81,11 @@ def summarize_events(path):
                 stream = event
                 if event.get('dependency_schema', 1) not in [1, 2]: raise ValueError('Unsupported dependency schema')
                 if 'collective_schema' in event:
-                    if type(event['collective_schema']) is not int or event['collective_schema'] != 1:
+                    if type(event['collective_schema']) is not int or event['collective_schema'] not in [1, 2]:
                         raise ValueError('Unsupported collective schema')
                     if type(event.get('dependency_schema')) is not int or event['dependency_schema'] != 2:
                         raise ValueError('Collective capture requires typed schema-2 operands')
-                    collectives = CollectiveEvents(issues)
+                    collectives = CollectiveEvents(issues, event['collective_schema'])
             elif kind == 'stream_end':
                 if stream is None:
                     raise ValueError('Stream completion without header')
