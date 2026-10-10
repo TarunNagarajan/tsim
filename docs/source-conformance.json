@@ -1,0 +1,616 @@
+{
+  "kind": "functional CPU CUDA conformance; not hardware differential testing",
+  "engine_revision": "771bb8f96abc3721700219d88fa74e10d43dcfd5",
+  "compiler_ptx_target": "compute_80",
+  "patch_sha256": {
+    "atomic-nan.patch": "3a66fbe1aa7058fd114750a49229b9fe64a3136a54a2e8935e7d103323a9a8c1",
+    "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
+    "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
+    "z-shared-memory-ordering.patch": "e2ac1db0d2634e7460a1974aef7c5070aaa0b036172f4ee4bdf3f5f1cbb47ce9"
+  },
+  "shared_race_model": "passed",
+  "cases": [
+    {
+      "case": "warp_collectives",
+      "source": "warp_collectives",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "device_calls",
+      "source": "device_calls",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "numeric_edges",
+      "source": "numeric_edges",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "memory_spaces",
+      "source": "memory_spaces",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "atomic_protocol",
+      "source": "atomic_protocol",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "transitive_publication",
+      "source": "transitive_publication",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "counted_barrier",
+      "source": "counted_barrier",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "missing_release",
+      "source": "atomic_protocol",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "missing_acquire",
+      "source": "atomic_protocol",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "post_arrival_write",
+      "source": "counted_barrier",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "warp_collectives",
+      "source": "warp_collectives",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "device_calls",
+      "source": "device_calls",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "numeric_edges",
+      "source": "numeric_edges",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "memory_spaces",
+      "source": "memory_spaces",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "atomic_protocol",
+      "source": "atomic_protocol",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "transitive_publication",
+      "source": "transitive_publication",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "counted_barrier",
+      "source": "counted_barrier",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "missing_release",
+      "source": "atomic_protocol",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "missing_acquire",
+      "source": "atomic_protocol",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "post_arrival_write",
+      "source": "counted_barrier",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "warp_collectives",
+      "source": "warp_collectives",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "device_calls",
+      "source": "device_calls",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "numeric_edges",
+      "source": "numeric_edges",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "memory_spaces",
+      "source": "memory_spaces",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "atomic_protocol",
+      "source": "atomic_protocol",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "transitive_publication",
+      "source": "transitive_publication",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "counted_barrier",
+      "source": "counted_barrier",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "missing_release",
+      "source": "atomic_protocol",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "missing_acquire",
+      "source": "atomic_protocol",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "post_arrival_write",
+      "source": "counted_barrier",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "warp_collectives",
+      "source": "warp_collectives",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "device_calls",
+      "source": "device_calls",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "numeric_edges",
+      "source": "numeric_edges",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "memory_spaces",
+      "source": "memory_spaces",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "atomic_protocol",
+      "source": "atomic_protocol",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "transitive_publication",
+      "source": "transitive_publication",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "counted_barrier",
+      "source": "counted_barrier",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "missing_release",
+      "source": "atomic_protocol",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "missing_acquire",
+      "source": "atomic_protocol",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "post_arrival_write",
+      "source": "counted_barrier",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "warp_collectives",
+      "source": "warp_collectives",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "device_calls",
+      "source": "device_calls",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "numeric_edges",
+      "source": "numeric_edges",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "memory_spaces",
+      "source": "memory_spaces",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "atomic_protocol",
+      "source": "atomic_protocol",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "transitive_publication",
+      "source": "transitive_publication",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "counted_barrier",
+      "source": "counted_barrier",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "missing_release",
+      "source": "atomic_protocol",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "missing_acquire",
+      "source": "atomic_protocol",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "post_arrival_write",
+      "source": "counted_barrier",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "warp_collectives",
+      "source": "warp_collectives",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "device_calls",
+      "source": "device_calls",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "numeric_edges",
+      "source": "numeric_edges",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "memory_spaces",
+      "source": "memory_spaces",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "atomic_protocol",
+      "source": "atomic_protocol",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "transitive_publication",
+      "source": "transitive_publication",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "counted_barrier",
+      "source": "counted_barrier",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "missing_release",
+      "source": "atomic_protocol",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "missing_acquire",
+      "source": "atomic_protocol",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "post_arrival_write",
+      "source": "counted_barrier",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "total_checks": 60
+}

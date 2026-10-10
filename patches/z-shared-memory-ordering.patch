@@ -1,0 +1,250 @@
+diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
+--- a/src/exec/interpreter.cpp
++++ b/src/exec/interpreter.cpp
+@@ -45,6 +45,7 @@
+ #include <mutex>
+ #include <optional>
+ #include <unordered_map>
++#include "tsim/shared_race.hpp"
+ 
+ #include "vgpu/exec/host_atomic.hpp"
+ #include "vgpu/exec/device_printf.hpp"
+@@ -196,29 +197,10 @@
+   std::map<std::pair<uint32_t, uint64_t>, WgmmaSnapshot> pending;   // (warpgroup, sequence)
+ };
+ 
+-// Shadow state for shared memory, one entry per 4-byte word, used only when
+-// race detection is on.
+-//
+-// The rule a CUDA block promises is simple: two warps may touch the same shared
+-// word without a barrier between them only if both are reading. Anything else
+-// is a race, and the answer depends on an order the program never specified.
+-// Hardware usually hides that -- warps advance together and the window is
+-// small -- which is exactly why it is worth checking here.
+-//
+-// An epoch is the count of barriers the block has completed, so "no barrier
+-// between them" is "same epoch". Warps per block cap at 32 (1024 threads), so
+-// the set of warps that read a word in an epoch fits in a uint32_t exactly.
+-struct WordShadow {
+-  uint32_t readers = 0;             // bitmask of warps that read it this epoch
+-  uint32_t read_epoch = 0xFFFFFFFF;
+-  uint32_t write_epoch = 0xFFFFFFFF;
+-  uint16_t writer = 0xFFFF;         // warp that wrote it, 0xFFFF for none
+-};
+-
+-struct SharedShadow {
+-  std::vector<WordShadow> words;
+-  uint32_t epoch = 0;
+-};
++// Optional byte-level shared-memory shadow. Warp clocks track direct
++// release/acquire publication and participating barrier arrivals; exact-width
++// strong accesses are handled separately from unordered weak conflicts.
++using SharedShadow = tsim::SharedRace;
+ 
+ struct ClusterState;
+ struct Warp;
+@@ -2601,11 +2583,11 @@
+     b.ctx.clock = &b.clock;
+     b.ctx.exited = &b.exited;
+     if (detect_races() && !b.shared.empty()) {
+-      b.shadow.words.assign(b.shared.size() / 4 + 1, WordShadow{});
+       b.ctx.shadow = &b.shadow;
+     }
+     const uint64_t total = uint64_t{b.ctx.ntid[0]} * b.ctx.ntid[1] * b.ctx.ntid[2];
+     const size_t nwarps = static_cast<size_t>((total + W_ - 1) / W_);
++    if (b.ctx.shadow) b.shadow.reset(static_cast<unsigned>(nwarps), b.shared.size());
+     // resize, not assign: a Warp owns a unique_ptr and so is move-only.
+     b.warps.clear();
+     b.warps.resize(nwarps);
+@@ -2652,12 +2634,14 @@
+       // completes; those at a counted barrier are released by the arrivals
+       // that complete it, and cannot be released here.
+       bool any_waiting = false, any_counted = false;
++      uint64_t participants = 0;
+       for (auto& w : b.warps)
+         if (w.state == Warp::State::AtBarrier) {
+           if (w.counted_barrier) {
+             any_counted = true;
+             continue;
+           }
++          participants |= uint64_t{1} << (&w - b.warps.data());
+           w.state = Warp::State::Ready;
+           any_waiting = true;
+         }
+@@ -2680,9 +2664,8 @@
+         b.bar_red.arrived = 0;
+         ++b.bar_red.round;
+       }
+-      // ...and the barrier they arrived at orders everything before it
+-      // against everything after, which is what ends the epoch.
+-      if (any_waiting && b.ctx.shadow) ++b.ctx.shadow->epoch;
++      // Only the participating warps acquire the completed CTA barrier.
++      if (any_waiting && b.ctx.shadow) b.ctx.shadow->barrier(participants);
+       if (!any_waiting) {
+         // "All of the Tensor Memory that was allocated ... must be explicitly
+         // deallocated using tcgen05.dealloc before the kernel exits."
+@@ -3564,32 +3547,20 @@
+   static bool detect_races() { return g_race.load(std::memory_order_relaxed); }
+   static bool races_strict() { return g_race_strict.load(std::memory_order_relaxed); }
+ 
+-  [[noreturn]] void report_race(const Instr& ins, const char* what, uint64_t word,
++  [[noreturn]] void report_race(const Instr& ins, const char* what, uint64_t byte,
+                                 uint32_t other_warp) {
+     ctx_fail(ins, -1, Err::DataRace,
+              std::string(what) + " on shared memory at byte offset " +
+-                 std::to_string(word * 4) + ": warp " + std::to_string(cur_warp_) +
++                 std::to_string(byte) + ": warp " + std::to_string(cur_warp_) +
+                  " and warp " + std::to_string(other_warp) +
+-                 " both reach it with no bar.sync between them, so which one wins is not "
+-                 "something the program decided. Hardware usually hides this because warps "
+-                 "advance together; it is a real race either way");
+-  }
+-
+-  // True when the store leaves shared memory exactly as it found it.
+-  //
+-  // Such a store cannot be observed by anyone: no reader and no other writer
+-  // can tell whether it happened before or after, because the bytes are the
+-  // same either way. So it does not turn a conflicting access into a race.
+-  //
+-  // This is not a heuristic -- it is checked against the bytes actually there,
+-  // and the conflicting writer is what put them there. Real kernels do this on
+-  // purpose: llama.cpp's mul_mat_q clamps out-of-range tile rows with
+-  // `i = min(i, i_max)`, so several warps recompute the same source pointer and
+-  // write the same value to the same word. Reporting that as a bug makes the
+-  // detector useless on the code it exists to check.
+-  //
+-  // The write is still *recorded* as a write, so a later store of a different
+-  // value is still caught against it. Only the report is suppressed.
++                 " have conflicting accesses without shared-memory happens-before ordering "
++                 "(bar.sync or a matching release/acquire publication)");
++  }
++
++  // Optional inherited diagnostic policy: suppress a store conflict when
++  // the store leaves memory unchanged. PTX data races are independent of
++  // values; VGPU_RACE=2 disables this suppression for conformance checking.
++  // The access is always recorded in the happens-before detector.
+   bool unobservable_write(const BlockCtx& ctx, uint64_t addr, uint32_t bytes,
+                           uint64_t value) const {
+     if (races_strict()) return false;
+@@ -3604,31 +3575,20 @@
+   void note_shared_access(const BlockCtx& ctx, const Instr& ins, uint64_t addr, uint32_t bytes,
+                           bool is_write, uint64_t value = 0) {
+     if (!ctx.shadow) return;
+-    SharedShadow& sh = *ctx.shadow;
++    bool strong = false, acquire = false, release = false;
++    if (const auto* op = std::get_if<OpLd>(&ins.op)) {
++      strong = op->ordered; acquire = op->acquire && !is_write;
++    } else if (const auto* op = std::get_if<OpSt>(&ins.op)) {
++      strong = op->ordered; release = op->release && is_write;
++    } else if (const auto* op = std::get_if<OpAtom>(&ins.op)) {
++      strong = true; acquire = op->acquire && !is_write; release = op->release && is_write;
++    }
+     const bool silent = is_write && unobservable_write(ctx, addr, bytes, value);
+-    const uint64_t first = (addr - kSharedVaBase) / 4;
+-    const uint64_t last = (addr - kSharedVaBase + (bytes ? bytes - 1 : 0)) / 4;
+-    for (uint64_t w = first; w <= last && w < sh.words.size(); ++w) {
+-      WordShadow& s = sh.words[w];
+-      if (is_write) {
+-        if (!silent && s.write_epoch == sh.epoch && s.writer != 0xFFFF && s.writer != cur_warp_)
+-          report_race(ins, "write-write race", w, s.writer);
+-        if (!silent && s.read_epoch == sh.epoch) {
+-          const uint32_t others = s.readers & ~(1u << cur_warp_);
+-          if (others) report_race(ins, "read-write race", w, __builtin_ctzll(others));
+-        }
+-        s.writer = static_cast<uint16_t>(cur_warp_);
+-        s.write_epoch = sh.epoch;
+-      } else {
+-        if (s.write_epoch == sh.epoch && s.writer != 0xFFFF && s.writer != cur_warp_)
+-          report_race(ins, "write-read race", w, s.writer);
+-        if (s.read_epoch != sh.epoch) {
+-          s.readers = 0;
+-          s.read_epoch = sh.epoch;
+-        }
+-        s.readers |= (1u << cur_warp_);
+-      }
+-    }
++    auto conflict = ctx.shadow->access(cur_warp_, addr - kSharedVaBase, bytes,
++                                       is_write, strong, release, acquire, silent);
++    if (conflict) report_race(ins, conflict->prior_write ?
++                              (is_write ? "write-write race" : "write-read race") : "read-write race",
++                              conflict->address, conflict->other);
+   }
+ 
+   // For copies that only ever reach the issuing block's own shared memory
+@@ -3927,6 +3887,7 @@
+         NamedBarrier& nb = ctx.bars->bar[id];
+         vote(nb.acc, nb.arrived == 0);
+         nb.arrived += W_;
++        if (ctx.shadow) ctx.shadow->arrive(static_cast<unsigned>(id), cur_warp_);
+         ++stats_.barriers;
+         if (nb.arrived >= count) {
+           const uint64_t result = nb.acc;
+@@ -3937,8 +3898,8 @@
+               other.counted_barrier = false;
+               other.bar_red_result = result;
+             }
++          if (ctx.shadow) ctx.shadow->complete(static_cast<unsigned>(id), nb.waiting | (uint64_t{1} << cur_warp_));
+           nb = NamedBarrier{};
+-          if (ctx.shadow) ++ctx.shadow->epoch;
+           deliver(result);
+           return;
+         }
+@@ -4080,6 +4041,7 @@
+                      std::to_string(W_) + "); got " + std::to_string(count));
+       NamedBarrier& nb = ctx.bars->bar[id];
+       nb.arrived += W_;
++      if (ctx.shadow) ctx.shadow->arrive(static_cast<unsigned>(id), cur_warp_);
+       if (nb.arrived >= count) {
+         // Complete: the waiters go, and the barrier is ready for reuse.
+         for (size_t i = 0; i < ctx.warps->size(); ++i)
+@@ -4088,8 +4050,9 @@
+             other.state = Warp::State::Ready;
+             other.counted_barrier = false;
+           }
++        if (ctx.shadow) ctx.shadow->complete(static_cast<unsigned>(id), nb.waiting |
++                                              (bop->arrive ? 0 : (uint64_t{1} << cur_warp_)));
+         nb = NamedBarrier{};
+-        if (ctx.shadow) ++ctx.shadow->epoch;
+         return;
+       }
+       if (!bop->arrive) {
+diff --git a/include/vgpu/ptx/ast.hpp b/include/vgpu/ptx/ast.hpp
+--- a/include/vgpu/ptx/ast.hpp
++++ b/include/vgpu/ptx/ast.hpp
+@@ -928,6 +928,7 @@
+ struct OpAtom {
+   AtomOp op = AtomOp::Add; Space space = Space::Generic; Type ty; Reg dst; Addr addr; Operand b; Operand c;
+   bool discards_result = false; bool packed_half = false;
++  bool acquire = false, release = false; // atom defaults to relaxed
+   // .b128 (sm_90, exch and cas only): each 128-bit operand is a .b128
+   // register's two 64-bit halves -- dst/b/c the low ones, these the high.
+   bool b128 = false;
+diff --git a/src/ptx/parser.cpp b/src/ptx/parser.cpp
+--- a/src/ptx/parser.cpp
++++ b/src/ptx/parser.cpp
+@@ -4203,6 +4203,7 @@
+       bool packed_half = false, b128 = false;
+       uint8_t vec = 1;
+       bool explicit_global = false;
++      bool acquire = false, release = false;
+       for (size_t i = 1; i < parts.size(); ++i) {
+         const std::string& p = parts[i];
+         if (p == "v2") vec = 2;
+@@ -4210,6 +4211,9 @@
+         else if (p == "v8") vec = 8;
+         else if (p == "global") { space = Space::Global; explicit_global = true; }
+         else if (p == "shared" || p == "shared::cluster") space = Space::Shared;
++        else if (p == "acquire") acquire = true;
++        else if (p == "release") release = true;
++        else if (p == "acq_rel") acquire = release = true;
+         else if (inert_mem_modifier(p)) ;
+         else if (p == "add") aop = AtomOp::Add;
+         else if (p == "min") aop = AtomOp::Min;
+@@ -4292,6 +4296,7 @@
+       op.op = *aop;
+       op.ty = ty;
+       op.space = space;
++      op.acquire = acquire; op.release = release;
+       op.discards_result = discards;
+       op.packed_half = packed_half;
+       op.b128 = b128;

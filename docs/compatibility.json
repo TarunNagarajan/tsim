@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "evidence": "source-conformance.json",
+  "compiler": "CUDA 12.6.3",
+  "ptx_target": "compute_80",
+  "profile_matrix": ["a100", "h100"],
+  "scheduler_matrix": ["deterministic", "adversarial", "random"],
+  "physical_gpu_validation": "unverified",
+  "features": [
+    {"feature": "warp shuffles, votes, matching and add reduction", "status": "tested subset", "cases": ["warp_collectives"], "boundary": "full-warp participation; shuffle widths 2 through 32"},
+    {"feature": "device functions and divergent control flow", "status": "tested subset", "cases": ["device_calls"], "boundary": "noinline calls, loops and early exits; not all reconvergence patterns"},
+    {"feature": "arithmetic edge cases", "status": "tested subset", "cases": ["numeric_edges"], "boundary": "finite conversion ties, signed zero, FMA bits and integer bit operations"},
+    {"feature": "memory spaces", "status": "tested subset", "cases": ["memory_spaces"], "boundary": "constant/global symbols and a local array across three launches"},
+    {"feature": "global atomic tickets", "status": "tested subset", "cases": ["atomic_protocol"], "boundary": "64 concurrent tickets; no global happens-before detector"},
+    {"feature": "shared-memory publication", "status": "tested subset", "cases": ["atomic_protocol", "transitive_publication", "missing_release", "missing_acquire"], "boundary": "warp-level, same-CTA direct acquire/release; missing edges must be rejected"},
+    {"feature": "counted barriers", "status": "tested subset", "cases": ["counted_barrier", "post_arrival_write"], "boundary": "two warps; arrival snapshots, waiter ordering and post-arrival write rejection"},
+    {"feature": "per-lane race detection and independent scheduling", "status": "open", "cases": []},
+    {"feature": "global/cross-CTA happens-before and complete fence/proxy semantics", "status": "open", "cases": []},
+    {"feature": "all hardware weak-memory outcomes", "status": "unimplemented", "cases": []},
+    {"feature": "SM pipelines, caches and cycle timing", "status": "unimplemented", "cases": []},
+    {"feature": "universal CUDA/PTX compatibility", "status": "unverified", "cases": []}
+  ]
+}

@@ -2,6 +2,7 @@
 """Compile real CUDA C++ and execute/inspect it on a CPU."""
 import argparse
 import datetime
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -48,9 +49,11 @@ def parser():
     s.add_argument('--out', type=Path)
     s = sub.add_parser('conformance', help='Build and run the pinned core PTX conformance suites')
     s.add_argument('--out', type=Path)
+    s = sub.add_parser('source-conformance', help='Run CUDA feature and synchronization references')
+    s.add_argument('--out', type=Path)
     return p
 
-def run_program(args, cache, program_args=()):
+def run_program(args, cache, program_args=(), compiled_from=None):
     from inspector import create_report
     source = args.source.resolve()
     if not source.is_file(): raise RuntimeError('CUDA source does not exist: ' + str(source))
@@ -80,16 +83,32 @@ def run_program(args, cache, program_args=()):
     common += args.nvcc_arg
     commands = [common + ['-cudart', 'shared', str(source), '-o', str(binary)],
                 common + ['--ptx', str(source), '-o', str(ptx)]]
-    compile_log = []
-    for command in commands:
-        result = subprocess.run(command, env=env, text=True, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, timeout=180)
-        compile_log.append(result.stdout)
-        if result.returncode:
-            (out / 'compile.log').write_text(''.join(compile_log))
-            print(result.stdout, end='')
-            raise RuntimeError('CUDA compilation failed; see ' + str(out / 'compile.log'))
-    (out / 'compile.log').write_text(''.join(compile_log))
+    if compiled_from is not None:
+        # An explicit replay of one compilation, used by the schedule/profile
+        # matrix. Verify the saved inputs and artifacts; this is not a build cache.
+        previous = Path(compiled_from).resolve()
+        record = json.loads((previous / 'run.json').read_text())
+        if ((previous / 'source.cu').read_bytes() != source.read_bytes() or
+                record['nvcc_args'] != args.nvcc_arg):
+            raise RuntimeError('Compilation replay inputs differ')
+        for name in ['program', 'kernel.ptx']:
+            saved = previous / name
+            if hashlib.sha256(saved.read_bytes()).hexdigest() != record['compilation_sha256'][name]:
+                raise RuntimeError('Compilation replay artifact changed: ' + str(saved))
+            shutil.copy2(saved, out / name)
+        commands = record['compile_commands']
+        shutil.copy2(previous / 'compile.log', out / 'compile.log')
+    else:
+        compile_log = []
+        for command in commands:
+            result = subprocess.run(command, env=env, text=True, stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT, timeout=180)
+            compile_log.append(result.stdout)
+            if result.returncode:
+                (out / 'compile.log').write_text(''.join(compile_log))
+                print(result.stdout, end='')
+                raise RuntimeError('CUDA compilation failed; see ' + str(out / 'compile.log'))
+        (out / 'compile.log').write_text(''.join(compile_log))
     env.update(VGPU_SASS='0', VGPU_THREADS=str(args.threads), VGPU_SCHEDULER=args.scheduler,
                VGPU_SCHEDULER_SEED=str(args.seed), VGPU_MAX_STEPS='10000000')
     trace = out / 'warp-trace.jsonl'
@@ -122,6 +141,9 @@ def run_program(args, cache, program_args=()):
     metadata = {'source': str(source), 'gpu': gpu, 'backend': 'CPU PTX interpreter',
                 'scheduler': args.scheduler, 'seed': args.seed, 'threads': args.threads,
                 'exit_code': code, 'timed_out': timed_out, 'compile_commands': commands,
+                'nvcc_args': args.nvcc_arg, 'compiled_from': str(compiled_from) if compiled_from else None,
+                'compilation_sha256': {name: hashlib.sha256((out / name).read_bytes()).hexdigest()
+                                       for name in ['program', 'kernel.ptx']},
                 'run_command': command, 'trace_limit': args.trace_limit,
                 'execution_environment': {key: env[key] for key in ['VGPU_SASS', 'VGPU_THREADS',
                     'VGPU_SCHEDULER', 'VGPU_SCHEDULER_SEED', 'VGPU_MAX_STEPS', 'TSIM_TRACE',
@@ -182,6 +204,9 @@ def main():
     if args.command == 'conformance':
         from core_conformance import verify_core
         return verify_core(cache, args.out or cache / 'core-conformance')
+    if args.command == 'source-conformance':
+        from source_conformance import verify_source
+        return verify_source(cache, args.out or cache / 'source-conformance')
     if args.command == 'devices':
         return subprocess.call([str(cache / 'build' / 'vgpu'), 'list-gpus'])
     if args.command == 'doctor':

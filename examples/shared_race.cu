@@ -1,6 +1,6 @@
 #include "common.cuh"
 __global__ void shared_race(int* output) {
-  __shared__ volatile int values[64];
+  __shared__ int values[64];
   int tid = threadIdx.x;
   values[tid] = tid + 1;
   // Deliberately missing __syncthreads(): warp 0 reads warp 1's writes.

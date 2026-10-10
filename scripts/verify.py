@@ -22,6 +22,9 @@ def verify(cache, out=None):
         if negative:
             assert code != 0, name + ': expected a rejected kernel'
             assert re.search(negative, stderr, re.I), name + ': missing diagnostic'
+            if name == 'shared_race':
+                ptx = (path / 'kernel.ptx').read_text()
+                assert 'st.shared.u32' in ptx and 'ld.shared.u32' in ptx, 'Race example lost weak shared accesses'
         else:
             assert code == 0 and 'PASS ' + name in stdout, name + ': numerical result failed'
         events = []

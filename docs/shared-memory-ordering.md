@@ -1,0 +1,17 @@
+# Shared-memory ordering checks
+
+The optional shared-memory detector now follows happens-before relationships between warps within one CTA, using vector clocks and a byte-level shadow. Direct `st.release`/`ld.acquire` and scoped atomic acquire/release metadata propagate the clock of the publication actually observed at the same address and width. A release that is overwritten by another warp cannot publish the earlier payload. Transitive publication passes the original clock onward.
+
+Conflicting strong accesses are exempt only when they cover exactly the same bytes. Relaxed flag polling therefore does not itself create a race, but does not order a weak payload access. Adjacent bytes do not conflict. A full CTA barrier joins its participants. A counted barrier captures clocks at arrival and grants completion ordering to waiters; `bar.arrive` alone does not acquire completion, and writes after arrival cannot inherit that barrier's ordering.
+
+PTX `ld.volatile` and `st.volatile` have relaxed system-scope synchronization semantics. Exact-width pairs of these strong accesses are therefore distinct from weak payload races. That exemption does not establish a release/acquire relationship or make an unordered communication algorithm correct. The invalid CUDA example uses ordinary shared memory, and verification checks that compilation retains weak loads and stores. Counted-barrier probes use explicit inline PTX to prevent the compiler from folding away the payload access being tested.
+
+The shadow retains separate weak and strong access histories. A later strong operation cannot hide an earlier weak conflict merely by replacing its shadow entry. For strong operations, different address/width equivalence classes also retain separate histories.
+
+Run `python tsim.py source-conformance` for CUDA source references under deterministic, adversarial, and random scheduling on A100 and H100 profiles. Each binary is compiled once in that invocation and replayed with validated artifact hashes and saved compiler arguments. Host references check all outputs. Negative variants remove release, acquire, or the placement of a write before barrier arrival; they must produce a race diagnostic, never a timeout. Analytical detector checks separately verify transitivity, overlapping access widths, overwritten releases, barrier isolation, and arrival-only behavior.
+
+These checks cover this execution model, rather than all outcomes allowed by NVIDIA's memory model. The actor is a warp: per-lane races and independent-thread happens-before relations remain open. Global and cross-CTA memory, fences, asynchronous proxies, and complete release/acquire pattern coverage also remain open. The CPU execution engine chooses one sequentially executed schedule and does not enumerate hardware weak-memory outcomes. No physical GPU comparison has been performed.
+
+Use both `--race --strict` for strict diagnostics. The inherited non-strict policy suppresses reports for stores that leave bytes unchanged. PTX data races do not depend on the stored values, so the conformance matrix always uses strict checking. All accesses are recorded under either policy.
+
+The public semantic reference is [PTX ISA 8.5, memory consistency model](https://docs.nvidia.com/cuda/archive/12.6.3/parallel-thread-execution/index.html#memory-consistency-model). Profile selection is functional in these tests and does not establish cycle accuracy.
