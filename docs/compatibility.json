@@ -170,6 +170,15 @@
       "analytical_component_checks": 43,
       "status": "captured tested subset",
       "boundary": "Actual groups, precise schema-2 waits and legal match result sinks feed directed hazard graph; profiles/schedules/four workers plus five pinned-assembler syntax checks; hardware readiness open"
+    },
+    {
+      "feature": "Configured SM execution replay",
+      "evidence": "execution-conformance.json",
+      "checks": 133,
+      "analytical_component_checks": 52,
+      "audited_schedules": 30,
+      "status": "uncalibrated modeled subset",
+      "boundary": "Observed warp paths, SDK-verified admission/placement, virtual RAW/WAR/WAW readiness and finite pipelines; control regeneration, full scoreboard, transaction/cache service and hardware calibration open"
     }
   ]
 }

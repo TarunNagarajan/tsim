@@ -123,6 +123,7 @@ class SMResidency:
         self.partition_registers = [0] * profile.partitions
         self.used_warps = self.used_shared = self.used_threads = self.used_barriers = 0
         self.live = {}
+        self._warp_partitions = {}
         self.next_partition = 0
 
     def admit(self, identity, footprint):
@@ -143,6 +144,7 @@ class SMResidency:
             self.used_warps += footprint.warps; self.used_shared += footprint.shared_bytes; self.used_threads += footprint.threads
             self.used_barriers += footprint.barriers
             self.live[identity] = (footprint, charges)
+            self._warp_partitions[identity] = tuple((start + warp) % p.partitions for warp in range(footprint.warps))
             self.next_partition = (start + footprint.warps) % p.partitions
             return True
         return False
@@ -150,9 +152,14 @@ class SMResidency:
     def release(self, identity):
         if identity not in self.live: raise ValueError('Unknown resident block identity')
         footprint, charges = self.live.pop(identity)
+        self._warp_partitions.pop(identity)
         self.partition_registers = [used - charge for used, charge in zip(self.partition_registers, charges)]
         self.used_warps -= footprint.warps; self.used_shared -= footprint.shared_bytes; self.used_threads -= footprint.threads
         self.used_barriers -= footprint.barriers
+
+    def warp_partitions(self, identity):
+        if identity not in self.live: raise ValueError('Unknown resident block identity')
+        return self._warp_partitions[identity]
 
     def snapshot(self):
         return {'blocks': len(self.live), 'warps': self.used_warps, 'threads': self.used_threads,

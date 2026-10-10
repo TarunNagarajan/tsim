@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "sm_count": 1,
+  "provenance": "Uncalibrated example: fixed warp-instruction latencies and finite queues; not NVIDIA hardware measurements",
+  "provenance_kind": "assumption",
+  "pipelines": {
+    "alu": {
+      "latency": 4,
+      "interval": 1,
+      "capacity": 4,
+      "scope": "partition"
+    },
+    "collective": {
+      "latency": 8,
+      "interval": 1,
+      "capacity": 4,
+      "scope": "partition"
+    },
+    "control": {
+      "latency": 1,
+      "interval": 1,
+      "capacity": 2,
+      "scope": "partition"
+    },
+    "convert": {
+      "latency": 4,
+      "interval": 1,
+      "capacity": 4,
+      "scope": "partition"
+    },
+    "fp32": {
+      "latency": 4,
+      "interval": 1,
+      "capacity": 4,
+      "scope": "partition"
+    },
+    "memory": {
+      "latency": 24,
+      "interval": 1,
+      "capacity": 8,
+      "scope": "partition"
+    },
+    "parameter": {
+      "latency": 1,
+      "interval": 1,
+      "capacity": 2,
+      "scope": "partition"
+    }
+  }
+}

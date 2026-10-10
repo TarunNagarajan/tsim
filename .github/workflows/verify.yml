@@ -37,6 +37,8 @@ jobs:
         run: python3 tsim.py residency-conformance
       - name: Verify NVIDIA compiler allocations and resource provenance
         run: python3 tsim.py compiler-conformance
+      - name: Verify SM issue scheduling, finite pipelines and resource lifetimes
+        run: python3 tsim.py execution-conformance
       - name: Preserve test reports and trace inspectors
         if: always()
         uses: actions/upload-artifact@v4
@@ -52,4 +54,5 @@ jobs:
             .local/cache-conformance
             .local/residency-conformance
             .local/compiler-conformance
+            .local/execution-conformance
           if-no-files-found: ignore
