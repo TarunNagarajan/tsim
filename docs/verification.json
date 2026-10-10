@@ -291,5 +291,12 @@
       "zz-execution-events.patch": "57ca1b90c675dced7ae82b884923843ba5f47162cad8ce6e2e84e2d0a3686d5e"
     },
     "scope": "Numerical execution, trace invariants, deterministic replay and inspector data escaping; prior browser evidence retained separately"
+  },
+  "dependency_clean_checkout": {
+    "commit": "df3d90bad2c2dd6b51030648b1bef6a5d6957a10",
+    "run_url": "https://github.com/TarunNagarajan/tsim/actions/runs/38088447456",
+    "build": "passed",
+    "all_workflow_steps": "passed",
+    "scope": "16 execution, 343 core, 78 source, 58 event, 111 dependency, 77 memory, 76 cache, 61 residency plus 3872 SDK comparisons, 91 compiler checks"
   }
 }

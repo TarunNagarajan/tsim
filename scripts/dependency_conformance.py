@@ -72,7 +72,8 @@ def verify_dependencies(cache, out, replay_from=None):
                         '-lvgpu', '-Wl,-rpath,' + str(Path(cache) / 'build'), '-o', str(binary)], check=True)
         result = subprocess.run([str(binary)], text=True, capture_output=True, check=True)
         (out / 'extraction.log').write_text(result.stdout + result.stderr)
-        check('eleven parser/AST operand role references passed', 'checks=11' in result.stdout)
+        check('thirty-eight parser/AST operand role references passed', 'checks=38' in result.stdout)
+        report['operand_role_references'] = 38
         for gpu in ['a100', 'h100']:
             path = run('vector-' + gpu, ROOT / 'examples/vector_add.cu', gpu)
             model = analyze_dependencies(path); save(path, model)
@@ -126,6 +127,21 @@ def verify_dependencies(cache, out, replay_from=None):
         reject('indirect target capture does not imply complete call ABI', lambda: analyze_dependencies(path), 'coverage gaps')
         path = run('collectives', ROOT / 'tests/conformance/warp_collectives.cu')
         reject('cross-lane graph refuses missing lane-transfer model', lambda: analyze_dependencies(path), 'Cross-lane')
+        for gpu in ['a100', 'h100']:
+            for scheduler in ['deterministic', 'random', 'adversarial']:
+                name = 'members-' + gpu + '-' + scheduler
+                path = run(name, ROOT / 'tests/conformance/dynamic_members.cu', gpu, scheduler)
+                events = list(map(json.loads, (path / 'execution-events.jsonl').read_text().splitlines()))
+                selected = [e for e in events if e['type'] == 'issue' and
+                            e['instruction'].split('.')[0] in ['vote', 'redux', 'match', 'shfl', 'fns']]
+                # These compiled forms name only virtual registers and
+                # immediates. Count every spelled source occurrence, including
+                # repeated registers, independently of the AST field names.
+                check(name + ' dynamic member and bit-search sources retained',
+                      {e['instruction'].split('.')[0] for e in selected} == {'vote', 'redux', 'match', 'shfl', 'fns'} and
+                      all(len(e['uses']) == len(re.findall(r'%[\w.$]+', e['instruction'])) - len(e['defs']) for e in selected))
+                reject(name + ' explicit membership operands do not imply cross-lane graph coverage',
+                       lambda: analyze_dependencies(path), 'Cross-lane')
         path = run('cap', ROOT / 'examples/vector_add.cu', limit=37)
         reject('capped capture refuses dependency graph', lambda: analyze_dependencies(path), 'complete capture')
         path = run('fault', ROOT / 'examples/out_of_bounds.cu', negative=True)

@@ -157,9 +157,10 @@
     {
       "feature": "Observed lane-aware register and carry hazards",
       "evidence": "dependency-conformance.json",
-      "checks": 111,
+      "checks": 129,
       "status": "modeled subset",
-      "boundary": "Virtual RAW/WAR/WAW, predicate and CC.CF lane masks; exact instruction provenance; call ABI, cross-lane transfers and complete scoreboard remain open"
+      "boundary": "Virtual RAW/WAR/WAW, predicate and CC.CF lane masks; exact instruction provenance; call ABI, cross-lane transfers and complete scoreboard remain open",
+      "operand_role_references": 38
     }
   ]
 }

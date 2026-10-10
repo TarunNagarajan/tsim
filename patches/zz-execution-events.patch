@@ -365,7 +365,7 @@ diff --git a/src/ptx/regalloc.cpp b/src/ptx/regalloc.cpp
            else if constexpr (std::is_same_v<std::decay_t<decltype(op.src)>, Operand>)
              use_operand(op.src);
            else if constexpr (std::is_same_v<std::decay_t<decltype(op.src)>, Addr>)
-@@ -58,28 +60,28 @@
+@@ -58,31 +60,52 @@
          if constexpr (requires { op.srcs; })
            for (const auto& s : op.srcs) use_operand(s);
          if constexpr (requires { op.a; }) {
@@ -401,8 +401,33 @@ diff --git a/src/ptx/regalloc.cpp b/src/ptx/regalloc.cpp
 +        if constexpr (requires { op.pred; }) use_reg(op.pred);
          if constexpr (requires { op.pred_dst; })
            if (op.pred_dst.id != kNoReg) defs.push_back(K(op.pred_dst));
-         if constexpr (requires { op.member_mask; }) use_operand(op.member_mask);
-@@ -109,13 +111,13 @@
+-        if constexpr (requires { op.member_mask; }) use_operand(op.member_mask);
++        if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpShfl>) {
++          if (op.has_members) use_operand(op.member_mask);
++        }
++        if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpVote>) {
++          if (op.has_members) use_operand(op.members);
++        }
++        if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpRedux>) use_operand(op.members);
++        if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpMatch> ||
++                      std::is_same_v<std::decay_t<decltype(op)>, OpElect>) use_operand(op.membermask);
++        if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpFns>) {
++          use_operand(op.mask); use_operand(op.base); use_operand(op.offset);
++        }
++        if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpMbarrier>) {
++          if (op.have_count) use_operand(op.count);
++          if (op.have_state) use_operand(op.state);
++        }
++        if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpMapa>) use_operand(op.rank);
++        if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpTensormapReplace>) use_operand(op.value);
++        if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpCpAsyncGroup>) {
++          if (op.kind == OpCpAsyncGroup::Kind::MbarrierArrive) use_addr(op.bar);
++        }
++        if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpStAsync>) use_addr(op.mbar);
+         if constexpr (requires { op.stride; }) use_operand(op.stride);
+         if constexpr (requires { op.addr; }) use_addr(op.addr);
+         if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpAtom>) {
+@@ -109,13 +132,13 @@
          }
          if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpCvtFp8>) use_operand(op.sf);
          if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpSpCompress>) {
@@ -419,7 +444,16 @@ diff --git a/src/ptx/regalloc.cpp b/src/ptx/regalloc.cpp
            for (const auto& o : op.mdata) use_operand(o);
            for (const auto& o : op.cdata) use_operand(o);
          }
-@@ -139,16 +141,16 @@
+@@ -133,22 +156,24 @@
+           use_operand(op.obj);
+           for (const auto& c : op.coords) use_operand(c);
+         }
+-        if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpMma>)
++        if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpMma>) {
++          if (op.sparse) { use_operand(op.meta); use_operand(op.selector); }
+           for (const Operand* o : {&op.sfa, &op.sfa_byte, &op.sfa_thread, &op.sfb, &op.sfb_byte, &op.sfb_thread})
+             use_operand(*o);
++        }
          if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpWgmma>) {
            // The accumulator is read as well as written, and the descriptors
            // and the scale-d predicate are ordinary sources.
@@ -428,18 +462,20 @@ diff --git a/src/ptx/regalloc.cpp b/src/ptx/regalloc.cpp
            use_operand(op.a_desc);
            use_operand(op.b_desc);
            use_operand(op.scale_d);
-           use_operand(op.sp_meta);
+-          use_operand(op.sp_meta);
++          if (op.sparse) { use_operand(op.sp_meta); use_operand(op.sp_sel); }
          }
          if constexpr (std::is_same_v<std::decay_t<decltype(op)>, OpTcgen05>) {
 -          for (const auto& r : op.regs) (op.kind == Tcgen05Kind::Ld ? defs : uses).push_back(K(r));
-+          for (const auto& r : op.regs) { if (op.kind == Tcgen05Kind::Ld) define_reg(r); else use_reg(r); }
-           if (op.red) defs.push_back(K(op.red_dst));
+-          if (op.red) defs.push_back(K(op.red_dst));
 -          for (const auto& r : op.sp_mdata) defs.push_back(K(r));
++          for (const auto& r : op.regs) { if (op.kind == Tcgen05Kind::Ld) define_reg(r); else use_reg(r); }
++          if (op.red) define_reg(op.red_dst);
 +          for (const auto& r : op.sp_mdata) define_reg(r);
            for (const Operand* o : {&op.taddr, &op.ncols, &op.cta_mask, &op.d_tmem, &op.b_desc,
                                     &op.idesc, &op.enable_d, &op.scale_a, &op.scale_b, &op.sp_meta,
                                     &op.zero_mask})
-@@ -161,6 +163,9 @@
+@@ -161,6 +186,9 @@
              if (r->id != kNoReg) uses.push_back(K(*r));
            for (const auto& r : op.dst)
              if (r.id != kNoReg) defs.push_back(K(r));
