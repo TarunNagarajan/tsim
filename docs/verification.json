@@ -1,6 +1,13 @@
 {
   "passed": true,
   "verified_on": "2026-10-10",
+  "github_clean_checkout": {
+    "commit": "4eca08c0dff2e694104a4252740814c957887a7f",
+    "run_url": "https://github.com/TarunNagarajan/tsim/actions/runs/38073798643",
+    "build": "passed",
+    "execution_checks": 16,
+    "result": "passed"
+  },
   "environment": {
     "host": "Intel Core i5-1135G7, Windows, Ubuntu 24.04 WSL",
     "backend": "CPU PTX interpreter; VGPU_SASS=0",
