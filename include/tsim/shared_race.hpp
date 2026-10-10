@@ -24,10 +24,12 @@ class SharedRace {
     std::vector<Access> writers;
     std::vector<Access> readers;
   };
-  struct Release { Clock clock; unsigned warp; };
+  struct Release { Clock clock; };
   std::vector<Byte> memory_;
   std::array<Clock, max_warps> clocks_{};
   std::map<std::pair<uint64_t, unsigned>, Release> releases_;
+  std::array<std::map<std::pair<uint64_t, unsigned>, Clock>, max_warps> patterns_;
+  std::array<std::map<std::pair<uint64_t, unsigned>, Clock>, max_warps> acquire_patterns_;
   std::map<unsigned, Clock> arrivals_;
   unsigned warps_ = 0;
   static bool same_location(const Access& a, const Access& b) {
@@ -57,6 +59,8 @@ class SharedRace {
     memory_.clear(); memory_.resize(bytes);
     clocks_ = {};
     releases_.clear();
+    for (auto& patterns : patterns_) patterns.clear();
+    for (auto& patterns : acquire_patterns_) patterns.clear();
     arrivals_.clear();
     for (unsigned warp = 0; warp < warps; ++warp) clocks_[warp][warp] = 1;
   }
@@ -82,15 +86,23 @@ class SharedRace {
   }
   std::optional<Conflict> access(unsigned warp, uint64_t address, unsigned bytes, bool write,
                                  bool strong = false, bool release = false, bool acquire = false,
-                                 bool silent_write = false) {
+                                 bool silent_write = false, bool rmw = false) {
     if (warp >= warps_ || address > memory_.size() || bytes > memory_.size() - address)
       throw std::out_of_range("shared race: access outside shadow memory");
     const auto location = std::make_pair(address, bytes);
-    if (acquire) {
-      auto it = releases_.find(location);
-      if (it != releases_.end())
+    if (!write && strong) {
+      auto observed = releases_.find(location);
+      if (observed != releases_.end()) {
+        auto& pattern = acquire_patterns_[warp][location];
         for (unsigned other = 0; other < warps_; ++other)
-          clocks_[warp][other] = std::max(clocks_[warp][other], it->second.clock[other]);
+          pattern[other] = std::max(pattern[other], observed->second.clock[other]);
+      }
+    }
+    if (acquire) {
+      auto it = acquire_patterns_[warp].find(location);
+      if (it != acquire_patterns_[warp].end())
+        for (unsigned other = 0; other < warps_; ++other)
+          clocks_[warp][other] = std::max(clocks_[warp][other], it->second[other]);
     }
     const Access current{warp, ++clocks_[warp][warp], address, bytes, strong};
     std::optional<Conflict> conflict;
@@ -113,19 +125,32 @@ class SharedRace {
       }
     }
     if (write) {
-      // Any intervening overlapping write invalidates the previous read-from
-      // candidate. Retain a release pattern through a same-warp strong write
-      // at the exact same location, as specified by PTX 8.8.
-      std::optional<Release> retained;
-      auto same = releases_.find(location);
-      if (strong && same != releases_.end() && same->second.warp == warp) retained = same->second;
+      // Program-order release patterns and RMW observation chains are
+      // different relations. A plain strong write can extend its own prior
+      // release; an atomic RMW can additionally carry the publication it read.
+      // Carrying it does not give a relaxed RMW acquire semantics.
+      std::optional<Clock> candidate;
+      auto merge_candidate = [&](const Clock& clock) {
+        if (!candidate) candidate = Clock{};
+        for (unsigned other = 0; other < warps_; ++other)
+          (*candidate)[other] = std::max((*candidate)[other], clock[other]);
+      };
+      if (strong) {
+        auto pattern = patterns_[warp].find(location);
+        if (pattern != patterns_[warp].end()) merge_candidate(pattern->second);
+        auto observed = releases_.find(location);
+        if (rmw && observed != releases_.end()) merge_candidate(observed->second.clock);
+      }
       for (auto it = releases_.begin(); it != releases_.end();) {
         uint64_t start = it->first.first, end = start + it->first.second;
         if (address < end && start < address + bytes) it = releases_.erase(it);
         else ++it;
       }
-      if (release) releases_[location] = Release{clocks_[warp], warp};
-      else if (retained) releases_[location] = *retained;
+      if (release) {
+        patterns_[warp][location] = clocks_[warp];
+        merge_candidate(clocks_[warp]);
+      }
+      if (candidate) releases_[location] = Release{*candidate};
     }
     return conflict;
   }

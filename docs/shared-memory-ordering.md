@@ -1,6 +1,10 @@
 # Shared-memory ordering checks
 
-The optional shared-memory detector now follows happens-before relationships between warps within one CTA, using vector clocks and a byte-level shadow. Direct `st.release`/`ld.acquire` and scoped atomic acquire/release metadata propagate the clock of the publication actually observed at the same address and width. A release that is overwritten by another warp cannot publish the earlier payload. Transitive publication passes the original clock onward.
+The optional shared-memory detector now follows happens-before relationships between warps within one CTA, using vector clocks and a byte-level shadow. Direct `st.release`/`ld.acquire` and scoped atomic acquire/release metadata propagate the clock of the publication actually observed at the same address and width. An unrelated plain writer does not carry an earlier publication. Transitive publication passes the original clock onward.
+
+Atomic read-modify-write operations also carry publication through PTX observation order, including a relaxed atomic relay. Carrying a publication does not give that relay acquire semantics. Per-warp program-order release patterns are stored separately: a producer can extend its own release with a later strong write, even after an intervening writer. A release RMW can publish both its own prior work and an observed origin to a later acquire, while a subsequent plain relay store extends only its own release pattern. This prevents publication clocks from leaking across an unrelated write.
+
+Strong reads can start an acquire pattern that completes with a later acquire at the same address and width. The detector retains the publication observed by that earlier read even if another writer changes the flag before the acquire. Retained release snapshots publish work preceding the original release, rather than later unsynchronized payload writes.
 
 Conflicting strong accesses are exempt only when they cover exactly the same bytes. Relaxed flag polling therefore does not itself create a race, but does not order a weak payload access. Adjacent bytes do not conflict. A full CTA barrier joins its participants. A counted barrier captures clocks at arrival and grants completion ordering to waiters; `bar.arrive` alone does not acquire completion, and writes after arrival cannot inherit that barrier's ordering.
 

@@ -126,18 +126,19 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
    bool unobservable_write(const BlockCtx& ctx, uint64_t addr, uint32_t bytes,
                            uint64_t value) const {
      if (races_strict()) return false;
-@@ -3604,31 +3575,20 @@
+@@ -3604,31 +3575,21 @@
    void note_shared_access(const BlockCtx& ctx, const Instr& ins, uint64_t addr, uint32_t bytes,
                            bool is_write, uint64_t value = 0) {
      if (!ctx.shadow) return;
 -    SharedShadow& sh = *ctx.shadow;
-+    bool strong = false, acquire = false, release = false;
++    bool strong = false, acquire = false, release = false, rmw = false;
 +    if (const auto* op = std::get_if<OpLd>(&ins.op)) {
 +      strong = op->ordered; acquire = op->acquire && !is_write;
 +    } else if (const auto* op = std::get_if<OpSt>(&ins.op)) {
 +      strong = op->ordered; release = op->release && is_write;
 +    } else if (const auto* op = std::get_if<OpAtom>(&ins.op)) {
 +      strong = true; acquire = op->acquire && !is_write; release = op->release && is_write;
++      rmw = true;
 +    }
      const bool silent = is_write && unobservable_write(ctx, addr, bytes, value);
 -    const uint64_t first = (addr - kSharedVaBase) / 4;
@@ -164,14 +165,14 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
 -      }
 -    }
 +    auto conflict = ctx.shadow->access(cur_warp_, addr - kSharedVaBase, bytes,
-+                                       is_write, strong, release, acquire, silent);
++                                       is_write, strong, release, acquire, silent, rmw);
 +    if (conflict) report_race(ins, conflict->prior_write ?
 +                              (is_write ? "write-write race" : "write-read race") : "read-write race",
 +                              conflict->address, conflict->other);
    }
  
    // For copies that only ever reach the issuing block's own shared memory
-@@ -3927,6 +3887,7 @@
+@@ -3927,6 +3888,7 @@
          NamedBarrier& nb = ctx.bars->bar[id];
          vote(nb.acc, nb.arrived == 0);
          nb.arrived += W_;
@@ -179,7 +180,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
          ++stats_.barriers;
          if (nb.arrived >= count) {
            const uint64_t result = nb.acc;
-@@ -3937,8 +3898,8 @@
+@@ -3937,8 +3899,8 @@
                other.counted_barrier = false;
                other.bar_red_result = result;
              }
@@ -189,7 +190,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
            deliver(result);
            return;
          }
-@@ -4080,6 +4041,7 @@
+@@ -4080,6 +4042,7 @@
                       std::to_string(W_) + "); got " + std::to_string(count));
        NamedBarrier& nb = ctx.bars->bar[id];
        nb.arrived += W_;
@@ -197,7 +198,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        if (nb.arrived >= count) {
          // Complete: the waiters go, and the barrier is ready for reuse.
          for (size_t i = 0; i < ctx.warps->size(); ++i)
-@@ -4088,8 +4050,9 @@
+@@ -4088,8 +4051,9 @@
              other.state = Warp::State::Ready;
              other.counted_barrier = false;
            }

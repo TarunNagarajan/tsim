@@ -6,7 +6,7 @@
     "atomic-nan.patch": "3a66fbe1aa7058fd114750a49229b9fe64a3136a54a2e8935e7d103323a9a8c1",
     "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
     "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
-    "z-shared-memory-ordering.patch": "e2ac1db0d2634e7460a1974aef7c5070aaa0b036172f4ee4bdf3f5f1cbb47ce9"
+    "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697"
   },
   "shared_race_model": "passed",
   "cases": [
@@ -81,6 +81,26 @@
       "passed": true
     },
     {
+      "case": "rmw_publication",
+      "source": "rmw_publication",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "acquire_pattern",
+      "source": "acquire_pattern",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "a100",
@@ -103,6 +123,16 @@
     {
       "case": "post_arrival_write",
       "source": "counted_barrier",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "plain_relay_store",
+      "source": "rmw_publication",
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
@@ -181,6 +211,26 @@
       "passed": true
     },
     {
+      "case": "rmw_publication",
+      "source": "rmw_publication",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "acquire_pattern",
+      "source": "acquire_pattern",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "a100",
@@ -203,6 +253,16 @@
     {
       "case": "post_arrival_write",
       "source": "counted_barrier",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "plain_relay_store",
+      "source": "rmw_publication",
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
@@ -281,6 +341,26 @@
       "passed": true
     },
     {
+      "case": "rmw_publication",
+      "source": "rmw_publication",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "acquire_pattern",
+      "source": "acquire_pattern",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "a100",
@@ -303,6 +383,16 @@
     {
       "case": "post_arrival_write",
       "source": "counted_barrier",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "plain_relay_store",
+      "source": "rmw_publication",
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
@@ -381,6 +471,26 @@
       "passed": true
     },
     {
+      "case": "rmw_publication",
+      "source": "rmw_publication",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "acquire_pattern",
+      "source": "acquire_pattern",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "h100",
@@ -403,6 +513,16 @@
     {
       "case": "post_arrival_write",
       "source": "counted_barrier",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "plain_relay_store",
+      "source": "rmw_publication",
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
@@ -481,6 +601,26 @@
       "passed": true
     },
     {
+      "case": "rmw_publication",
+      "source": "rmw_publication",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "acquire_pattern",
+      "source": "acquire_pattern",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "h100",
@@ -503,6 +643,16 @@
     {
       "case": "post_arrival_write",
       "source": "counted_barrier",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "plain_relay_store",
+      "source": "rmw_publication",
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
@@ -581,6 +731,26 @@
       "passed": true
     },
     {
+      "case": "rmw_publication",
+      "source": "rmw_publication",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "acquire_pattern",
+      "source": "acquire_pattern",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "h100",
@@ -603,6 +773,16 @@
     {
       "case": "post_arrival_write",
       "source": "counted_barrier",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "expected_race": true,
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "plain_relay_store",
+      "source": "rmw_publication",
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
@@ -612,5 +792,5 @@
     }
   ],
   "passed": true,
-  "total_checks": 60
+  "total_checks": 78
 }

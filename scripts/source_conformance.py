@@ -23,13 +23,14 @@ def verify_source(cache, out, replay_from=None):
                                for p in sorted((ROOT / 'patches').glob('*.patch'))},
               'shared_race_model': 'passed', 'cases': cases, 'passed': False}
     probes = ['warp_collectives', 'device_calls', 'numeric_edges', 'memory_spaces',
-              'atomic_protocol', 'transitive_publication', 'counted_barrier']
+              'atomic_protocol', 'transitive_publication', 'counted_barrier', 'rmw_publication', 'acquire_pattern']
     # The negative variants preserve the communication protocol and remove
     # exactly one ordering edge. Strict checking also catches equal-value stores.
     variants = [(name, name, [], False) for name in probes] + [
         ('missing_release', 'atomic_protocol', ['-DPUBLISH_ORDER=cuda::memory_order_relaxed'], True),
         ('missing_acquire', 'atomic_protocol', ['-DOBSERVE_ORDER=cuda::memory_order_relaxed'], True),
-        ('post_arrival_write', 'counted_barrier', ['-DPOST_ARRIVAL=1'], True)]
+        ('post_arrival_write', 'counted_barrier', ['-DPOST_ARRIVAL=1'], True),
+        ('plain_relay_store', 'rmw_publication', ['-DRELAY_STORE=1'], True)]
     manifest = json.loads((ROOT / 'docs/compatibility.json').read_text())
     covered = {name for feature in manifest['features'] for name in feature['cases']}
     if covered != {variant[0] for variant in variants}:
@@ -60,6 +61,13 @@ def verify_source(cache, out, replay_from=None):
                         ptx = (path / 'kernel.ptx').read_text()
                         if not all(op in ptx for op in ['st.shared.u32', 'ld.shared.u32', 'bar.arrive', 'bar.sync']):
                             raise RuntimeError('Counted barrier PTX lost a required memory operation')
+                    if source in ['rmw_publication', 'acquire_pattern']:
+                        ptx = (path / 'kernel.ptx').read_text()
+                        required = ['ld.acquire.cta.b32', 'ld.relaxed.cta.b32', 'st.release.cta.b32', 'ld.shared.u32']
+                        if name == 'rmw_publication': required.append('atom.add.relaxed.cta.u32')
+                        else: required.append('st.relaxed.cta.b32')
+                        if not all(op in ptx for op in required):
+                            raise RuntimeError('Publication PTX lost a required memory operation')
                     success = (code != 0 and 'race' in stderr.lower() and not metadata['timed_out']) if negative else (
                         code == 0 and 'PASS ' + source in stdout)
                     cases.append({'case': name, 'source': source, 'profile': gpu, 'scheduler': scheduler,

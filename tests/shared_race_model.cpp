@@ -67,5 +67,52 @@ int main() {
   model.access(0, 0, 4, true);
   require(!model.access(1, 0, 4, true, false, false, false, true), "optional equal-value suppression");
   require(!model.access(1, 0, 4, false), "suppressed writer must not reappear on own read");
+  model.reset(4, 16);
+  model.access(0, 0, 4, true);
+  model.access(0, 4, 4, true, true, true);
+  model.access(1, 4, 4, true, true, false, false, false, true);
+  model.access(2, 4, 4, true, true, false, false, false, true);
+  model.access(3, 4, 4, false, true, false, true);
+  require(!model.access(3, 0, 4, false), "acquire inherits publication through relaxed RMW chain");
+  require(model.access(1, 0, 4, false).has_value(), "relaxed RMW must not itself acquire payload");
+  model.reset(4, 16);
+  model.access(0, 0, 4, true);
+  model.access(0, 4, 4, true, true, true);
+  model.access(1, 8, 4, true);
+  model.access(1, 4, 4, true, true, true, false, false, true);
+  model.access(3, 4, 4, false, true, false, true);
+  require(!model.access(3, 0, 4, false), "release RMW preserves origin publication");
+  require(!model.access(3, 8, 4, false), "release RMW adds its own prior payload");
+  model.reset(4, 16);
+  model.access(0, 0, 4, true);
+  model.access(0, 4, 4, true, true, true);
+  model.access(1, 8, 4, true);
+  model.access(1, 4, 4, true, true, true, false, false, true);
+  model.access(1, 4, 4, true, true); // plain write extends only its own release
+  model.access(3, 4, 4, false, true, false, true);
+  require(!model.access(3, 8, 4, false), "plain write extends own release pattern");
+  require(model.access(3, 0, 4, false).has_value(), "plain write must not carry someone else's RMW origin");
+  model.reset(3, 16);
+  model.access(0, 0, 4, true);
+  model.access(0, 4, 4, true, true, true);
+  model.access(1, 4, 4, true, true); // intervening writer is not an RMW
+  model.access(0, 4, 4, true, true); // original producer extends its release
+  model.access(2, 4, 4, false, true, false, true);
+  require(!model.access(2, 0, 4, false), "own release pattern survives an intervening writer");
+  model.reset(3, 16);
+  model.access(0, 0, 4, true);
+  model.access(0, 4, 4, true, true, true);
+  model.access(2, 4, 4, false, true); // strong read starts an acquire pattern
+  model.access(1, 4, 4, true, true); // overwrite before the acquire completes
+  model.access(2, 4, 4, false, true, false, true);
+  require(!model.access(2, 0, 4, false), "earlier strong read participates in later acquire pattern");
+  model.reset(3, 16);
+  model.access(0, 0, 4, true);
+  model.access(0, 4, 4, true, true, true);
+  model.access(0, 8, 4, true); // work after the release needs another release
+  model.access(0, 4, 4, true, true);
+  model.access(1, 4, 4, false, true, false, true);
+  require(!model.access(1, 0, 4, false), "extended release publishes preceding work");
+  require(model.access(1, 8, 4, false).has_value(), "extended release does not publish post-release work");
   std::puts("PASS shared race model: ordering, transitivity, barrier isolation, overlap and overwritten releases");
 }

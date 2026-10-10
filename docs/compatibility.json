@@ -14,6 +14,8 @@
     {"feature": "global atomic tickets", "status": "tested subset", "cases": ["atomic_protocol"], "boundary": "64 concurrent tickets; no global happens-before detector"},
     {"feature": "shared-memory publication", "status": "tested subset", "cases": ["atomic_protocol", "transitive_publication", "missing_release", "missing_acquire"], "boundary": "warp-level, same-CTA direct acquire/release; missing edges must be rejected"},
     {"feature": "counted barriers", "status": "tested subset", "cases": ["counted_barrier", "post_arrival_write"], "boundary": "two warps; arrival snapshots, waiter ordering and post-arrival write rejection"},
+    {"feature": "publication through atomic RMW", "status": "tested subset", "cases": ["rmw_publication", "plain_relay_store"], "boundary": "same-CTA release, relaxed atomic add relay, acquisition only after relay completes; unrelated plain relay store must be rejected"},
+    {"feature": "extended acquire pattern", "status": "tested subset", "cases": ["acquire_pattern"], "boundary": "strong read of publication followed by a later acquire after an intervening writer"},
     {"feature": "per-lane race detection and independent scheduling", "status": "open", "cases": []},
     {"feature": "global/cross-CTA happens-before and complete fence/proxy semantics", "status": "open", "cases": []},
     {"feature": "all hardware weak-memory outcomes", "status": "unimplemented", "cases": []},
