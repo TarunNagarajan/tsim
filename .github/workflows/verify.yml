@@ -27,7 +27,7 @@ jobs:
         run: python3 tsim.py source-conformance
       - name: Verify execution events and architecture inputs
         run: python3 tsim.py event-conformance
-      - name: Verify lane-aware register and carry dependencies
+      - name: Verify register, carry and collective source-lane capture
         run: python3 tsim.py dependency-conformance
       - name: Verify memory transactions and cache components
         run: python3 tsim.py memory-conformance

@@ -48,6 +48,49 @@
     "multiline instructions keep start line",
     "predicated spelling retains guard identity",
     "commented fake instruction does not establish provenance",
+    "two-lane shuffle swaps exact source lanes",
+    "completed groups release validator state",
+    "multiple disjoint groups conserve parent participation",
+    "vote results depend on all contributing lanes",
+    "redux results depend on all contributing lanes",
+    "match results depend on all contributing lanes",
+    "inactive shuffle source stays explicitly undefined",
+    "nonvirtual data has no fabricated register transfers",
+    "parked attempt completes without a dispatch or destination write",
+    "fully predicated-off collective needs no dispatch",
+    "fault preserves incomplete successful source-map prefix",
+    "shuffle predicate output does not acquire data transfer dependency",
+    "missing destination maps rejected",
+    "missing collective dispatch rejected",
+    "missing participation subset rejected",
+    "empty dispatch rejected",
+    "nonexecuting group lanes rejected",
+    "boolean mask rejected",
+    "overflow mask rejected",
+    "wrong kind rejected",
+    "wrong data source rejected",
+    "boolean data source rejected",
+    "negative source rejected",
+    "invented destination rejected",
+    "boolean destination rejected",
+    "duplicate destination rejected",
+    "boolean group identity rejected",
+    "boolean parent rejected",
+    "overlapping groups rejected",
+    "wait after dispatch rejected",
+    "unknown group rejected",
+    "wrong parent rejected",
+    "negative destination lane rejected",
+    "nonexecuting destination rejected",
+    "boolean destination lane rejected",
+    "source outside group rejected",
+    "multiple shuffle sources rejected",
+    "boolean source mask rejected",
+    "duplicate destination map rejected",
+    "reduction partial source mask rejected",
+    "shuffle predicate falsely depends on data rejected",
+    "dispatch after wait rejected",
+    "duplicate wait rejected",
     "thirty-eight parser/AST operand role references passed",
     "vector-a100 numerical process",
     "vector-a100 single-definition registers have RAW without artificial overwrite hazards",
@@ -98,24 +141,71 @@
     "indirect target capture does not imply complete call ABI",
     "collectives numerical process",
     "cross-lane graph refuses missing lane-transfer model",
+    "actual shuffle source maps agree with twenty independent width/mode references per warp",
     "members-a100-deterministic numerical process",
     "members-a100-deterministic dynamic member and bit-search sources retained",
+    "members-a100-deterministic runtime vote/reduction/match dispatch disjoint sixteen-lane groups",
+    "members-a100-deterministic actual XOR shuffle reads opposite neighbor",
+    "members-a100-deterministic collective source maps invariant across profiles and schedules",
     "members-a100-deterministic explicit membership operands do not imply cross-lane graph coverage",
     "members-a100-random numerical process",
     "members-a100-random dynamic member and bit-search sources retained",
+    "members-a100-random runtime vote/reduction/match dispatch disjoint sixteen-lane groups",
+    "members-a100-random actual XOR shuffle reads opposite neighbor",
+    "members-a100-random collective source maps invariant across profiles and schedules",
     "members-a100-random explicit membership operands do not imply cross-lane graph coverage",
     "members-a100-adversarial numerical process",
     "members-a100-adversarial dynamic member and bit-search sources retained",
+    "members-a100-adversarial runtime vote/reduction/match dispatch disjoint sixteen-lane groups",
+    "members-a100-adversarial actual XOR shuffle reads opposite neighbor",
+    "members-a100-adversarial collective source maps invariant across profiles and schedules",
     "members-a100-adversarial explicit membership operands do not imply cross-lane graph coverage",
     "members-h100-deterministic numerical process",
     "members-h100-deterministic dynamic member and bit-search sources retained",
+    "members-h100-deterministic runtime vote/reduction/match dispatch disjoint sixteen-lane groups",
+    "members-h100-deterministic actual XOR shuffle reads opposite neighbor",
+    "members-h100-deterministic collective source maps invariant across profiles and schedules",
     "members-h100-deterministic explicit membership operands do not imply cross-lane graph coverage",
     "members-h100-random numerical process",
     "members-h100-random dynamic member and bit-search sources retained",
+    "members-h100-random runtime vote/reduction/match dispatch disjoint sixteen-lane groups",
+    "members-h100-random actual XOR shuffle reads opposite neighbor",
+    "members-h100-random collective source maps invariant across profiles and schedules",
     "members-h100-random explicit membership operands do not imply cross-lane graph coverage",
     "members-h100-adversarial numerical process",
     "members-h100-adversarial dynamic member and bit-search sources retained",
+    "members-h100-adversarial runtime vote/reduction/match dispatch disjoint sixteen-lane groups",
+    "members-h100-adversarial actual XOR shuffle reads opposite neighbor",
+    "members-h100-adversarial collective source maps invariant across profiles and schedules",
     "members-h100-adversarial explicit membership operands do not imply cross-lane graph coverage",
+    "corrupted collective missing transfer rejected",
+    "corrupted collective wrong source mask rejected",
+    "corrupted collective wrong group owner rejected",
+    "corrupted collective missing dispatch participation rejected",
+    "wait-a100-deterministic numerical process",
+    "wait-a100-deterministic actual parked collective attempts captured",
+    "wait-a100-deterministic four-worker groups retain exact block ownership",
+    "wait-a100-deterministic reconverged shuffle source is original lane zero",
+    "wait-a100-random numerical process",
+    "wait-a100-random actual parked collective attempts captured",
+    "wait-a100-random four-worker groups retain exact block ownership",
+    "wait-a100-random reconverged shuffle source is original lane zero",
+    "wait-a100-adversarial numerical process",
+    "wait-a100-adversarial actual parked collective attempts captured",
+    "wait-a100-adversarial four-worker groups retain exact block ownership",
+    "wait-a100-adversarial reconverged shuffle source is original lane zero",
+    "wait-h100-deterministic numerical process",
+    "wait-h100-deterministic actual parked collective attempts captured",
+    "wait-h100-deterministic four-worker groups retain exact block ownership",
+    "wait-h100-deterministic reconverged shuffle source is original lane zero",
+    "wait-h100-random numerical process",
+    "wait-h100-random actual parked collective attempts captured",
+    "wait-h100-random four-worker groups retain exact block ownership",
+    "wait-h100-random reconverged shuffle source is original lane zero",
+    "wait-h100-adversarial numerical process",
+    "wait-h100-adversarial actual parked collective attempts captured",
+    "wait-h100-adversarial four-worker groups retain exact block ownership",
+    "wait-h100-adversarial reconverged shuffle source is original lane zero",
     "cap numerical process",
     "capped capture refuses dependency graph",
     "fault numerical process",
@@ -141,7 +231,7 @@
         "live_in_lane_reads": 0,
         "RAW": 204
       },
-      "event_sha256": "82fec35fbdbdd07c2f9126c920b4e97ef9d89ffee7c5f4699a44149046ea94bd"
+      "event_sha256": "8f00146b55fe28cacd30e760f9ac87299cd1eb01ca6adc913b7d794021430bd9"
     },
     {
       "name": "vector-h100",
@@ -150,7 +240,7 @@
         "live_in_lane_reads": 0,
         "RAW": 204
       },
-      "event_sha256": "82fec35fbdbdd07c2f9126c920b4e97ef9d89ffee7c5f4699a44149046ea94bd"
+      "event_sha256": "8f00146b55fe28cacd30e760f9ac87299cd1eb01ca6adc913b7d794021430bd9"
     },
     {
       "name": "carry-a100-deterministic",
@@ -161,7 +251,7 @@
         "WAW": 18,
         "WAR": 9
       },
-      "event_sha256": "28394d6eaff8d2da8ac62bf112b6860da25de59ea13c0f3c4b0b716e067efb67"
+      "event_sha256": "59b962999e0db8fe6c35b4e2244617c3bae7f62b4a8a5753fc468d8de937f607"
     },
     {
       "name": "carry-a100-random",
@@ -172,7 +262,7 @@
         "WAW": 18,
         "WAR": 9
       },
-      "event_sha256": "381938998d61d40e1b22190ef0b7577334cf1a091c5e7653b77c4c428ab96442"
+      "event_sha256": "065904f6129f548f8269bc7409583a255a0aa9cde77a808fac66ac159e77393c"
     },
     {
       "name": "carry-a100-adversarial",
@@ -183,7 +273,7 @@
         "WAW": 18,
         "WAR": 9
       },
-      "event_sha256": "69ea599ceb7c9c196071d79bcd7af042aec1505da78bd86878f22c9cefbc71aa"
+      "event_sha256": "c0d00462b403ec40aaad3a1815d360169c7b519e4834e0dfb9ff59ff52e2ab61"
     },
     {
       "name": "carry-h100-deterministic",
@@ -194,7 +284,7 @@
         "WAW": 18,
         "WAR": 9
       },
-      "event_sha256": "28394d6eaff8d2da8ac62bf112b6860da25de59ea13c0f3c4b0b716e067efb67"
+      "event_sha256": "59b962999e0db8fe6c35b4e2244617c3bae7f62b4a8a5753fc468d8de937f607"
     },
     {
       "name": "carry-h100-random",
@@ -205,7 +295,7 @@
         "WAW": 18,
         "WAR": 9
       },
-      "event_sha256": "381938998d61d40e1b22190ef0b7577334cf1a091c5e7653b77c4c428ab96442"
+      "event_sha256": "065904f6129f548f8269bc7409583a255a0aa9cde77a808fac66ac159e77393c"
     },
     {
       "name": "carry-h100-adversarial",
@@ -216,20 +306,22 @@
         "WAW": 18,
         "WAR": 9
       },
-      "event_sha256": "69ea599ceb7c9c196071d79bcd7af042aec1505da78bd86878f22c9cefbc71aa"
+      "event_sha256": "c0d00462b403ec40aaad3a1815d360169c7b519e4834e0dfb9ff59ff52e2ab61"
     }
   ],
   "model_sha256": {
     "register_dependencies.py": "f8d548cf7eb03d32476f4749c9bd32147e50e5542145c2f2d7f03f008e9f4bfc",
-    "execution_events.py": "8491848646bf940d1d2663aa7ccd57cc040fc9e7831f1895cb28f4d6d65ce83d"
+    "execution_events.py": "4f88a4af7a273273b83a3200841783b83e84c11dd3d31a1f0d55996672d9842f",
+    "collective_events.py": "2ac5c93cda74b30e5131e69f51c3c5b7d14d3fd4244babfda13859ee0d467b4e"
   },
+  "writer_sha256": "52d0d019abdb1e95f55930431116e258560ec8a1791b497c4c4d9385325ae987",
   "patch_sha256": {
     "atomic-nan.patch": "3a66fbe1aa7058fd114750a49229b9fe64a3136a54a2e8935e7d103323a9a8c1",
     "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
     "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
     "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
-    "zz-execution-events.patch": "841356d03e0ffcb09fab6eedae08f7d4e89bd7eb8ea9f197a764b7ad67113f99"
+    "zz-execution-events.patch": "8a989262b1115efeb601be1ba3724390ae4f0bce8dd2ded90d2b58177f2e078d"
   },
   "operand_role_references": 38,
-  "total_checks": 129
+  "total_checks": 219
 }

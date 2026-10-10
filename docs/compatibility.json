@@ -157,10 +157,17 @@
     {
       "feature": "Observed lane-aware register and carry hazards",
       "evidence": "dependency-conformance.json",
-      "checks": 129,
+      "checks": 219,
       "status": "modeled subset",
       "boundary": "Virtual RAW/WAR/WAW, predicate and CC.CF lane masks; exact instruction provenance; call ABI, cross-lane transfers and complete scoreboard remain open",
       "operand_role_references": 38
+    },
+    {
+      "feature": "Executed collective dispatch groups and virtual source lanes",
+      "evidence": "dependency-conformance.json",
+      "analytical_component_checks": 43,
+      "status": "captured tested subset",
+      "boundary": "Actual shfl/vote/redux/match dispatch and waits; masked and reconverged source maps checked across profiles/schedules/four workers; graph integration and hardware readiness remain open"
     }
   ]
 }

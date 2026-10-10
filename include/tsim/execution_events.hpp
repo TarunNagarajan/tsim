@@ -64,6 +64,7 @@ class ExecutionEvents {
             "\"execution_path\":\"reference\",\"address_encoding\":\"hexadecimal virtual address\","
             "\"memory_coverage\":\"ld/st and scalar atom/red; other paths emit gaps\","
             "\"dependency_schema\":2,"
+            "\"collective_schema\":1,\"collective_coverage\":\"executed shfl/vote/redux/match groups and virtual data-source lanes\","
             "\"dependency_coverage\":\"virtual registers and CC.CF; call ABI and other implicit state incomplete\","
             "\"hardware_cycles\":false");
     } catch (...) { std::fclose(file_); file_ = nullptr; throw; }
@@ -118,6 +119,26 @@ class ExecutionEvents {
   }
   void gap(const char* reason) {
     if (parent_) write("\"type\":\"coverage_gap\",\"issue\":" + std::to_string(parent_) + ",\"reason\":" + quoted(reason));
+  }
+  unsigned long long collective_group(const char* kind, unsigned long long mask,
+      long long data_use, const std::vector<uint32_t>& data_defs) {
+    if (!parent_) return 0;
+    std::ostringstream s;
+    s << "\"type\":\"collective_group\",\"issue\":" << parent_ << ",\"kind\":" << quoted(kind)
+      << ",\"execution_mask\":" << mask << ",\"data_use\":" << data_use << ",\"data_defs\":[";
+    for (size_t i = 0; i < data_defs.size(); ++i) { if (i) s << ','; s << data_defs[i]; }
+    s << "]";
+    return write(s.str());
+  }
+  void collective_transfer(unsigned long long group, unsigned destination_lane, unsigned long long source_mask) {
+    if (!parent_ || !group) return;
+    std::ostringstream s;
+    s << "\"type\":\"collective_transfer\",\"issue\":" << parent_ << ",\"group\":" << group
+      << ",\"destination_lane\":" << destination_lane << ",\"source_mask\":" << source_mask;
+    write(s.str());
+  }
+  void collective_wait() {
+    if (parent_) write("\"type\":\"collective_wait\",\"issue\":" + std::to_string(parent_));
   }
   class LaunchScope {
     ExecutionEvents& stream_;

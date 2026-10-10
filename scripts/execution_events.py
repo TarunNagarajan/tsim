@@ -3,6 +3,7 @@ from collections import Counter
 import json
 from pathlib import Path
 import re
+from collective_events import CollectiveEvents
 
 def validate_dependency_issue(event):
     """Validate schema-2 register-file identities and lane masks."""
@@ -58,6 +59,7 @@ def summarize_events(path):
     previous = 0
     observed = Counter()
     accesses = {}
+    collectives = None
     with Path(path).open() as source:
         for line in source:
             event = json.loads(line)
@@ -78,6 +80,12 @@ def summarize_events(path):
                     raise ValueError('Unsupported or duplicate execution event header')
                 stream = event
                 if event.get('dependency_schema', 1) not in [1, 2]: raise ValueError('Unsupported dependency schema')
+                if 'collective_schema' in event:
+                    if type(event['collective_schema']) is not int or event['collective_schema'] != 1:
+                        raise ValueError('Unsupported collective schema')
+                    if type(event.get('dependency_schema')) is not int or event['dependency_schema'] != 2:
+                        raise ValueError('Collective capture requires typed schema-2 operands')
+                    collectives = CollectiveEvents(issues)
             elif kind == 'stream_end':
                 if stream is None:
                     raise ValueError('Stream completion without header')
@@ -104,7 +112,7 @@ def summarize_events(path):
                     raise ValueError('Invalid expected memory access count')
                 issues[previous] = event
                 accesses[previous] = set()
-            elif kind in ['memory', 'issue_end', 'coverage_gap']:
+            elif kind in ['memory', 'issue_end', 'coverage_gap', 'collective_group', 'collective_transfer', 'collective_wait']:
                 key = event['issue']
                 if key not in issues or key in ends:
                     raise ValueError('Event outside live parent instruction')
@@ -113,12 +121,16 @@ def summarize_events(path):
                     if event['status'] not in ['completed', 'fault']:
                         raise ValueError('Unknown instruction completion status')
                     ends[key] = event['status']
+                    if collectives: collectives.finish(key, event['status'])
                     expected = parent['expected_memory_accesses']
                     if observed[key] > expected or (event['status'] == 'completed' and observed[key] != expected):
                         raise ValueError('Memory access conservation failed')
                     faults += event['status'] == 'fault'
                 elif kind == 'coverage_gap':
                     gaps += 1
+                elif kind.startswith('collective_'):
+                    if collectives is None: raise ValueError('Collective records lack schema declaration')
+                    collectives.record(event)
                 else:
                     if not isinstance(event['lane'], int) or not 0 <= event['lane'] < 64:
                         raise ValueError('Invalid memory lane')
@@ -157,4 +169,7 @@ def summarize_events(path):
             'stream_finished': stream_end,
             'complete_supported_memory': complete,
             'dependency_schema': stream.get('dependency_schema', 1) if stream else None,
+            'collective_schema': stream.get('collective_schema') if stream else None,
+            'collectives': dict(collectives.counts) if collectives else {},
+            'complete_supported_collectives': bool(collectives and complete),
             'complete_scoreboard_dependencies': False}

@@ -15,12 +15,15 @@ def verify_dependencies(cache, out, replay_from=None):
     from execution_events import summarize_events
     sys.path.insert(0, str(ROOT / 'tests'))
     from register_dependency_components import verify_dependency_components
+    from collective_event_components import verify_collective_components
     out = Path(out).resolve(); out.mkdir(parents=True, exist_ok=True)
     checks = verify_dependency_components()
+    checks.extend(verify_collective_components())
     report = {'kind': 'lane-aware observed PTX register/carry hazards; not hardware scoreboard validation',
               'passed': False, 'checks': checks, 'hardware_cycles': False, 'cases': [],
               'model_sha256': {name: hashlib.sha256((ROOT / 'scripts' / name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
-                               for name in ['register_dependencies.py', 'execution_events.py']},
+                               for name in ['register_dependencies.py', 'execution_events.py', 'collective_events.py']},
+              'writer_sha256': hashlib.sha256((ROOT / 'include/tsim/execution_events.hpp').read_bytes().replace(b'\r\n', b'\n')).hexdigest(),
               'patch_sha256': {p.name: hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
                                for p in sorted((ROOT / 'patches').glob('*.patch'))}}
     def check(name, condition):
@@ -38,9 +41,9 @@ def verify_dependencies(cache, out, replay_from=None):
             metadata = json.loads(record.read_text()); source = Path(metadata['source']); snapshot = record.parent / 'source.cu'
             if source.is_file() and snapshot.is_file() and snapshot.read_bytes() == source.read_bytes() and not metadata['nvcc_args']:
                 compiled.setdefault(str(source), record.parent)
-    def run(name, source, gpu='h100', scheduler='deterministic', limit=400000, negative=False):
+    def run(name, source, gpu='h100', scheduler='deterministic', limit=400000, negative=False, workers=1):
         args = argparse.Namespace(source=source, gpu=gpu, trace=False, trace_limit=200000, events=True,
-            events_limit=limit, scheduler=scheduler, seed=73, threads=1, race=True, strict=True,
+            events_limit=limit, scheduler=scheduler, seed=73, threads=workers, race=True, strict=True,
             timeout=60, out=out / name, nvcc_arg=[])
         code, path = run_program(args, cache, compiled_from=compiled.get(str(source)))
         compiled.setdefault(str(source), path)
@@ -127,6 +130,27 @@ def verify_dependencies(cache, out, replay_from=None):
         reject('indirect target capture does not imply complete call ABI', lambda: analyze_dependencies(path), 'coverage gaps')
         path = run('collectives', ROOT / 'tests/conformance/warp_collectives.cu')
         reject('cross-lane graph refuses missing lane-transfer model', lambda: analyze_dependencies(path), 'Cross-lane')
+        events = list(map(json.loads, (path / 'execution-events.jsonl').read_text().splitlines()))
+        parents = {e['sequence']: e for e in events if e['type'] == 'issue'}
+        groups = [e for e in events if e['type'] == 'collective_group' and e['kind'] == 'shfl']
+        transfers = {}
+        for event in events:
+            if event['type'] == 'collective_transfer': transfers.setdefault(event['group'], []).append(event)
+        ordinals = {}; correct = len(groups) == 40
+        for group in groups:
+            warp = parents[group['issue']]['warp']; ordinal = ordinals.get(warp, 0); ordinals[warp] = ordinal + 1
+            width = 2 << (ordinal // 4); mode = ordinal % 4
+            expected = {}
+            for lane in range(32):
+                source = (lane // width * width + 1) if mode == 0 else (
+                    lane - 1 if lane % width else lane) if mode == 1 else (
+                    lane + 1 if lane % width + 1 < width else lane) if mode == 2 else lane ^ 1
+                expected[lane] = 1 << source
+            actual = {e['destination_lane']: e['source_mask'] for e in transfers.get(group['sequence'], [])}
+            correct &= actual == expected
+        check('actual shuffle source maps agree with twenty independent width/mode references per warp', correct)
+        collective_reference = None
+        collective_original = None
         for gpu in ['a100', 'h100']:
             for scheduler in ['deterministic', 'random', 'adversarial']:
                 name = 'members-' + gpu + '-' + scheduler
@@ -140,8 +164,56 @@ def verify_dependencies(cache, out, replay_from=None):
                 check(name + ' dynamic member and bit-search sources retained',
                       {e['instruction'].split('.')[0] for e in selected} == {'vote', 'redux', 'match', 'shfl', 'fns'} and
                       all(len(e['uses']) == len(re.findall(r'%[\w.$]+', e['instruction'])) - len(e['defs']) for e in selected))
+                parents = {e['sequence']: e for e in events if e['type'] == 'issue'}
+                groups = [e for e in events if e['type'] == 'collective_group']
+                maps = {}
+                for event in events:
+                    if event['type'] == 'collective_transfer': maps.setdefault(event['group'], []).append(event)
+                check(name + ' runtime vote/reduction/match dispatch disjoint sixteen-lane groups', groups and all(
+                      e['execution_mask'] in [0xffff, 0xffff0000] for e in groups if e['kind'] != 'shfl'))
+                check(name + ' actual XOR shuffle reads opposite neighbor', any(e['kind'] == 'shfl' for e in groups) and all(
+                      event['source_mask'] == 1 << (event['destination_lane'] ^ 1)
+                      for group in groups if group['kind'] == 'shfl' for event in maps.get(group['sequence'], [])))
+                signature = sorted((parents[e['issue']]['warp'], parents[e['issue']]['pc'], e['kind'], e['execution_mask'],
+                                    e['data_use'], e['data_defs'], sorted((t['destination_lane'], t['source_mask']) for t in maps.get(e['sequence'], [])))
+                                   for e in groups)
+                if collective_reference is None: collective_reference = signature; collective_original = path
+                check(name + ' collective source maps invariant across profiles and schedules', signature == collective_reference)
                 reject(name + ' explicit membership operands do not imply cross-lane graph coverage',
                        lambda: analyze_dependencies(path), 'Cross-lane')
+        captured = list(map(json.loads, (collective_original / 'execution-events.jsonl').read_text().splitlines()))
+        negative_collective = out / 'negative-collective.jsonl'
+        for name, change in [
+            ('missing transfer', lambda rows: rows.pop(next(i for i, e in enumerate(rows) if e['type'] == 'collective_transfer'))),
+            ('wrong source mask', lambda rows: next(e for e in rows if e['type'] == 'collective_transfer').update(source_mask=1 << 32)),
+            ('wrong group owner', lambda rows: next(e for e in rows if e['type'] == 'collective_transfer').update(group=1)),
+            ('missing dispatch participation', lambda rows: next(e for e in rows if e['type'] == 'collective_group').update(execution_mask=0))]:
+            modified = deepcopy(captured); change(modified)
+            # Keep the stream identities contiguous after deletion, while
+            # remapping issue/group references, to reach conservation checks.
+            identities = {e['sequence']: index + 1 for index, e in enumerate(modified)}
+            for index, event in enumerate(modified):
+                event['sequence'] = index + 1
+                for key in ['issue', 'group']:
+                    if key in event: event[key] = identities[event[key]]
+            negative_collective.write_text(''.join(json.dumps(e) + '\n' for e in modified))
+            reject('corrupted collective ' + name + ' rejected', lambda: summarize_events(negative_collective))
+        for gpu in ['a100', 'h100']:
+            for scheduler in ['deterministic', 'random', 'adversarial']:
+                name = 'wait-' + gpu + '-' + scheduler
+                path = run(name, ROOT / 'tests/conformance/collective_wait.cu', gpu, scheduler, workers=4)
+                summary = summarize_events(path / 'execution-events.jsonl')
+                check(name + ' actual parked collective attempts captured', summary['complete_supported_collectives'] and summary['collectives'].get('wait_attempts', 0) >= 4)
+                events = list(map(json.loads, (path / 'execution-events.jsonl').read_text().splitlines()))
+                parents = {e['sequence']: e for e in events if e['type'] == 'issue'}
+                groups = [e for e in events if e['type'] == 'collective_group']
+                check(name + ' four-worker groups retain exact block ownership', len(groups) == 12 and
+                      {tuple(parents[e['issue']]['block']) for e in groups} == {(i, 0, 0) for i in range(4)} and
+                      all(e['execution_mask'] == 0xffffffff for e in groups))
+                by_id = {e['sequence']: e for e in groups}
+                check(name + ' reconverged shuffle source is original lane zero', all(
+                      e['source_mask'] == 1 for e in events if e['type'] == 'collective_transfer' and
+                      by_id[e['group']]['kind'] == 'shfl'))
         path = run('cap', ROOT / 'examples/vector_add.cu', limit=37)
         reject('capped capture refuses dependency graph', lambda: analyze_dependencies(path), 'complete capture')
         path = run('fault', ROOT / 'examples/out_of_bounds.cu', negative=True)
@@ -167,6 +239,7 @@ def verify_dependencies(cache, out, replay_from=None):
         write(modified)
         reject('modified instruction line rejects provenance', lambda: analyze_dependencies(negative), 'compiled PTX')
         modified = deepcopy(data); modified[0].pop('dependency_schema')
+        modified[0].pop('collective_schema', None); modified[0].pop('collective_coverage', None)
         for event in modified:
             if event['type'] == 'issue': event.pop('implicit_defs'); event.pop('implicit_uses')
         write(modified)
