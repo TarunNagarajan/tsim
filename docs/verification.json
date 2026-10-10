@@ -327,5 +327,14 @@
     "build": "passed",
     "all_workflow_steps": "passed",
     "dependency_checks": 359
+  },
+  "sm_execution_clean_checkout": {
+    "commit": "99c369d8ad6316215d3a2cdf91c202e6f773203e",
+    "run_url": "https://github.com/TarunNagarajan/tsim/actions/runs/38093627082",
+    "job": 114334911775,
+    "build": "passed",
+    "all_workflow_steps": "passed",
+    "execution_checks": 133,
+    "audited_schedules": 30
   }
 }
