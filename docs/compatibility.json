@@ -3,23 +3,149 @@
   "evidence": "source-conformance.json",
   "compiler": "CUDA 12.6.3",
   "ptx_target": "compute_80",
-  "profile_matrix": ["a100", "h100"],
-  "scheduler_matrix": ["deterministic", "adversarial", "random"],
+  "profile_matrix": [
+    "a100",
+    "h100"
+  ],
+  "scheduler_matrix": [
+    "deterministic",
+    "adversarial",
+    "random"
+  ],
   "physical_gpu_validation": "unverified",
   "features": [
-    {"feature": "warp shuffles, votes, matching and add reduction", "status": "tested subset", "cases": ["warp_collectives"], "boundary": "full-warp participation; shuffle widths 2 through 32"},
-    {"feature": "device functions and divergent control flow", "status": "tested subset", "cases": ["device_calls"], "boundary": "noinline calls, loops and early exits; not all reconvergence patterns"},
-    {"feature": "arithmetic edge cases", "status": "tested subset", "cases": ["numeric_edges"], "boundary": "finite conversion ties, signed zero, FMA bits and integer bit operations"},
-    {"feature": "memory spaces", "status": "tested subset", "cases": ["memory_spaces"], "boundary": "constant/global symbols and a local array across three launches"},
-    {"feature": "global atomic tickets", "status": "tested subset", "cases": ["atomic_protocol"], "boundary": "64 concurrent tickets; no global happens-before detector"},
-    {"feature": "shared-memory publication", "status": "tested subset", "cases": ["atomic_protocol", "transitive_publication", "missing_release", "missing_acquire"], "boundary": "warp-level, same-CTA direct acquire/release; missing edges must be rejected"},
-    {"feature": "counted barriers", "status": "tested subset", "cases": ["counted_barrier", "post_arrival_write"], "boundary": "two warps; arrival snapshots, waiter ordering and post-arrival write rejection"},
-    {"feature": "publication through atomic RMW", "status": "tested subset", "cases": ["rmw_publication", "plain_relay_store"], "boundary": "same-CTA release, relaxed atomic add relay, acquisition only after relay completes; unrelated plain relay store must be rejected"},
-    {"feature": "extended acquire pattern", "status": "tested subset", "cases": ["acquire_pattern"], "boundary": "strong read of publication followed by a later acquire after an intervening writer"},
-    {"feature": "per-lane race detection and independent scheduling", "status": "open", "cases": []},
-    {"feature": "global/cross-CTA happens-before and complete fence/proxy semantics", "status": "open", "cases": []},
-    {"feature": "all hardware weak-memory outcomes", "status": "unimplemented", "cases": []},
-    {"feature": "SM pipelines, caches and cycle timing", "status": "unimplemented", "cases": []},
-    {"feature": "universal CUDA/PTX compatibility", "status": "unverified", "cases": []}
+    {
+      "feature": "warp shuffles, votes, matching and add reduction",
+      "status": "tested subset",
+      "cases": [
+        "warp_collectives"
+      ],
+      "boundary": "full-warp participation; shuffle widths 2 through 32"
+    },
+    {
+      "feature": "device functions and divergent control flow",
+      "status": "tested subset",
+      "cases": [
+        "device_calls"
+      ],
+      "boundary": "noinline calls, loops and early exits; not all reconvergence patterns"
+    },
+    {
+      "feature": "arithmetic edge cases",
+      "status": "tested subset",
+      "cases": [
+        "numeric_edges"
+      ],
+      "boundary": "finite conversion ties, signed zero, FMA bits and integer bit operations"
+    },
+    {
+      "feature": "memory spaces",
+      "status": "tested subset",
+      "cases": [
+        "memory_spaces"
+      ],
+      "boundary": "constant/global symbols and a local array across three launches"
+    },
+    {
+      "feature": "global atomic tickets",
+      "status": "tested subset",
+      "cases": [
+        "atomic_protocol"
+      ],
+      "boundary": "64 concurrent tickets; no global happens-before detector"
+    },
+    {
+      "feature": "shared-memory publication",
+      "status": "tested subset",
+      "cases": [
+        "atomic_protocol",
+        "transitive_publication",
+        "missing_release",
+        "missing_acquire"
+      ],
+      "boundary": "warp-level, same-CTA direct acquire/release; missing edges must be rejected"
+    },
+    {
+      "feature": "counted barriers",
+      "status": "tested subset",
+      "cases": [
+        "counted_barrier",
+        "post_arrival_write"
+      ],
+      "boundary": "two warps; arrival snapshots, waiter ordering and post-arrival write rejection"
+    },
+    {
+      "feature": "publication through atomic RMW",
+      "status": "tested subset",
+      "cases": [
+        "rmw_publication",
+        "plain_relay_store"
+      ],
+      "boundary": "same-CTA release, relaxed atomic add relay, acquisition only after relay completes; unrelated plain relay store must be rejected"
+    },
+    {
+      "feature": "extended acquire pattern",
+      "status": "tested subset",
+      "cases": [
+        "acquire_pattern"
+      ],
+      "boundary": "strong read of publication followed by a later acquire after an intervening writer"
+    },
+    {
+      "feature": "per-lane race detection and independent scheduling",
+      "status": "open",
+      "cases": []
+    },
+    {
+      "feature": "global/cross-CTA happens-before and complete fence/proxy semantics",
+      "status": "open",
+      "cases": []
+    },
+    {
+      "feature": "all hardware weak-memory outcomes",
+      "status": "unimplemented",
+      "cases": []
+    },
+    {
+      "feature": "SM instruction pipelines, scoreboards and cycle timing",
+      "status": "unimplemented",
+      "cases": []
+    },
+    {
+      "feature": "universal CUDA/PTX compatibility",
+      "status": "unverified",
+      "cases": []
+    }
+  ],
+  "architecture_models": [
+    {
+      "feature": "Conserved scalar/vector memory events",
+      "evidence": "event-conformance.json",
+      "checks": 58,
+      "status": "tested subset",
+      "boundary": "PTX reference capture; unsupported paths emit gaps; scoreboard incomplete"
+    },
+    {
+      "feature": "Logical address transactions",
+      "evidence": "memory-conformance.json",
+      "checks": 77,
+      "status": "modeled subset",
+      "boundary": "32-byte sectors; scalar shared/constant subset; private local stripes; no SASS lowering or hardware cycles"
+    },
+    {
+      "feature": "Private L1/shared L2 sector-cache replay",
+      "evidence": "cache-conformance.json",
+      "checks": 76,
+      "status": "modeled subset",
+      "boundary": "Synthetic geometry/LRU/placement/fill/drain; explicit ca/cg policies; unsupported hints refused"
+    },
+    {
+      "sdk_cases": 968,
+      "evidence": "residency-conformance.json",
+      "boundary": "NVIDIA standalone SDK differential; PTX register estimate; physical allocation and achieved occupancy unverified",
+      "checks": 53,
+      "status": "SDK-verified subset",
+      "feature": "SM resource ceilings and admission"
+    }
   ]
 }
