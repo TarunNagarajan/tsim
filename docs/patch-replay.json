@@ -20,5 +20,6 @@
   "idempotence_passed": true,
   "previous_stack_upgrade_passed": true,
   "exact_developed_diff_passed": true,
-  "diff_sha256": "de431667d2cf7274b3e24b2d597d1f32122b494ddf1d35964d9ee0a7b907a4cd"
+  "diff_sha256": "de431667d2cf7274b3e24b2d597d1f32122b494ddf1d35964d9ee0a7b907a4cd",
+  "nested_checkout_cache_replay_passed": true
 }

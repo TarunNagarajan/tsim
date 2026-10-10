@@ -54,6 +54,8 @@ An optional installed Chromium/Chrome/Edge browser can verify the inspector itse
 
 `python tsim.py run examples/vector_add.cu --events` records typed instruction dependencies, call-frame identities, launch resources and successful per-lane memory addresses. The [execution-event contract](docs/execution-events.md) describes scope, truncation, faults and explicit coverage gaps. `python tsim.py event-conformance` verifies 56 analytical checks, including mixed generic memory spaces, exact scalar atomic counts, four-worker parent identities and capture equivalence. The [event report](docs/event-conformance.json) records the result. Event summaries count logical accesses, not hardware transactions or cycles.
 
+`python tsim.py memory-report RUN_DIRECTORY` derives logical global sectors, scalar shared-bank topology, private local stripes and constant-address requests from a complete capture. `python tsim.py memory-conformance` verifies 74 analytical and CUDA integration checks. The [memory-model contract](docs/memory-model.md) describes the model and a separately tested configurable sector-cache component. Cache hierarchy, SM scheduling and timing remain under development.
+
 ## Fidelity and boundaries
 
 This is functional GPU simulation. Warps, per-lane registers, divergence, memory spaces, barriers, and supported PTX instructions are executed by the upstream engine. tsim's trace hooks record actual interpreter state immediately before each issued instruction, including instructions on the fast execution path. The recorded PTX line refers to the compiled PTX file, not directly to the CUDA source line. Device-function calls use the currently executing function's program counter.

@@ -55,6 +55,11 @@ def parser():
     s.add_argument('--out', type=Path)
     s = sub.add_parser('event-conformance', help='Verify actual memory events and capture coverage')
     s.add_argument('--out', type=Path)
+    s = sub.add_parser('memory-report', help='Analyze complete captured address transactions')
+    s.add_argument('run_directory', type=Path)
+    s.add_argument('--out', type=Path)
+    s = sub.add_parser('memory-conformance', help='Verify transaction and sector-cache model components')
+    s.add_argument('--out', type=Path)
     return p
 
 def run_program(args, cache, program_args=(), compiled_from=None):
@@ -200,6 +205,7 @@ def main():
                 if getattr(args, flag): converted.append('--' + flag)
             for value in args.nvcc_arg: converted.append('--nvcc-arg=' + value)
         if args.command == 'inspect': converted.append(linux_path(args.trace.resolve()))
+        if args.command == 'memory-report': converted.append(linux_path(args.run_directory.resolve()))
         if getattr(args, 'out', None): converted += ['--out', linux_path(args.out.resolve())]
         if program_args: converted += ['--'] + [linux_path(x) for x in program_args]
         distro = args.distro if '--distro' in argv else saved.get('distro', args.distro)
@@ -232,6 +238,16 @@ def main():
     if args.command == 'event-conformance':
         from event_conformance import verify_events
         return verify_events(cache, args.out or cache / 'event-conformance')
+    if args.command == 'memory-report':
+        from memory_model import analyze_transactions
+        report = analyze_transactions(args.run_directory)
+        target = args.out or args.run_directory / 'memory-transactions.json'
+        target.write_text(json.dumps(report, indent=2))
+        print('Transaction report: ' + str(target.resolve()))
+        return 0
+    if args.command == 'memory-conformance':
+        from memory_conformance import verify_memory
+        return verify_memory(cache, args.out or cache / 'memory-conformance')
     if args.command == 'devices':
         return subprocess.call([str(cache / 'build' / 'vgpu'), 'list-gpus'])
     if args.command == 'doctor':
@@ -248,6 +264,6 @@ def main():
 
 if __name__ == '__main__':
     try: sys.exit(main())
-    except (RuntimeError, OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+    except (RuntimeError, ValueError, OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         print('tsim: ' + str(exc), file=sys.stderr)
         sys.exit(1)
