@@ -1,0 +1,79 @@
+{
+  "passed": true,
+  "kind": "CPU functional CTA barrier references; no physical GPU validation",
+  "patch_sha256": {
+    "atomic-nan.patch": "3a66fbe1aa7058fd114750a49229b9fe64a3136a54a2e8935e7d103323a9a8c1",
+    "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
+    "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
+    "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
+    "zz-execution-events.patch": "a57f9c8ecbad3729ab363eb87970c5d0969b09e6f246f38b3d4370531af65354"
+  },
+  "engine_interpreter_sha256": "6e978dabb817a44d794bed93cabf05db0c7606b87298fb2a8153f91a63aabd98",
+  "source_fixture_sha256": "274b6fe56781a05af1984ef2595ec2f4170654f8aa261c0ae15198d88d4f532a",
+  "source_conformance_sha256": "5ed03296296af65b8c7a189c34202e0979214b88268b3cd6f18c643b5f332268",
+  "event_conformance_sha256": "3a93cd624a60f6191319be8d99e77c5e3c08b19a5d60e4b1618216120efd4751",
+  "core_tests_sha256": "01db2153227cbe706c24e5d183f649c5b18fc3c719511e1b35ed47761e19eba3",
+  "pre_fix": {
+    "passed": 7,
+    "total": 19,
+    "log_sha256": "6869c8d2a1878904d42cf249b37d0b5e46b3d90e50821e6444a2c829cadabcad"
+  },
+  "pre_yield": {
+    "passed": 0,
+    "total": 1,
+    "log_sha256": "085f9fd8f97c26733e3c014b6e8b2b2793af7a930ff53876aacf6ef5a8010090"
+  },
+  "core_checks": 358,
+  "source_cases": 84,
+  "phase_matrix_cases": 6,
+  "phase_launches_per_case": 19,
+  "phase_comparisons_per_case": 49330,
+  "event_checks": 62,
+  "dependency_checks": 359,
+  "sm_checks": 238,
+  "independently_reaudited_sm_schedules": 62,
+  "windows_event_summary": {
+    "schema": 1,
+    "kind": "observed logical PTX traffic; not hardware transactions or cycles",
+    "records": 106040,
+    "launches": 19,
+    "issues": 23725,
+    "memory": {
+      "global_store_accesses": 49330,
+      "global_store_bytes": 197320,
+      "param_load_accesses": 4740,
+      "param_load_bytes": 37920,
+      "shared_load_accesses": 2240,
+      "shared_load_bytes": 8960,
+      "shared_store_accesses": 2240,
+      "shared_store_bytes": 8960
+    },
+    "truncated": false,
+    "coverage_gaps": 0,
+    "fault_boundaries": 0,
+    "unfinished_issues": 0,
+    "unfinished_launches": 0,
+    "stream_finished": true,
+    "complete_supported_memory": true,
+    "dependency_schema": 2,
+    "collective_schema": 2,
+    "collectives": {},
+    "complete_supported_collectives": true,
+    "complete_scoreboard_dependencies": false
+  },
+  "async_copy_assembler_reference": {
+    "passed": true,
+    "case": "cp_async_mbarrier_arrive_lands_the_copy_before_the_arrival",
+    "source_sha256": "2204b92d03753f723245e43480fc5b8f5f28e9169d58a8bcba8dca64e9090506",
+    "ptx_sha256": "f1707f4c0548c59c7dfe3f321987a307d13300ebf4c487521890376f6c9caf0a",
+    "cubin_sha256": "4f1eef16f9f53843677beda9ae8cb9c4007dd6f54ed24ce1d760919b35d630e4",
+    "ptxas_sha256": "81ef7761e3769ec17980aba4e416ecbc85352b8dce26cdd392b7204302a909a2",
+    "cuobjdump_sha256": "f0299c666460f826a01444f29f3c5ff889765199fc68069e8756c69d4deb661b",
+    "ptxas_log_sha256": "19a2d65a50d28f859e099ebb4e1b65b2b65eff5617b2461be48aef5b71065002",
+    "cuobjdump_log_sha256": "d056936e97aee217a94116f6278c4785fa20d67dfc7ee2bef5a3e73d985be2b2",
+    "ptxas_version": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Tue_Oct_29_23:47:06_PDT_2024\nCuda compilation tools, release 12.6, V12.6.85\nBuild cuda_12.6.r12.6/compiler.35059454_0\n",
+    "cuobjdump_version": "cuobjdump: NVIDIA (R) fat binary listing tool\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Thu_Sep_12_02:18:05_PDT_2024\nCuda compilation tools, release 12.6, V12.6.77\nBuild cuda_12.6.r12.6/compiler.34841621_0\n",
+    "physical_gpu_validated": false,
+    "cubin_executed": false
+  }
+}

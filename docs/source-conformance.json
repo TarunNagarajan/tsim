@@ -7,7 +7,7 @@
     "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
     "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
     "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
-    "zz-execution-events.patch": "841356d03e0ffcb09fab6eedae08f7d4e89bd7eb8ea9f197a764b7ad67113f99"
+    "zz-execution-events.patch": "a57f9c8ecbad3729ab363eb87970c5d0969b09e6f246f38b3d4370531af65354"
   },
   "shared_race_model": "passed",
   "cases": [
@@ -17,6 +17,7 @@
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -27,6 +28,7 @@
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -37,6 +39,7 @@
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -47,6 +50,7 @@
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -57,6 +61,7 @@
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -67,6 +72,7 @@
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -77,6 +83,7 @@
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -87,6 +94,7 @@
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -97,6 +105,18 @@
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "cta_barrier_phases",
+      "source": "cta_barrier_phases",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "workers": 4,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -107,6 +127,7 @@
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -117,6 +138,7 @@
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -127,6 +149,7 @@
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -137,6 +160,7 @@
       "profile": "a100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -147,6 +171,7 @@
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -157,6 +182,7 @@
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -167,6 +193,7 @@
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -177,6 +204,7 @@
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -187,6 +215,7 @@
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -197,6 +226,7 @@
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -207,6 +237,7 @@
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -217,6 +248,7 @@
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -227,6 +259,18 @@
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "cta_barrier_phases",
+      "source": "cta_barrier_phases",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "workers": 4,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -237,6 +281,7 @@
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -247,6 +292,7 @@
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -257,6 +303,7 @@
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -267,6 +314,7 @@
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -277,6 +325,7 @@
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -287,6 +336,7 @@
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -297,6 +347,7 @@
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -307,6 +358,7 @@
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -317,6 +369,7 @@
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -327,6 +380,7 @@
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -337,6 +391,7 @@
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -347,6 +402,7 @@
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -357,6 +413,18 @@
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "cta_barrier_phases",
+      "source": "cta_barrier_phases",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "workers": 4,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -367,6 +435,7 @@
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -377,6 +446,7 @@
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -387,6 +457,7 @@
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -397,6 +468,7 @@
       "profile": "a100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -407,6 +479,7 @@
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -417,6 +490,7 @@
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -427,6 +501,7 @@
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -437,6 +512,7 @@
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -447,6 +523,7 @@
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -457,6 +534,7 @@
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -467,6 +545,7 @@
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -477,6 +556,7 @@
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -487,6 +567,18 @@
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "cta_barrier_phases",
+      "source": "cta_barrier_phases",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "workers": 4,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -497,6 +589,7 @@
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -507,6 +600,7 @@
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -517,6 +611,7 @@
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -527,6 +622,7 @@
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -537,6 +633,7 @@
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -547,6 +644,7 @@
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -557,6 +655,7 @@
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -567,6 +666,7 @@
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -577,6 +677,7 @@
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -587,6 +688,7 @@
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -597,6 +699,7 @@
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -607,6 +710,7 @@
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -617,6 +721,18 @@
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "cta_barrier_phases",
+      "source": "cta_barrier_phases",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "workers": 4,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -627,6 +743,7 @@
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -637,6 +754,7 @@
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -647,6 +765,7 @@
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -657,6 +776,7 @@
       "profile": "h100",
       "scheduler": "adversarial",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -667,6 +787,7 @@
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -677,6 +798,7 @@
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -687,6 +809,7 @@
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -697,6 +820,7 @@
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -707,6 +831,7 @@
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -717,6 +842,7 @@
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -727,6 +853,7 @@
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -737,6 +864,7 @@
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -747,6 +875,18 @@
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "cta_barrier_phases",
+      "source": "cta_barrier_phases",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "workers": 4,
       "expected_race": false,
       "exit_code": 0,
       "passed": true
@@ -757,6 +897,7 @@
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -767,6 +908,7 @@
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -777,6 +919,7 @@
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
@@ -787,11 +930,12 @@
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
+      "workers": 1,
       "expected_race": true,
       "exit_code": 2,
       "passed": true
     }
   ],
   "passed": true,
-  "total_checks": 78
+  "total_checks": 84
 }

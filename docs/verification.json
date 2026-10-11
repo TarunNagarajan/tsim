@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "verified_on": "2026-10-10",
+  "verified_on": "2026-10-11",
   "github_clean_checkout": {
     "commit": "4eca08c0dff2e694104a4252740814c957887a7f",
     "run_url": "https://github.com/TarunNagarajan/tsim/actions/runs/38073798643",
@@ -345,5 +345,24 @@
     "all_workflow_steps": "passed",
     "execution_checks": 133,
     "sector_read_checks": 54
+  },
+  "staged_memory_clean_checkout": {
+    "commit": "6479bed5a101d9ed65dbfa4a1d838683708ebe59",
+    "run_url": "https://github.com/TarunNagarajan/tsim/actions/runs/38095779917",
+    "job": 114341256239,
+    "all_workflow_steps": "passed",
+    "execution_checks": 238,
+    "sector_read_checks": 54,
+    "sector_memory_checks": 29
+  },
+  "cta_barrier_regression": {
+    "passed": true,
+    "evidence": "cta-barrier-conformance.json",
+    "core_checks": 358,
+    "source_cases": 84,
+    "event_checks": 62,
+    "dependency_checks": 359,
+    "sm_checks": 238,
+    "windows_four_worker_event_capture": "passed"
   }
 }

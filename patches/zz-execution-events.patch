@@ -9,7 +9,78 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
  #if defined(__x86_64__)
  #include <immintrin.h>
  #endif
-@@ -481,6 +482,7 @@
+@@ -123,20 +124,6 @@
+ // State for bar.red, which needs every warp in the block to arrive before it
+ // can produce a value. Held behind a pointer for the same reason shared memory
+ // is: the context is passed by const reference.
+-// bar.red in rounds. Votes go into the round being gathered; when the block
+-// releases, that round's answer is set aside and the next round starts empty,
+-// and each warp collects the answer of the round it voted in. A warp released
+-// first can loop back and vote again before the others have collected --
+-// CUTLASS's semaphore wait is `while (__syncthreads_and(state != k))` -- and
+-// with one shared accumulator that vote leaked into the answer they were
+-// about to read, and the round after started from a stale value.
+-struct BarrierReduction {
+-  uint64_t acc = 0;        // the round being gathered
+-  uint32_t arrived = 0;    // warps that have voted in it
+-  uint64_t round = 0;      // its number
+-  uint64_t result = 0;     // the answer of the last round released
+-};
+-
+ // One mbarrier object. Lives in a side table keyed by its shared-memory
+ // address rather than in the shared bytes themselves: PTX says the contents
+ // are opaque, no kernel may read them as data, and keeping the real state
+@@ -269,18 +256,17 @@
+   return end;
+ }
+ 
+-// The CTA's sixteen barriers as bar.sync with a thread count and bar.arrive
+-// use them: arrivals counted in threads, a warp's arrival counting all of
+-// its threads (the ISA "marks warps' arrival"), and the warps waiting.
+-// A barrier without a count is the whole CTA, which the scheduler releases
+-// when every warp that has not exited is waiting (see step_block).
++// All CTA barriers, counted or whole-block, share the same per-ID phase
++// state. A whole-block phase completes only when every non-exited warp has
++// arrived at THIS ID; waiting at a different barrier is not an arrival.
+ struct NamedBarrier {
+-  uint32_t arrived = 0;
+-  uint64_t waiting = 0;   // bit per warp of the block
+-  // A bar.red with a thread count gathers its answer here; the warps it
+-  // releases each carry the answer away (Warp::bar_red_result), since the
+-  // barrier is reusable the moment it completes.
++  uint32_t arrived = 0;   // counted arrivals, in whole warps
++  uint32_t count = 0;     // zero denotes all non-exited warps of the CTA
++  uint64_t participants = 0;
++  uint64_t waiting = 0;
+   uint64_t acc = 0;
++  unsigned reduction = 0; // 0: sync/arrive, 1: and, 2: or, 3: popc
++  uint64_t phase = 0;
+ };
+ struct NamedBarriers {
+   std::array<NamedBarrier, 16> bar{};
+@@ -299,7 +285,6 @@
+   // Per-block shared memory. Zero-initialized at block start: real hardware
+   // leaves it undefined, VirtualGPU makes it deterministic (documented).
+   std::vector<uint8_t>* shared = nullptr;
+-  BarrierReduction* bar_red = nullptr;
+   NamedBarriers* bars = nullptr;
+   std::vector<Warp>* warps = nullptr;   // the block's, for releasing a named barrier's waiters
+   MbarrierTable* mbar = nullptr;
+@@ -381,12 +366,8 @@
+   // instruction re-executes when the barrier releases, and this is how it knows
+   // to collect rather than contribute a second time.
+   bool bar_red_waiting = false;
+-  uint64_t bar_red_round = 0;   // the bar.red round this warp voted in
+-  // A bar.red with a thread count: the answer its completion handed this warp.
++  // A completed reduction hands each waiter its own saved result.
+   uint64_t bar_red_result = 0;
+-  // At a barrier with a thread count, which that barrier's completion
+-  // releases; step_block's all-warps release leaves such a warp waiting.
+-  bool counted_barrier = false;
+   uint8_t barrier_id = 0;
+   // Set by an mbarrier wait that came back incomplete. The warp stays Ready --
+   // the wait is a predicate and the kernel is free to spin on it -- but it
+@@ -481,6 +462,7 @@
    // a bar.red, an mbarrier wait -- and let the other warps run, which is what
    // __syncthreads() in a function nvcc did not inline needs (every -G build).
    struct Frame {
@@ -17,7 +88,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      const EntryFn* fn = nullptr;
      uint64_t local_base = 0;
      std::vector<Path> paths;
-@@ -497,6 +499,7 @@
+@@ -497,6 +479,7 @@
      bool sp_valid = false;
    };
    std::vector<Frame> frames;
@@ -25,7 +96,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
    // The function this warp is executing (null: the kernel) and where its
    // .local frame starts; the interpreter's cur_ and local_base_ follow the
    // warp it is running.
-@@ -2224,7 +2227,7 @@
+@@ -2224,7 +2207,7 @@
      // A host program that set its own rounding mode before launching gets
      // conversions that follow it, as before; see g_directed_rounding.
      host_directed_ = std::fegetround() != FE_TONEAREST;
@@ -34,7 +105,175 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      if (host_directed_) g_directed_rounding.fetch_add(1, std::memory_order_relaxed);
    }
    ~Interpreter() {
-@@ -2799,6 +2802,61 @@
+@@ -2516,7 +2499,6 @@
+   struct BlockState {
+     BlockCtx ctx;
+     std::vector<uint8_t> shared;
+-    BarrierReduction bar_red;
+     NamedBarriers bars;
+     MbarrierTable mbar;
+     WgmmaSnapshots wgmma;
+@@ -2572,7 +2554,6 @@
+     else
+       b.shared.assign(std::max(fn_.static_shared_size, fn_.dynamic_shared_offset) + cfg_.shared_bytes, 0);
+     b.ctx.shared = &b.shared;
+-    b.ctx.bar_red = &b.bar_red;
+     b.ctx.mbar = &b.mbar;
+     b.wgmma.pending.clear();
+     b.ctx.wgmma = &b.wgmma;
+@@ -2615,6 +2596,78 @@
+     stats_.warps += nwarps;
+   }
+ 
++  bool cta_barrier_complete(const NamedBarrier& nb, const BlockCtx& ctx) const {
++    if (!nb.participants) return false;
++    if (nb.count) return nb.arrived >= nb.count;
++    uint64_t live = 0;
++    for (size_t i = 0; i < ctx.warps->size(); ++i)
++      if ((*ctx.warps)[i].state != Warp::State::Done) live |= uint64_t{1} << i;
++    return (nb.participants & live) == live;
++  }
++
++  void release_cta_barrier(const BlockCtx& ctx, unsigned id) {
++    NamedBarrier& nb = ctx.bars->bar[id];
++    for (size_t i = 0; i < ctx.warps->size(); ++i)
++      if (nb.waiting >> i & 1) {
++        Warp& other = (*ctx.warps)[i];
++        other.state = Warp::State::Ready;
++        if (nb.reduction) other.bar_red_result = nb.acc;
++      }
++    // Publish arrival snapshots, never writes performed by nonwaiting
++    // producers after their bar.arrive. Only waiters acquire this phase.
++    if (ctx.shadow) ctx.shadow->complete(id, nb.waiting);
++    const uint64_t next_phase = nb.phase + 1;
++    nb = NamedBarrier{};
++    nb.phase = next_phase;
++  }
++
++  unsigned barrier_operand(Warp& w, const BlockCtx& ctx, const Instr& ins,
++                           const Operand& operand, Mask mask, const char* name) {
++    Lanes scratch;
++    const Lanes& values = read_operand(w, ctx, ins, operand, scratch);
++    const uint32_t value = static_cast<uint32_t>(values[first_set(mask)]);
++    for (uint32_t lane = 0; lane < W_; ++lane)
++      if ((mask & (Mask{1} << lane)) && static_cast<uint32_t>(values[lane]) != value)
++        ctx_fail(ins, static_cast<int>(lane), Err::UnsupportedPtx,
++                 std::string("CTA barrier ") + name + " must agree within the participating warp");
++    return value;
++  }
++
++  NamedBarrier& arrive_cta_barrier(Warp& w, const BlockCtx& ctx, const Instr& ins,
++                                  unsigned id, unsigned count, unsigned reduction) {
++    if (id > 15)
++      ctx_fail(ins, -1, Err::InvalidValue,
++               "barrier " + std::to_string(id) + ": a CTA has barriers 0 to 15");
++    NamedBarrier& nb = ctx.bars->bar[id];
++    if (nb.participants && (nb.count != count || nb.reduction != reduction))
++      ctx_fail(ins, -1, Err::UnsupportedPtx,
++               "barrier " + std::to_string(id) + " phase " + std::to_string(nb.phase) +
++               ": arrivals disagree on participation mode, thread count or reduction operation; these mixed active barrier forms are unsupported");
++    const uint64_t bit = uint64_t{1} << cur_warp_;
++    if (nb.participants & bit)
++      ctx_fail(ins, -1, Err::UnsupportedPtx,
++               "barrier " + std::to_string(id) + " phase " + std::to_string(nb.phase) +
++               ": a warp arrived twice before the barrier completed");
++    nb.count = count;
++    nb.reduction = reduction;
++    nb.participants |= bit;
++    nb.arrived += W_;
++    w.barrier_id = static_cast<uint8_t>(id);
++    if (ctx.shadow) ctx.shadow->arrive(id, cur_warp_);
++    ++stats_.barriers;
++    return nb;
++  }
++
++  unsigned cta_barrier_count(Warp& w, const BlockCtx& ctx, const Instr& ins,
++                             const Operand& operand, Mask mask) {
++    const unsigned count = barrier_operand(w, ctx, ins, operand, mask, "thread count");
++    if (count == 0 || count % W_)
++      ctx_fail(ins, -1, Err::InvalidValue,
++               "a barrier's thread count must be a non-zero multiple of the warp size (" +
++               std::to_string(W_) + "); got " + std::to_string(count));
++    return count;
++  }
++
+   // Gives the block one turn: picks a runnable warp and runs it, or releases a
+   // barrier when every warp has arrived. Returns false once the block is
+   // finished.
+@@ -2625,47 +2678,31 @@
+   // spin on a global flag another block has to set, and a warp spinning without
+   // a bound would never give that block a turn.
+   bool step_block(BlockState& b, Scheduler& sched, uint64_t slice) {
++    // Exiting threads can complete an all-CTA barrier. Check every named
++    // phase before choosing a runnable warp, so its waiters resume promptly.
++    for (unsigned id = 0; id < b.bars.bar.size(); ++id)
++      if (cta_barrier_complete(b.bars.bar[id], b.ctx)) release_cta_barrier(b.ctx, id);
+     std::vector<size_t> runnable;
+     for (size_t i = 0; i < b.warps.size(); ++i)
+       if (b.warps[i].state == Warp::State::Ready) runnable.push_back(i);
+     if (runnable.empty()) {
+-      // Every warp that has not exited is waiting. Those at a whole-CTA
+-      // barrier (bar.sync without a count, bar.red) have all arrived, so it
+-      // completes; those at a counted barrier are released by the arrivals
+-      // that complete it, and cannot be released here.
+-      bool any_waiting = false, any_counted = false;
+-      uint64_t participants = 0;
+-      for (auto& w : b.warps)
+-        if (w.state == Warp::State::AtBarrier) {
+-          if (w.counted_barrier) {
+-            any_counted = true;
+-            continue;
+-          }
+-          participants |= uint64_t{1} << (&w - b.warps.data());
+-          w.state = Warp::State::Ready;
+-          any_waiting = true;
+-        }
+-      if (!any_waiting && any_counted) {
+-        // Nothing can run and nothing more can arrive: a hang on hardware.
++      bool any_waiting = false;
++      for (const auto& w : b.warps) any_waiting |= w.state == Warp::State::AtBarrier;
++      if (any_waiting) {
+         std::string where;
+-        for (size_t i = 0; i < b.bars.bar.size(); ++i)
+-          if (b.bars.bar[i].waiting)
++        for (size_t i = 0; i < b.bars.bar.size(); ++i) {
++          const NamedBarrier& nb = b.bars.bar[i];
++          if (nb.waiting)
+             where += "\n  barrier " + std::to_string(i) + ": " +
+-                     std::to_string(__builtin_popcountll(b.bars.bar[i].waiting)) + " warp(s) waiting, " +
+-                     std::to_string(b.bars.bar[i].arrived) + " thread(s) arrived";
++                     std::to_string(__builtin_popcountll(nb.waiting)) + " warp(s) waiting, " +
++                     std::to_string(nb.arrived) + " thread(s) arrived; phase " +
++                     std::to_string(nb.phase) + (nb.count ? ", target " + std::to_string(nb.count)
++                                                        : ", target all non-exited warps");
++        }
+         throw Error::make(Err::LaunchConfig,
+                           "deadlock: every warp of the block that has not exited is waiting at a "
+-                          "barrier whose thread count can no longer be reached", where);
+-      }
+-      // Every warp has now arrived, so a bar.red round in flight has its
+-      // answer: set it aside and start the next.
+-      if (any_waiting && b.bar_red.arrived) {
+-        b.bar_red.result = b.bar_red.acc;
+-        b.bar_red.arrived = 0;
+-        ++b.bar_red.round;
+-      }
+-      // Only the participating warps acquire the completed CTA barrier.
+-      if (any_waiting && b.ctx.shadow) b.ctx.shadow->barrier(participants);
++                          "named barrier whose participating warps can no longer arrive", where);
++      }
+       if (!any_waiting) {
+         // "All of the Tensor Memory that was allocated ... must be explicitly
+         // deallocated using tcgen05.dealloc before the kernel exits."
+@@ -2680,7 +2717,6 @@
+         b.done = true;
+         return false;  // all Done
+       }
+-      return true;
+     }
+     const size_t picked = sched.pick(runnable);
+     cur_warp_ = static_cast<uint32_t>(picked);
+@@ -2799,6 +2835,61 @@
          tsim::warp_trace().issue(cfg_.tsim_launch_id, fn_.name, cur_->name, ctx.ctaid, cur_warp_,
                                  w.paths[idx].pc, ins.line, w.paths[idx].mask,
                                  effective, w.paths.size(), ins.text);
@@ -96,7 +335,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        }
        if (progress_ && (stats_.instructions & 0xFFFFF) == 0) report_progress();
        // Warp-level issue count, plus the per-lane total: their ratio is the
-@@ -3487,6 +3545,43 @@
+@@ -3487,6 +3578,43 @@
      return addr >= kSharedVaBase && addr < kSharedVaBase + kSharedVaSize;
    }
  
@@ -140,7 +379,172 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
    // ---- distributed shared memory ----
  
    // A block of this block's cluster by rank, failing when there is no such
-@@ -4077,8 +4172,9 @@
+@@ -3814,9 +3942,8 @@
+                    "a guarded bar.red that some lanes of the warp take and others skip; the "
+                    "barrier is aligned, so the warp must agree");
+       }
+-      if (!ctx.bar_red)
++      if (!ctx.bars)
+         ctx_fail(ins, -1, Err::UnsupportedPtx, "bar.red outside a block context");
+-      BarrierReduction& red = *ctx.bar_red;
+       if (!w.bar_red_waiting && w.paths.size() > 1) {
+         // Like bar.sync, bar.red waits for every live thread, so lanes of this
+         // warp still on another path have to get here before the warp votes.
+@@ -3865,73 +3992,26 @@
+         }
+         ++w.paths[idx].pc;
+       };
+-      const uint32_t lead = first_set(m);
+-      Lanes _s_id;
+-      const uint64_t id = read_operand(w, ctx, ins, op->id, _s_id)[lead];
+-      if (id > 15)
+-        ctx_fail(ins, -1, Err::InvalidValue,
+-                 "barrier " + std::to_string(id) + ": a CTA has barriers 0 to 15");
+-      if (op->have_count) {
+-        // A barrier with a thread count: only the warps that arrive at it take
+-        // part, and its completion hands each of them the answer.
+-        if (w.bar_red_waiting) {
+-          w.bar_red_waiting = false;
+-          deliver(w.bar_red_result);
+-          return;
+-        }
+-        Lanes _s_c;
+-        const uint64_t count = static_cast<uint32_t>(read_operand(w, ctx, ins, op->count, _s_c)[lead]);
+-        if (count == 0 || count % W_)
+-          ctx_fail(ins, -1, Err::InvalidValue,
+-                   "a barrier's thread count must be a non-zero multiple of the warp size (" +
+-                       std::to_string(W_) + "); got " + std::to_string(count));
+-        NamedBarrier& nb = ctx.bars->bar[id];
+-        vote(nb.acc, nb.arrived == 0);
+-        nb.arrived += W_;
+-        if (ctx.shadow) ctx.shadow->arrive(static_cast<unsigned>(id), cur_warp_);
+-        ++stats_.barriers;
+-        if (nb.arrived >= count) {
+-          const uint64_t result = nb.acc;
+-          for (size_t i = 0; i < ctx.warps->size(); ++i)
+-            if (nb.waiting >> i & 1) {
+-              Warp& other = (*ctx.warps)[i];
+-              other.state = Warp::State::Ready;
+-              other.counted_barrier = false;
+-              other.bar_red_result = result;
+-            }
+-          if (ctx.shadow) ctx.shadow->complete(static_cast<unsigned>(id), nb.waiting | (uint64_t{1} << cur_warp_));
+-          nb = NamedBarrier{};
+-          deliver(result);
+-          return;
+-        }
+-        nb.waiting |= uint64_t{1} << cur_warp_;
+-        w.state = Warp::State::AtBarrier;
+-        w.counted_barrier = true;
+-        w.barrier_id = static_cast<uint8_t>(id);
+-        w.bar_red_waiting = true;
++      if (w.bar_red_waiting) {
++        w.bar_red_waiting = false;
++        deliver(w.bar_red_result);
+         return;
+       }
+-      if (!w.bar_red_waiting) {
+-        // Contribute and wait. The result is not known until every warp in the
+-        // block has arrived, so the pc stays put and this re-executes on
+-        // release rather than advancing now.
+-        w.bar_red_round = red.round;
+-        vote(red.acc, red.arrived == 0);
+-        ++red.arrived;
+-        ++stats_.barriers;
+-        w.bar_red_waiting = true;
+-        w.state = Warp::State::AtBarrier;
+-        return;
+-      }
+-      // Released: collect the block-wide result of the round this warp voted
+-      // in, which the release set aside (the round after it cannot have
+-      // completed: it needs this warp's vote).
+-      w.bar_red_waiting = false;
+-      if (w.bar_red_round + 1 != red.round)
+-        ctx_fail(ins, -1, Err::UnsupportedPtx,
+-                 "bar.red released a warp whose round has not completed; were some warps at a "
+-                 "bar.sync on the same barrier?");
+-      deliver(red.result);
++      const unsigned id = barrier_operand(w, ctx, ins, op->id, m, "ID");
++      const unsigned count = op->have_count ? cta_barrier_count(w, ctx, ins, op->count, m) : 0;
++      const unsigned reduction = op->op == BarRedOp::And ? 1 : op->op == BarRedOp::Or ? 2 : 3;
++      NamedBarrier& nb = arrive_cta_barrier(w, ctx, ins, id, count, reduction);
++      vote(nb.acc, nb.waiting == 0);
++      nb.waiting |= uint64_t{1} << cur_warp_;
++      w.bar_red_waiting = true;
++      w.state = Warp::State::AtBarrier;
++      if (cta_barrier_complete(nb, ctx)) {
++        release_cta_barrier(ctx, id);
++        // A blocking rendezvous ends this warp's turn even if its arrival
++        // immediately releases it. Otherwise the last arrival could spin
++        // indefinitely while the earlier waiters never get another turn.
++        w.yield_now = true;
++      }
+       return;
+     }
+     if (const auto* op = std::get_if<OpClusterBarrier>(&ins.op)) {
+@@ -3985,7 +4065,6 @@
+                    "a guarded bar.sync that some lanes of the warp take and others skip; the "
+                    "barrier is aligned, so the warp must agree");
+       }
+-      ++stats_.barriers;
+       // Every live lane must arrive before the warp yields. Lanes still on
+       // other paths have a higher pc and will merge here first; if any path
+       // can never reach this barrier the kernel is malformed, and the step
+@@ -4021,46 +4100,17 @@
+                  "that never arrives at this barrier" + where);
+       }
+       if (!w.frames.empty()) refuse_barrier_outside_the_call(w, ins, "bar.sync");
+-      const uint32_t lead = first_set(m);
+-      Lanes _s_id;
+-      const uint64_t id = read_operand(w, ctx, ins, bop->id, _s_id)[lead];
+-      if (id > 15)
+-        ctx_fail(ins, -1, Err::InvalidValue,
+-                 "barrier " + std::to_string(id) + ": a CTA has barriers 0 to 15");
++      const unsigned id = barrier_operand(w, ctx, ins, bop->id, m, "ID");
++      const unsigned count = bop->have_count ? cta_barrier_count(w, ctx, ins, bop->count, m) : 0;
++      NamedBarrier& nb = arrive_cta_barrier(w, ctx, ins, id, count, 0);
+       ++w.paths[idx].pc;
+-      if (!bop->have_count) {
+-        w.state = Warp::State::AtBarrier;
+-        w.counted_barrier = false;
+-        w.barrier_id = static_cast<uint8_t>(id);
+-        return;
+-      }
+-      Lanes _s_c;
+-      const uint64_t count = static_cast<uint32_t>(read_operand(w, ctx, ins, bop->count, _s_c)[lead]);
+-      if (count == 0 || count % W_)
+-        ctx_fail(ins, -1, Err::InvalidValue,
+-                 "a barrier's thread count must be a non-zero multiple of the warp size (" +
+-                     std::to_string(W_) + "); got " + std::to_string(count));
+-      NamedBarrier& nb = ctx.bars->bar[id];
+-      nb.arrived += W_;
+-      if (ctx.shadow) ctx.shadow->arrive(static_cast<unsigned>(id), cur_warp_);
+-      if (nb.arrived >= count) {
+-        // Complete: the waiters go, and the barrier is ready for reuse.
+-        for (size_t i = 0; i < ctx.warps->size(); ++i)
+-          if (nb.waiting >> i & 1) {
+-            Warp& other = (*ctx.warps)[i];
+-            other.state = Warp::State::Ready;
+-            other.counted_barrier = false;
+-          }
+-        if (ctx.shadow) ctx.shadow->complete(static_cast<unsigned>(id), nb.waiting |
+-                                              (bop->arrive ? 0 : (uint64_t{1} << cur_warp_)));
+-        nb = NamedBarrier{};
+-        return;
+-      }
+       if (!bop->arrive) {
+         nb.waiting |= uint64_t{1} << cur_warp_;
+         w.state = Warp::State::AtBarrier;
+-        w.counted_barrier = true;
+-        w.barrier_id = static_cast<uint8_t>(id);
++      }
++      if (cta_barrier_complete(nb, ctx)) {
++        release_cta_barrier(ctx, id);
++        if (!bop->arrive) w.yield_now = true;
+       }
+       return;
+     }
+@@ -4077,8 +4127,9 @@
        return;
      }
  
@@ -151,7 +555,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
  
      if (m != 0) {
        try {
-@@ -4210,6 +4306,12 @@
+@@ -4210,6 +4261,12 @@
        if (i == idx || !(w.paths[i].mask & named)) continue;
        if (select_other_runnable(w, idx) == idx) return false;
        w.paths[idx].parked = Path::kAtBarrier;
@@ -164,7 +568,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        return true;
      }
      return false;
-@@ -4724,16 +4826,12 @@
+@@ -4724,16 +4781,12 @@
      if (const auto* op = std::get_if<OpLd>(&ins.op)) {
        // Every element of a vector access: an ld.v4 moves four times the
        // element's bytes, and counting one element undercounted it that much.
@@ -181,7 +585,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        // st.release: nothing before it may be seen to happen after it.
        if (op->release) std::atomic_thread_fence(std::memory_order_release);
        exec_st(w, ctx, ins, *op, m);
-@@ -5278,6 +5376,8 @@
+@@ -5278,6 +5331,8 @@
        require_warp32(ins, "redux.sync");
        Lanes _s_a;
        const Lanes& a = read_operand(w, ctx, ins, op->src, _s_a);
@@ -190,7 +594,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        // Every participating lane contributes and every one receives the result.
        // The active mask is the membership: a lane not executing this
        // instruction is not in the warp's reduction.
-@@ -5755,6 +5855,8 @@
+@@ -5755,6 +5810,8 @@
        require_warp32(ins, "match.sync");
        Lanes _s_a;
        const Lanes& a = read_operand(w, ctx, ins, op->a, _s_a);
@@ -199,7 +603,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        Lanes r;
        Mask all_agreed = 0;
        for (uint32_t lane = 0; lane < W_; ++lane) {
-@@ -5772,7 +5874,7 @@
+@@ -5772,7 +5829,7 @@
          if (same == members) all_agreed |= (Mask{1} << lane);
          r[lane] = op->all ? (same == members ? static_cast<uint64_t>(members) : 0) : static_cast<uint64_t>(same);
        }
@@ -208,7 +612,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        if (op->all && op->pred_dst.id != kNoReg) {
          Mask& p = pred_slot(w, op->pred_dst);
          p = (p & ~m) | (all_agreed & m);
-@@ -6203,6 +6305,8 @@
+@@ -6203,6 +6260,8 @@
      if (const auto* op = std::get_if<OpVote>(&ins.op)) {
        require_warp32(ins, "vote/ballot");
        Mask p = read_pred(w, ins, op->src);
@@ -217,7 +621,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        if (op->negate_src) p = ~p;
        Mask voters = p & m;
        if (op->ballot) {
-@@ -6671,6 +6775,25 @@
+@@ -6671,6 +6730,25 @@
    // Warp shuffle: a lane reads another lane's register. This is a plain index
    // into the warp's lane vector — the operation the warp-vectorized register
    // file makes trivial (see ARCHITECTURE.md D1).
@@ -243,7 +647,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
    void exec_shfl(Warp& w, const BlockCtx& ctx, const Instr& ins, const OpShfl& op, Mask m) {
      Lanes _s_a;
        const Lanes& a = read_operand(w, ctx, ins, op.a, _s_a);
-@@ -6678,6 +6801,7 @@
+@@ -6678,6 +6756,7 @@
        const Lanes& b = read_operand(w, ctx, ins, op.b, _s_b);
        Lanes _s_c;
        const Lanes& c = read_operand(w, ctx, ins, op.c, _s_c);
@@ -251,7 +655,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      Lanes r;  // written for every active lane below
      Mask pred_out = 0;
      for (uint32_t lane = 0; lane < W_; ++lane) {
-@@ -6715,6 +6839,7 @@
+@@ -6715,6 +6794,7 @@
        // register holds (an RTX 3060: lanes 0-15 of a diverged warp shuffling
        // from lane 17 read 0).
        r[lane] = (m >> (j & 0x1F)) & 1 ? a[j & 0x1F] : 0;
@@ -259,7 +663,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
        if (pred) pred_out |= (Mask{1} << lane);
      }
      write_reg(w, op.dst, m, r, 32);
-@@ -9663,6 +9788,7 @@
+@@ -9663,6 +9743,7 @@
              uint64_t v = 0;
              std::memcpy(&v, params_.bytes.data() + (at - kParamVaBase), size);
              results[e][lane] = v;
@@ -267,7 +671,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
            }
          }
        for (size_t e = 0; e < n; ++e) write_loaded(w, op.dsts[e], m, results[e], op.ty);
-@@ -9680,6 +9806,9 @@
+@@ -9680,6 +9761,9 @@
                     "ld.param reads past parameter '" + op.addr.base + "'");
          uint64_t v = 0;
          std::memcpy(&v, params_.bytes.data() + at, size);
@@ -277,7 +681,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
          Lanes r;  // written for every active lane below
          r.fill(v);
          write_loaded(w, op.dsts[e], m, r, op.ty);
-@@ -9690,14 +9819,6 @@
+@@ -9690,14 +9774,6 @@
      const Lanes& base = addr_base(w, ctx, ins, op.addr, _s_base);
      uint64_t sbase = space_base(op.space);
      uint32_t va = size * static_cast<uint32_t>(n);  // vector accesses need vector alignment
@@ -292,7 +696,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      LaneSet results(n);
      for (uint32_t lane = 0; lane < W_; ++lane)
        if (m & (Mask{1} << lane)) {
-@@ -9707,9 +9828,12 @@
+@@ -9707,9 +9783,12 @@
                     "vector load requires " + std::to_string(va) + "-byte alignment");
          std::unique_lock<std::mutex> whole;
          if (op.ordered && n > 1) whole = std::unique_lock<std::mutex>(vector_lock(addr));
@@ -307,7 +711,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      for (size_t e = 0; e < n; ++e) write_loaded(w, op.dsts[e], m, results[e], op.ty);
    }
  
-@@ -9762,13 +9886,6 @@
+@@ -9762,13 +9841,6 @@
      const Lanes& base = addr_base(w, ctx, ins, op.addr, _s_base);
      uint64_t sbase = space_base(op.space);
      uint32_t va = size * static_cast<uint32_t>(n);
@@ -321,7 +725,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      for (uint32_t lane = 0; lane < W_; ++lane)
        if (m & (Mask{1} << lane)) {
          uint64_t addr = sbase + base[lane] + static_cast<uint64_t>(op.addr.offset);
-@@ -9777,9 +9894,12 @@
+@@ -9777,9 +9849,12 @@
                     "vector store requires " + std::to_string(va) + "-byte alignment");
          std::unique_lock<std::mutex> whole;
          if (op.ordered && n > 1) whole = std::unique_lock<std::mutex>(vector_lock(addr));
@@ -336,7 +740,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
    }
  
    // mbarrier: a split barrier. Arriving and waiting are different
-@@ -11037,11 +11157,13 @@
+@@ -11037,11 +11112,13 @@
            uint8_t* host = mem_.host_address(addr, size);
            if (host && reinterpret_cast<uintptr_t>(host) % size == 0) {
              r[lane] = vgpu::exec::host_atomic_rmw(host, size, compute);
@@ -350,7 +754,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
          r[lane] = old;
        }
      // `red` performed the read-modify-write and has nowhere to put the old
-@@ -11200,6 +11322,7 @@
+@@ -11200,6 +11277,7 @@
      // The caller resumes after the call, so its path is saved already past it.
      ++w.paths[step_idx_].pc;
      Warp::Frame f;
@@ -358,7 +762,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      f.fn = w.fn;
      f.local_base = w.local_base;
      f.paths = std::move(w.paths);
-@@ -11219,6 +11342,7 @@
+@@ -11219,6 +11297,7 @@
      // The callee's .local frame sits above its caller's, the way a stack
      // grows, so a pointer into the caller's frame stays valid in the callee.
      w.local_base = (local_base_ + cur_->local_frame_size + 15) / 16 * 16;
@@ -366,7 +770,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      w.fn = &callee;
      cur_ = &callee;
      local_base_ = w.local_base;
-@@ -11251,6 +11375,7 @@
+@@ -11251,6 +11330,7 @@
          have_ret = true;
        }
      }
@@ -374,7 +778,7 @@ diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
      w.fn = f.fn;
      w.local_base = f.local_base;
      cur_ = w.fn ? w.fn : &fn_;
-@@ -13310,8 +13435,12 @@
+@@ -13310,8 +13390,12 @@
                          const DeviceProfile& profile, const SymbolTable* symbols,
                          const ProgressFn& progress, DeviceLaunches* dl) {
    LaunchConfig with_cluster = cfg;
@@ -606,3 +1010,330 @@ diff --git a/src/ptx/regalloc.cpp b/src/ptx/regalloc.cpp
          }
        },
        ins.op);
+diff --git a/tests/unit/test_barriers.cpp b/tests/unit/test_barriers.cpp
+--- a/tests/unit/test_barriers.cpp
++++ b/tests/unit/test_barriers.cpp
+@@ -31,6 +31,7 @@
+   auto m = ptx::parse(std::string(kHeader) + body);
+   LaunchConfig c;
+   c.block = {threads, 1, 1};
++  c.max_steps = 10000;
+   exec::launch(m.entries[0], c, args, mem, prof);
+ }
+ 
+@@ -217,4 +218,298 @@
+   VCHECK_CONTAINS(parse_error("bar.arrive 1;"), "bar.arrive needs a thread count");
+ }
+ 
++
++// These malformed kernels used to pass because the scheduler released all
++// uncounted waiters together, regardless of their barrier identity.
++VTEST(whole_cta_barriers_with_distinct_ids_do_not_join) {
++  MemoryManager mem{1 << 20};
++  auto err = VCAPTURE(Error, run(R"(
++.visible .entry k() {
++  .reg .b32 %r<3>;
++  mov.u32 %r1, %tid.x;
++  shr.u32 %r2, %r1, 5;
++  bar.sync %r2;
++  ret;
++})", 64, {}, mem));
++  VCHECK_CONTAINS(err.message(), "deadlock");
++  VCHECK_CONTAINS(err.message(), "barrier 0: 1 warp(s) waiting");
++  VCHECK_CONTAINS(err.message(), "barrier 1: 1 warp(s) waiting");
++}
++
++VTEST(whole_cta_reductions_with_distinct_ids_do_not_join) {
++  MemoryManager mem{1 << 20};
++  auto err = VCAPTURE(Error, run(R"(
++.visible .entry k() {
++  .reg .b32 %r<4>;
++  .reg .pred %p;
++  mov.u32 %r1, %tid.x;
++  shr.u32 %r2, %r1, 5;
++  setp.eq.u32 %p, %r1, %r1;
++  bar.red.popc.u32 %r3, %r2, %p;
++  ret;
++})", 64, {}, mem));
++  VCHECK_CONTAINS(err.message(), "deadlock");
++  VCHECK_CONTAINS(err.message(), "barrier 0: 1 warp(s) waiting");
++  VCHECK_CONTAINS(err.message(), "barrier 1: 1 warp(s) waiting");
++}
++
++VTEST(whole_cta_barrier_cannot_borrow_a_counted_waiter) {
++  MemoryManager mem{1 << 20};
++  auto err = VCAPTURE(Error, run(R"(
++.visible .entry k() {
++  .reg .b32 %r;
++  .reg .pred %p;
++  mov.u32 %r, %tid.x;
++  setp.lt.u32 %p, %r, 32;
++  @%p bra FIRST;
++  bar.sync 4, 64;
++  ret;
++FIRST:
++  bar.sync 3;
++  bar.arrive 4, 64;
++  ret;
++})", 64, {}, mem));
++  VCHECK_CONTAINS(err.message(), "deadlock");
++  VCHECK_CONTAINS(err.message(), "barrier 3: 1 warp(s) waiting");
++  VCHECK_CONTAINS(err.message(), "barrier 4: 1 warp(s) waiting");
++}
++
++VTEST(sync_and_reduction_on_different_whole_cta_ids_do_not_join) {
++  MemoryManager mem{1 << 20};
++  auto err = VCAPTURE(Error, run(R"(
++.visible .entry k() {
++  .reg .b32 %r<3>;
++  .reg .pred %p;
++  mov.u32 %r1, %tid.x;
++  setp.lt.u32 %p, %r1, 32;
++  @%p bra FIRST;
++  bar.red.popc.u32 %r2, 2, %p;
++  ret;
++FIRST:
++  bar.sync 1;
++  ret;
++})", 64, {}, mem));
++  VCHECK_CONTAINS(err.message(), "deadlock");
++  VCHECK_CONTAINS(err.message(), "barrier 1: 1 warp(s) waiting");
++  VCHECK_CONTAINS(err.message(), "barrier 2: 1 warp(s) waiting");
++}
++
++VTEST(a_warp_cannot_arrive_twice_in_an_active_phase) {
++  MemoryManager mem{1 << 20};
++  auto err = VCAPTURE(Error, run(R"(
++.visible .entry k() {
++  bar.arrive 9, 64;
++  bar.sync 9, 64;
++  ret;
++})", 64, {}, mem));
++  VCHECK_CONTAINS(err.message(), "barrier 9 phase 0");
++  VCHECK_CONTAINS(err.message(), "arrived twice");
++}
++
++VTEST(active_barrier_count_must_agree_across_warps) {
++  MemoryManager mem{1 << 20};
++  auto err = VCAPTURE(Error, run(R"(
++.visible .entry k() {
++  .reg .b32 %r<3>;
++  mov.u32 %r1, %tid.x;
++  shr.u32 %r1, %r1, 5;
++  mad.lo.u32 %r2, %r1, 32, 64;
++  bar.sync 8, %r2;
++  ret;
++})", 64, {}, mem));
++  VCHECK_CONTAINS(err.message(), "barrier 8 phase 0");
++  VCHECK_CONTAINS(err.message(), "arrivals disagree");
++}
++
++VTEST(active_barrier_cannot_mix_counted_and_whole_cta_forms) {
++  MemoryManager mem{1 << 20};
++  auto err = VCAPTURE(Error, run(R"(
++.visible .entry k() {
++  .reg .b32 %r;
++  .reg .pred %p;
++  mov.u32 %r, %tid.x;
++  setp.lt.u32 %p, %r, 32;
++  @%p bra FIRST;
++  bar.sync 5, 64;
++  ret;
++FIRST:
++  bar.sync 5;
++  ret;
++})", 64, {}, mem));
++  VCHECK_CONTAINS(err.message(), "barrier 5 phase 0");
++  VCHECK_CONTAINS(err.message(), "arrivals disagree");
++}
++
++VTEST(active_barrier_cannot_mix_sync_and_reduction) {
++  for (const std::string count : {std::string(""), std::string(", 64")}) {
++    MemoryManager mem{1 << 20};
++    const std::string body = R"(
++.visible .entry k() {
++  .reg .b32 %r<3>;
++  .reg .pred %p;
++  mov.u32 %r1, %tid.x;
++  setp.lt.u32 %p, %r1, 32;
++  @%p bra FIRST;
++  bar.red.popc.u32 %r2, 6)" + count + R"(, %p;
++  ret;
++FIRST:
++  bar.sync 6)" + count + R"(;
++  ret;
++})";
++    auto err = VCAPTURE(Error, run(body, 64, {}, mem));
++    VCHECK_CONTAINS(err.message(), "barrier 6 phase 0");
++    VCHECK_CONTAINS(err.message(), "arrivals disagree");
++  }
++}
++
++VTEST(active_reduction_operation_must_agree_across_warps) {
++  MemoryManager mem{1 << 20};
++  auto err = VCAPTURE(Error, run(R"(
++.visible .entry k() {
++  .reg .b32 %r;
++  .reg .pred %p<2>;
++  mov.u32 %r, %tid.x;
++  setp.lt.u32 %p0, %r, 32;
++  @%p0 bra FIRST;
++  bar.red.or.pred %p1, 7, %p0;
++  ret;
++FIRST:
++  bar.red.and.pred %p1, 7, %p0;
++  ret;
++})", 64, {}, mem));
++  VCHECK_CONTAINS(err.message(), "barrier 7 phase 0");
++  VCHECK_CONTAINS(err.message(), "arrivals disagree");
++}
++
++VTEST(barrier_id_must_agree_within_a_warp) {
++  MemoryManager mem{1 << 20};
++  auto err = VCAPTURE(Error, run(R"(
++.visible .entry k() {
++  .reg .b32 %r;
++  mov.u32 %r, %laneid;
++  bar.sync %r;
++  ret;
++})", 32, {}, mem));
++  VCHECK_CONTAINS(err.message(), "barrier ID must agree");
++}
++
++VTEST(barrier_count_must_agree_within_a_warp) {
++  MemoryManager mem{1 << 20};
++  auto err = VCAPTURE(Error, run(R"(
++.visible .entry k() {
++  .reg .b32 %r;
++  mov.u32 %r, %laneid;
++  mad.lo.u32 %r, %r, 32, 32;
++  bar.sync 0, %r;
++  ret;
++})", 32, {}, mem));
++  VCHECK_CONTAINS(err.message(), "barrier thread count must agree");
++}
++
++// Exits remove live participants from all-CTA phases; a final partial warp
++// contributes its actual predicate votes, not a rounded thread count.
++VTEST(whole_cta_reduction_handles_exits_and_partial_warps) {
++  for (uint32_t threads : {1u, 31u, 32u, 33u, 40u, 63u, 64u, 65u, 96u}) {
++    MemoryManager mem{1 << 20};
++    const uint64_t out = mem.alloc(threads * 4);
++    run(R"(
++.visible .entry k(.param .u64 out) {
++  .reg .b32 %r<4>;
++  .reg .b64 %rd<4>;
++  .reg .pred %p<2>;
++  mov.u32 %r1, %tid.x;
++  setp.ge.u32 %p0, %r1, 32;
++  @%p0 ret;
++  setp.eq.u32 %p1, %r1, %r1;
++  bar.red.popc.u32 %r2, 13, %p1;
++  ld.param.u64 %rd1, [out];
++  mul.wide.u32 %rd2, %r1, 4;
++  add.u64 %rd3, %rd1, %rd2;
++  st.global.u32 [%rd3], %r2;
++  ret;
++})", threads, {arg_u64(out)}, mem);
++    for (uint32_t t = 0; t < std::min(threads, 32u); ++t)
++      VCHECK_EQ(mem.load_scalar(out + t * 4, 4), uint64_t{std::min(threads, 32u)});
++  }
++}
++
++VTEST(named_barrier_phase_can_change_form_after_completion) {
++  MemoryManager mem{1 << 20};
++  const uint64_t out = mem.alloc(64 * 4);
++  run(R"(
++.visible .entry k(.param .u64 out) {
++  .reg .b32 %r<5>;
++  .reg .b64 %rd<4>;
++  .reg .pred %p;
++  mov.u32 %r1, %tid.x;
++  bar.sync 12;
++  setp.lt.u32 %p, %r1, 17;
++  bar.red.popc.u32 %r2, 12, 64, %p;
++  bar.sync 12, 64;
++  bar.red.popc.u32 %r3, 12, %p;
++  add.u32 %r4, %r2, %r3;
++  ld.param.u64 %rd1, [out];
++  mul.wide.u32 %rd2, %r1, 4;
++  add.u64 %rd3, %rd1, %rd2;
++  st.global.u32 [%rd3], %r4;
++  ret;
++})", 64, {arg_u64(out)}, mem);
++  for (uint32_t t = 0; t < 64; ++t)
++    VCHECK_EQ(mem.load_scalar(out + t * 4, 4), uint64_t{34});
++}
++
++VTEST(deadlock_diagnostics_identify_the_reused_phase) {
++  MemoryManager mem{1 << 20};
++  auto err = VCAPTURE(Error, run(R"(
++.visible .entry k() {
++  .reg .b32 %r;
++  .reg .pred %p;
++  bar.sync 15;
++  mov.u32 %r, %tid.x;
++  setp.ge.u32 %p, %r, 32;
++  @%p ret;
++  bar.sync 15, 64;
++  ret;
++})", 64, {}, mem));
++  VCHECK_CONTAINS(err.message(), "barrier 15: 1 warp(s) waiting, 32 thread(s) arrived; phase 1, target 64");
++}
++
++// With an unbounded deterministic scheduler, the final arrival must return
++// control to the CTA scheduler. It must not monopolize the CTA by spinning
++// on a value a released earlier warp has yet to publish.
++VTEST(final_blocking_arrival_ends_the_warp_turn) {
++  for (const std::string count : {std::string(""), std::string(", 64")}) {
++    MemoryManager mem{1 << 20};
++    const uint64_t out = mem.alloc(32 * 4);
++    const std::string body = R"(
++.visible .entry k(.param .u64 out) {
++  .reg .b32 %r<4>;
++  .reg .b64 %rd<4>;
++  .reg .pred %p<2>;
++  .shared .align 4 .b32 flag;
++  mov.u32 %r1, %tid.x;
++  setp.eq.u32 %p0, %r1, 0;
++  @%p0 st.shared.u32 [flag], 0;
++  bar.sync 10)" + count + R"(;
++  setp.lt.u32 %p1, %r1, 32;
++  @!%p1 bra CONSUMER;
++  @%p0 st.shared.u32 [flag], 37;
++  ret;
++CONSUMER:
++  ld.shared.u32 %r2, [flag];
++  setp.ne.u32 %p0, %r2, 37;
++  @%p0 bra CONSUMER;
++  sub.u32 %r3, %r1, 32;
++  ld.param.u64 %rd1, [out];
++  mul.wide.u32 %rd2, %r3, 4;
++  add.u64 %rd3, %rd1, %rd2;
++  st.global.u32 [%rd3], %r2;
++  ret;
++})";
++    run(body, 64, {arg_u64(out)}, mem);
++    for (uint32_t lane = 0; lane < 32; ++lane)
++      VCHECK_EQ(mem.load_scalar(out + lane * 4, 4), uint64_t{37});
++  }
++}
++
+ VTEST_MAIN
+diff --git a/tests/unit/test_exec3.cpp b/tests/unit/test_exec3.cpp
+--- a/tests/unit/test_exec3.cpp
++++ b/tests/unit/test_exec3.cpp
+@@ -3442,9 +3442,11 @@
+ ARRIVE:
+     mbarrier.arrive.shared.b64 %rd7, [%rd5];
+ WAIT:
+-    mbarrier.arrive.shared.b64 %rd8, [%rd5];
+ SPIN:
+-    mbarrier.test_wait.shared.b64 %p1, [%rd5], %rd8;
++    // Wait on the initialized phase; do not arrive a second time. Otherwise
++    // a consumer warp can reach 64 arrivals and read before the producer has
++    // even issued its copy. That happened when it was the last warp at bar.sync.
++    mbarrier.test_wait.parity.shared.b64 %p1, [%rd5], 0;
+     @!%p1 bra SPIN;
+     ld.shared.u32 %r5, [%rd6];
+     mul.wide.u32 %rd9, %r1, 4;

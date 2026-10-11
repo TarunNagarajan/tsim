@@ -1008,7 +1008,7 @@
     },
     {
       "name": "inplace-four-workers",
-      "event_sha256": "5a1e9012b2cf1e22ff3909fe5c3cfb8fea02894c87b323163f710830ce72f6bf",
+      "event_sha256": "254ac2fd70042dbafb3eadfaae06893b57989f39628d6752fd21feb73f88813a",
       "ptx_sha256": "20bde258a19c2be8d1075bac6cb783b11450c3f1c546b877cf03f6382f205a48",
       "artifact_directory": "inplace-four-workers",
       "timed_memory": false,
@@ -1021,7 +1021,7 @@
     },
     {
       "name": "inplace-four-workers-staged",
-      "event_sha256": "5a1e9012b2cf1e22ff3909fe5c3cfb8fea02894c87b323163f710830ce72f6bf",
+      "event_sha256": "254ac2fd70042dbafb3eadfaae06893b57989f39628d6752fd21feb73f88813a",
       "ptx_sha256": "20bde258a19c2be8d1075bac6cb783b11450c3f1c546b877cf03f6382f205a48",
       "artifact_directory": "inplace-four-workers",
       "timed_memory": true,
@@ -1098,7 +1098,7 @@
     "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
     "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
     "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
-    "zz-execution-events.patch": "168ceba33a9e168268324989828850dcdb11fe97439312e1bfa328bf70add578"
+    "zz-execution-events.patch": "a57f9c8ecbad3729ab363eb87970c5d0969b09e6f246f38b3d4370531af65354"
   },
   "total_checks": 238
 }

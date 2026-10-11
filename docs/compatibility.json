@@ -75,6 +75,14 @@
       "boundary": "two warps; arrival snapshots, waiter ordering and post-arrival write rejection"
     },
     {
+      "feature": "named CTA barrier phases and reductions",
+      "status": "tested subset",
+      "cases": [
+        "cta_barrier_phases"
+      ],
+      "boundary": "per-ID sync/arrive/reduction phases; partial blocks, exits, independent counted producer/consumer pairs and saved reduction results; malformed barriers diagnosed by core regressions; no hardware differential validation"
+    },
+    {
       "feature": "publication through atomic RMW",
       "status": "tested subset",
       "cases": [
@@ -121,7 +129,7 @@
     {
       "feature": "Conserved scalar/vector memory events",
       "evidence": "event-conformance.json",
-      "checks": 58,
+      "checks": 62,
       "status": "tested subset",
       "boundary": "PTX reference capture; unsupported paths emit gaps; scoreboard incomplete"
     },

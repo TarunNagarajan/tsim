@@ -6,16 +6,18 @@
     "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
     "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
     "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
-    "zz-execution-events.patch": "168ceba33a9e168268324989828850dcdb11fe97439312e1bfa328bf70add578"
+    "zz-execution-events.patch": "a57f9c8ecbad3729ab363eb87970c5d0969b09e6f246f38b3d4370531af65354"
   },
   "target_sha256": {
     "CMakeLists.txt": "ddc998c6a27cc06a4f8d288679a5d260b2e9e0bba06152d5700cc6ad15d82f87",
     "amd/src/codeobject.cpp": "fd16748b319b463cbc639cd01705f61589a97433eeb1592e76f4e90a95c04662",
     "include/vgpu/exec/launch.hpp": "618a16a75abbd558b2650ca1803092cc0a04dab35e53abaa17d53a435fa4b10c",
     "include/vgpu/ptx/ast.hpp": "e7a2299ec2df527e37c33953711b6ddb388838007537a5c3b7711c7aaac0ccab",
-    "src/exec/interpreter.cpp": "7c5e98cfbc780a714793540d05767ab8df44c2bd272b1f374c03a02db17d60be",
+    "src/exec/interpreter.cpp": "6e978dabb817a44d794bed93cabf05db0c7606b87298fb2a8153f91a63aabd98",
     "src/ptx/parser.cpp": "d874d913bfb7ffaa8f3119d02d0dede1e03133613c521b9845ae51198bf80e0a",
-    "src/ptx/regalloc.cpp": "02b0ad0257d2cffd99c9c05d6abb2971a1073b3e8bf8d0eeadba7de76e44d290"
+    "src/ptx/regalloc.cpp": "02b0ad0257d2cffd99c9c05d6abb2971a1073b3e8bf8d0eeadba7de76e44d290",
+    "tests/unit/test_barriers.cpp": "01db2153227cbe706c24e5d183f649c5b18fc3c719511e1b35ed47761e19eba3",
+    "tests/unit/test_exec3.cpp": "2204b92d03753f723245e43480fc5b8f5f28e9169d58a8bcba8dca64e9090506"
   },
   "updated_targets": [
     "CMakeLists.txt",
@@ -24,9 +26,11 @@
     "include/vgpu/ptx/ast.hpp",
     "src/exec/interpreter.cpp",
     "src/ptx/parser.cpp",
-    "src/ptx/regalloc.cpp"
+    "src/ptx/regalloc.cpp",
+    "tests/unit/test_barriers.cpp",
+    "tests/unit/test_exec3.cpp"
   ],
-  "diff_sha256": "9f48ce1c2b96524bbefce5118fc2e97b2a20d1d8ff7807405b0b52a804446a52",
+  "diff_sha256": "24ca51710b55e450f734abace94da51247a76de57bb23bc77bc47c95f5a8bdd7",
   "idempotence_passed": true,
   "reverse_stack_passed": true,
   "older_four_patch_upgrade_passed": true,

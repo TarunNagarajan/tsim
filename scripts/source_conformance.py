@@ -23,7 +23,8 @@ def verify_source(cache, out, replay_from=None):
                                for p in sorted((ROOT / 'patches').glob('*.patch'))},
               'shared_race_model': 'passed', 'cases': cases, 'passed': False}
     probes = ['warp_collectives', 'device_calls', 'numeric_edges', 'memory_spaces',
-              'atomic_protocol', 'transitive_publication', 'counted_barrier', 'rmw_publication', 'acquire_pattern']
+              'atomic_protocol', 'transitive_publication', 'counted_barrier', 'rmw_publication', 'acquire_pattern',
+              'cta_barrier_phases']
     # The negative variants preserve the communication protocol and remove
     # exactly one ordering edge. Strict checking also catches equal-value stores.
     variants = [(name, name, [], False) for name in probes] + [
@@ -50,7 +51,7 @@ def verify_source(cache, out, replay_from=None):
                 for name, source, options, negative in variants:
                     folder = out / (name + '-' + gpu + '-' + scheduler)
                     args = argparse.Namespace(source=ROOT / 'tests/conformance' / (source + '.cu'),
-                        gpu=gpu, scheduler=scheduler, seed=17, threads=1, race=True, strict=True,
+                        gpu=gpu, scheduler=scheduler, seed=17, threads=4 if source == 'cta_barrier_phases' else 1, race=True, strict=True,
                         trace=False, trace_limit=200000, timeout=45, out=folder, nvcc_arg=options)
                     code, path = run_program(args, cache, compiled_from=compiled.get(name))
                     compiled.setdefault(name, path)
@@ -61,6 +62,13 @@ def verify_source(cache, out, replay_from=None):
                         ptx = (path / 'kernel.ptx').read_text()
                         if not all(op in ptx for op in ['st.shared.u32', 'ld.shared.u32', 'bar.arrive', 'bar.sync']):
                             raise RuntimeError('Counted barrier PTX lost a required memory operation')
+                    if source == 'cta_barrier_phases':
+                        ptx = (path / 'kernel.ptx').read_text()
+                        if not all(op in ptx for op in ['bar.red.popc.u32', 'bar.red.and.pred', 'bar.red.or.pred',
+                                                       'bar.sync', 'bar.arrive', 'st.shared.u32', 'ld.shared.u32']):
+                            raise RuntimeError('CTA phase PTX lost a required synchronization or memory operation')
+                        if 'comparisons=49330 launches=19' not in stdout:
+                            raise RuntimeError('CTA phase source did not complete its independent numerical comparisons')
                     if source in ['rmw_publication', 'acquire_pattern']:
                         ptx = (path / 'kernel.ptx').read_text()
                         required = ['ld.acquire.cta.b32', 'ld.relaxed.cta.b32', 'st.release.cta.b32', 'ld.shared.u32']
@@ -71,7 +79,7 @@ def verify_source(cache, out, replay_from=None):
                     success = (code != 0 and 'race' in stderr.lower() and not metadata['timed_out']) if negative else (
                         code == 0 and 'PASS ' + source in stdout)
                     cases.append({'case': name, 'source': source, 'profile': gpu, 'scheduler': scheduler,
-                                  'seed': 17, 'expected_race': negative, 'exit_code': code, 'passed': success})
+                                  'seed': 17, 'workers': args.threads, 'expected_race': negative, 'exit_code': code, 'passed': success})
                     print(f'{name} {gpu} {scheduler}: ' + ('PASS' if success else 'FAIL'), flush=True)
                     if not success: raise RuntimeError('Source conformance failed: ' + str(folder))
         report['passed'] = True

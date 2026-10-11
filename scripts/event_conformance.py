@@ -125,6 +125,18 @@ def verify_events(cache, out, replay_from=None):
               summary['memory']['shared_load_accesses'] >= 64 and summary['memory']['global_atomic_accesses'] == 64)
         check('generic publication counters agree', re.findall(r'global\s+ld=(\d+)',
               (publication / 'stderr.log').read_text()) == ['0'])
+        phases = run('cta-barrier-phases', ROOT / 'tests/conformance/cta_barrier_phases.cu', workers=4)
+        phases_plain = run('cta-barrier-phases-plain', ROOT / 'tests/conformance/cta_barrier_phases.cu', capture=False, workers=4)
+        check('CTA phase reference/fast capture equivalence',
+              (phases / 'stdout.log').read_text() == (phases_plain / 'stdout.log').read_text() and
+              'comparisons=49330 launches=19' in (phases / 'stdout.log').read_text())
+        phase_summary = summarize_events(phases / 'execution-events.jsonl')
+        check('nineteen CTA phase launches conserve all scalar accesses',
+              phase_summary['complete_supported_memory'] and phase_summary['launches'] == 19 and
+              phase_summary['memory']['global_store_accesses'] == 49330 and
+              phase_summary['memory']['global_store_bytes'] == 197320 and
+              phase_summary['memory']['shared_load_accesses'] == 2240 and
+              phase_summary['memory']['shared_store_accesses'] == 2240)
         spaces = run('memory-spaces', ROOT / 'tests/conformance/memory_spaces.cu')
         data = rows(spaces)
         local = [r for r in data if r['type'] == 'memory' and r['space'] == 'local']

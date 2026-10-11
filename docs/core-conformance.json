@@ -46,8 +46,8 @@
     {
       "suite": "test_barriers",
       "exit_code": 0,
-      "passed": 5,
-      "total": 5,
+      "passed": 20,
+      "total": 20,
       "failures": [],
       "success": true
     },
@@ -69,5 +69,5 @@
     }
   ],
   "passed": true,
-  "total_checks": 343
+  "total_checks": 358
 }
