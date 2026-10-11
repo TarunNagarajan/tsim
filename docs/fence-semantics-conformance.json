@@ -1,0 +1,5162 @@
+{
+  "kind": "Typed PTX fence syntax, operands and eager CPU execution; not hardware memory-model validation",
+  "passed": true,
+  "component_sha256": {
+    "tests/fence_semantics.cpp": "79dce6286f39a6b143680bebc19e472792e5f0ff36e7496b40bd4a3ded465668",
+    "tests/fence_semantics_components.py": "8c6016f3f042e09f478bf8e4fc9adf022c305c52eb69c5cb98c26621df13b69f",
+    "third_party/pantheonsim/include/vgpu/ptx/ast.hpp": "7fd6857fec9baa5394aa2035f07db5d198e313d8720aea3f0b27b3d76a18c4d3",
+    "third_party/pantheonsim/src/ptx/parser.cpp": "f17e1a79bb2c21d40e2ccb06d67f318cd173ff129ad437138339482f4a6a908b",
+    "third_party/pantheonsim/src/ptx/regalloc.cpp": "02b0ad0257d2cffd99c9c05d6abb2971a1073b3e8bf8d0eeadba7de76e44d290",
+    "third_party/pantheonsim/src/exec/interpreter.cpp": "417946f2ae5e9002c3fc9b075a8aba94ba9951346a65f9a1c6e0a3beb302611b",
+    "patches/atomic-nan.patch": "3a66fbe1aa7058fd114750a49229b9fe64a3136a54a2e8935e7d103323a9a8c1",
+    "patches/build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
+    "patches/warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
+    "patches/z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
+    "patches/zz-execution-events.patch": "d1f266d412380f64b394b07a1c309b99ee716f68eabda5980cc39c695fb1c9fd",
+    "patches/zzz-fence-semantics.patch": "a409f47bb46a8ae4efea8b5599b958be80eb18e223effb4720c0e29f9a93efa5"
+  },
+  "semantic_source": "https://docs.nvidia.com/cuda/archive/12.6.3/parallel-thread-execution/index.html#parallel-synchronization-and-communication-instructions-membar",
+  "assembler_version": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Tue_Oct_29_23:47:06_PDT_2024\nCuda compilation tools, release 12.6, V12.6.85\nBuild cuda_12.6.r12.6/compiler.35059454_0",
+  "assembler_sha256": "81ef7761e3769ec17980aba4e416ecbc85352b8dce26cdd392b7204302a909a2",
+  "builds": [
+    {
+      "name": "gcc",
+      "compiler": "g++-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "command": [
+        "/usr/bin/g++-13",
+        "-std=c++20",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/mnt/d/Codex-work/tsim-cuda-lab/source/third_party/pantheonsim/include",
+        "-I/mnt/d/Codex-work/tsim-cuda-lab/source/include",
+        "/mnt/d/Codex-work/tsim-cuda-lab/source/tests/fence_semantics.cpp",
+        "/mnt/d/Codex-work/tsim-cuda-lab/build/libvgpu.a",
+        "-pthread",
+        "-o",
+        "/mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/fence-gcc"
+      ],
+      "runtime_checks": 2119,
+      "exit_code": 0,
+      "binary_sha256": "88adeb02d1656a08de5eb1f5266d49f2d685d8697c0cd262aa6dab6e194dee90"
+    },
+    {
+      "name": "clang",
+      "compiler": "Ubuntu clang version 18.1.3 (1ubuntu1)",
+      "command": [
+        "/usr/bin/clang++-18",
+        "-std=c++20",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/mnt/d/Codex-work/tsim-cuda-lab/source/third_party/pantheonsim/include",
+        "-I/mnt/d/Codex-work/tsim-cuda-lab/source/include",
+        "/mnt/d/Codex-work/tsim-cuda-lab/source/tests/fence_semantics.cpp",
+        "/mnt/d/Codex-work/tsim-cuda-lab/build/libvgpu.a",
+        "-pthread",
+        "-o",
+        "/mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/fence-clang"
+      ],
+      "runtime_checks": 2119,
+      "exit_code": 0,
+      "binary_sha256": "2c8645e6bd0a29e39b17a1948ca03958796f675219e31d1104ae5de2b415f2b3"
+    }
+  ],
+  "cases": [
+    {
+      "instruction": "fence.cta",
+      "expected": {
+        "kind": "thread",
+        "sem": "acq_rel",
+        "scope": "cta",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "c3c58e4efb2d73fd93deb50b0a084a893cc958931c5c5825c008e2cefac5e624",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "13cea0bae62f9c69b049d4c66c2f90d477839e243ffc05bf72526fe30d6a86ff"
+      }
+    },
+    {
+      "instruction": "fence.acq_rel.cta",
+      "expected": {
+        "kind": "thread",
+        "sem": "acq_rel",
+        "scope": "cta",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "8e5de2f0434933e046062f62be68e95a26560ee44fde8cd8922b2295dc03b33d",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "13cea0bae62f9c69b049d4c66c2f90d477839e243ffc05bf72526fe30d6a86ff"
+      }
+    },
+    {
+      "instruction": "fence.cta.acq_rel",
+      "expected": {
+        "kind": "thread",
+        "sem": "acq_rel",
+        "scope": "cta",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "b05fbff7117662b96a4499495ab86e6b5fa820bb522e3136664757dea823496a",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "13cea0bae62f9c69b049d4c66c2f90d477839e243ffc05bf72526fe30d6a86ff"
+      }
+    },
+    {
+      "instruction": "fence.sc.cta",
+      "expected": {
+        "kind": "thread",
+        "sem": "sc",
+        "scope": "cta",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "d7c1e8a32973b5c097962981cf658b317be0a6d4643a40eddf39abce7a97afe7",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "88f6b407eed8686d3c50ecc3b8141b52c5c1d862006ab76f100714b23d7106aa"
+      }
+    },
+    {
+      "instruction": "fence.cta.sc",
+      "expected": {
+        "kind": "thread",
+        "sem": "sc",
+        "scope": "cta",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "392750b0f97bcf6a6b38faa4802e3df4a50fc24aa6c33b63607c0e86bd06e552",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "88f6b407eed8686d3c50ecc3b8141b52c5c1d862006ab76f100714b23d7106aa"
+      }
+    },
+    {
+      "instruction": "fence.cluster",
+      "expected": {
+        "kind": "thread",
+        "sem": "acq_rel",
+        "scope": "cluster",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "ffb24e083fe1e2a1f062f7234ebb5e289996740bca2ab165c2d4b57d9fbc440a",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "bc0b11e0f6d8232676839a775385331413fd886af92e9916684851cad6a727ad"
+      }
+    },
+    {
+      "instruction": "fence.acq_rel.cluster",
+      "expected": {
+        "kind": "thread",
+        "sem": "acq_rel",
+        "scope": "cluster",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "df237b58990c378be8f613db13c3179a9fee7069dddf4f0edb34eb03259fbc1c",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "bc0b11e0f6d8232676839a775385331413fd886af92e9916684851cad6a727ad"
+      }
+    },
+    {
+      "instruction": "fence.cluster.acq_rel",
+      "expected": {
+        "kind": "thread",
+        "sem": "acq_rel",
+        "scope": "cluster",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "128e787cc4293df07d5b258755bb643df95303762fbbeffaa24f24080dc74513",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "bc0b11e0f6d8232676839a775385331413fd886af92e9916684851cad6a727ad"
+      }
+    },
+    {
+      "instruction": "fence.sc.cluster",
+      "expected": {
+        "kind": "thread",
+        "sem": "sc",
+        "scope": "cluster",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "3c420f2304a4e2d77f8aae599572e09bb1c87e85e1a3a63ef7a1edf031c464e5",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "e58591c981fcd4d7c06106b84d49ca114e13c374bfc5b110d7800e22699a740c"
+      }
+    },
+    {
+      "instruction": "fence.cluster.sc",
+      "expected": {
+        "kind": "thread",
+        "sem": "sc",
+        "scope": "cluster",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "56fe0884ae89ec9395c15aea446f1ee7440b2c584a38c03ab75b8a31de966ea9",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "e58591c981fcd4d7c06106b84d49ca114e13c374bfc5b110d7800e22699a740c"
+      }
+    },
+    {
+      "instruction": "fence.gpu",
+      "expected": {
+        "kind": "thread",
+        "sem": "acq_rel",
+        "scope": "gpu",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "b6e4d0cd74cfa3cf7e0cfcce3e90f541dce50e19c9bce02523251c690f5237dc",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "bc0b11e0f6d8232676839a775385331413fd886af92e9916684851cad6a727ad"
+      }
+    },
+    {
+      "instruction": "fence.acq_rel.gpu",
+      "expected": {
+        "kind": "thread",
+        "sem": "acq_rel",
+        "scope": "gpu",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "c2eff9d5c2ea8dfdeb013e83fbf6b19f253ef385487688f5f831104985b2720e",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "bc0b11e0f6d8232676839a775385331413fd886af92e9916684851cad6a727ad"
+      }
+    },
+    {
+      "instruction": "fence.gpu.acq_rel",
+      "expected": {
+        "kind": "thread",
+        "sem": "acq_rel",
+        "scope": "gpu",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "97f3c0216932dd6f472406c8af105d9cadf42125d8788a2321329799a685486f",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "bc0b11e0f6d8232676839a775385331413fd886af92e9916684851cad6a727ad"
+      }
+    },
+    {
+      "instruction": "fence.sc.gpu",
+      "expected": {
+        "kind": "thread",
+        "sem": "sc",
+        "scope": "gpu",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "8a74cd3fecd55205a165cfcb5bbc41d4df6a1d56d9b07bb74edabfb1b47aa2e9",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "e58591c981fcd4d7c06106b84d49ca114e13c374bfc5b110d7800e22699a740c"
+      }
+    },
+    {
+      "instruction": "fence.gpu.sc",
+      "expected": {
+        "kind": "thread",
+        "sem": "sc",
+        "scope": "gpu",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "05a9e76db9ffd0c6b57d9486e94168f71d3a1e4aab2d78c722cfef593f7f53e3",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "e58591c981fcd4d7c06106b84d49ca114e13c374bfc5b110d7800e22699a740c"
+      }
+    },
+    {
+      "instruction": "fence.sys",
+      "expected": {
+        "kind": "thread",
+        "sem": "acq_rel",
+        "scope": "sys",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "15ec746d78c007e635169ea59423784d0f3ff8e7b0ae1ac2c93b23e65d7243eb",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "4cbf06dacba04b9c5e1e8c85129972b78e6eecc405c3816dd49400745772d97f"
+      }
+    },
+    {
+      "instruction": "fence.acq_rel.sys",
+      "expected": {
+        "kind": "thread",
+        "sem": "acq_rel",
+        "scope": "sys",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "83e39f3a1f157c8d29439e1e2da6540c6715980a7ba0bd77937cf8be00170d9f",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "4cbf06dacba04b9c5e1e8c85129972b78e6eecc405c3816dd49400745772d97f"
+      }
+    },
+    {
+      "instruction": "fence.sys.acq_rel",
+      "expected": {
+        "kind": "thread",
+        "sem": "acq_rel",
+        "scope": "sys",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "04704f06f4fb56a9c50f478803dcabb17d72f28e01c03a9fc3d7a1b4a5aa2eca",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "4cbf06dacba04b9c5e1e8c85129972b78e6eecc405c3816dd49400745772d97f"
+      }
+    },
+    {
+      "instruction": "fence.sc.sys",
+      "expected": {
+        "kind": "thread",
+        "sem": "sc",
+        "scope": "sys",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "fa7ac3b48b53e91f9bc8fba4cbe6706a9e26a385fa324d41f90faccc4caa958d",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "963e37ddd274d4962e81a3e48ba4038ed6186fe450a01d6d373f290241a666e5"
+      }
+    },
+    {
+      "instruction": "fence.sys.sc",
+      "expected": {
+        "kind": "thread",
+        "sem": "sc",
+        "scope": "sys",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "23a4bf8f9e21f2bd8080d3aa6c69e705b07c5f5779cce74cec502ae7aa5a9db4",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "963e37ddd274d4962e81a3e48ba4038ed6186fe450a01d6d373f290241a666e5"
+      }
+    },
+    {
+      "instruction": "membar.cta",
+      "expected": {
+        "kind": "membar",
+        "sem": "sc",
+        "scope": "cta",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "49a055605881d3bf88c72537c36a9ee2df7742a67af44476f30a77e7efde1790",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "membar",
+            "sem": "sc",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "membar",
+            "sem": "sc",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "88f6b407eed8686d3c50ecc3b8141b52c5c1d862006ab76f100714b23d7106aa"
+      }
+    },
+    {
+      "instruction": "membar.gl",
+      "expected": {
+        "kind": "membar",
+        "sem": "sc",
+        "scope": "gpu",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "cf99f04ca3164bd8da0537968a83cf707adc25e10ac861d19226cc05bc250e4f",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "membar",
+            "sem": "sc",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "membar",
+            "sem": "sc",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "e58591c981fcd4d7c06106b84d49ca114e13c374bfc5b110d7800e22699a740c"
+      }
+    },
+    {
+      "instruction": "membar.sys",
+      "expected": {
+        "kind": "membar",
+        "sem": "sc",
+        "scope": "sys",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "cd8d5a10f1dbc3bdf1b7578649f0b00affe46abdc58bc1e17ab30506456ebaa5",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "membar",
+            "sem": "sc",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "membar",
+            "sem": "sc",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "963e37ddd274d4962e81a3e48ba4038ed6186fe450a01d6d373f290241a666e5"
+      }
+    },
+    {
+      "instruction": "fence.proxy.alias",
+      "expected": {
+        "kind": "alias",
+        "sem": "bidirectional",
+        "scope": "none",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "5a436b01810d56c203d81fb18d2580601d5b0783e75d0e0d9709285e9ab72158",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "alias",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "alias",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "7f859dafdc9d13e39b1cdc90e35fea75b2d1a1e1f162362f87958c463e50d6ce"
+      }
+    },
+    {
+      "instruction": "membar.proxy.alias",
+      "expected": {
+        "kind": "alias",
+        "sem": "bidirectional",
+        "scope": "none",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "8da114259bd6b120746dbb5f16bf0654bdbd8853981a93407a826c0bbac3769f",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "alias",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "alias",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "7f859dafdc9d13e39b1cdc90e35fea75b2d1a1e1f162362f87958c463e50d6ce"
+      }
+    },
+    {
+      "instruction": "fence.proxy.async",
+      "expected": {
+        "kind": "async",
+        "sem": "bidirectional",
+        "scope": "none",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "a490c258ff02e1e9a3d5c9d07e3507b317379035acf4680b3266a95a68ef52ec",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "async",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "async",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "91618f1d6882fcd1c3c5b0d33a42f7bd498fddf1592ba8d048551e58eccb2d72"
+      }
+    },
+    {
+      "instruction": "fence.proxy.async.global",
+      "expected": {
+        "kind": "async",
+        "sem": "bidirectional",
+        "scope": "none",
+        "space": "global",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "4011a3816061869aaf59f1d337b216ad4244be50c3302d759b0b36196f1794ff",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "async",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "global",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "async",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "global",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "6174319441b718f833b2412a80b8ed2eadc47a89b659688a6cb8bd48ce40a540"
+      }
+    },
+    {
+      "instruction": "fence.proxy.async.shared::cta",
+      "expected": {
+        "kind": "async",
+        "sem": "bidirectional",
+        "scope": "none",
+        "space": "shared::cta",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "f2833c30123e57af37b7af2100e3c1bb642081e36747ca777f0ef799960b7ff8",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "async",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "shared::cta",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "async",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "shared::cta",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "ad520acc0513032163fd329b8791f1a69da6a719a4a2b86e2d92393ffe6d34a5"
+      }
+    },
+    {
+      "instruction": "fence.proxy.async.shared::cluster",
+      "expected": {
+        "kind": "async",
+        "sem": "bidirectional",
+        "scope": "none",
+        "space": "shared::cluster",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "213493eb93f8d0ef360edf71e6c97605c680ffefebf528e62400759ce1e09b47",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "async",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "shared::cluster",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "async",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "shared::cluster",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "91618f1d6882fcd1c3c5b0d33a42f7bd498fddf1592ba8d048551e58eccb2d72"
+      }
+    },
+    {
+      "instruction": "fence.mbarrier_init.release.cluster",
+      "expected": {
+        "kind": "mbarrier_init",
+        "sem": "release",
+        "scope": "cluster",
+        "space": "shared::cta",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "d1eeef37be5961aefd77a15a696e5318a1df118ca7e66f6416db3c0aa2b0019c",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "mbarrier_init",
+            "sem": "release",
+            "scope": "cluster",
+            "space": "shared::cta",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "mbarrier_init",
+            "sem": "release",
+            "scope": "cluster",
+            "space": "shared::cta",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "82cace3cc083033ab85fec12091139f6f9f3a1d4e8609c3e877affc44f3c4d50"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.release.cta",
+      "expected": {
+        "kind": "tensormap",
+        "sem": "release",
+        "scope": "cta",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "436bb704855ea78d1f2b8d7835c884c900e5ca79f6b4670b6eb64778659a8f8a",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "release",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "release",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "81bcbd9ecd645fb47b93187e1c7951a454a256d6c70bd3ad88bb76f5ef40a12d"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.cta [%rd1], 128",
+      "expected": {
+        "kind": "tensormap",
+        "sem": "acquire",
+        "scope": "cta",
+        "space": "all",
+        "range": 1,
+        "bytes": 128,
+        "base": "reg",
+        "wide": 1,
+        "offset": 0,
+        "defs": 0,
+        "uses": 1,
+        "address_used": 1
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "11cc98d2b88a081eedf7da24f17eddfcb03af51ce5c4d05d3068ce47f5e3f082",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "cta",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "cta",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "be1450124a852fa8d64f0bffa9ef2834c4f7268e0ba72b2045246471b633dbcb"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.release.cluster",
+      "expected": {
+        "kind": "tensormap",
+        "sem": "release",
+        "scope": "cluster",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "a59d43662160a69fe5512b6280d69544e7095b63fb07d2b492f0978fc8e62084",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "release",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "release",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "81bcbd9ecd645fb47b93187e1c7951a454a256d6c70bd3ad88bb76f5ef40a12d"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.cluster [%rd1], 128",
+      "expected": {
+        "kind": "tensormap",
+        "sem": "acquire",
+        "scope": "cluster",
+        "space": "all",
+        "range": 1,
+        "bytes": 128,
+        "base": "reg",
+        "wide": 1,
+        "offset": 0,
+        "defs": 0,
+        "uses": 1,
+        "address_used": 1
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "acd4f69718bc89da8ce54abd15ebce0b3d26515d8b50b5f823f480c465932edb",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "cluster",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "cluster",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "be1450124a852fa8d64f0bffa9ef2834c4f7268e0ba72b2045246471b633dbcb"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.release.gpu",
+      "expected": {
+        "kind": "tensormap",
+        "sem": "release",
+        "scope": "gpu",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "2790b83b3b74b4e690783b4c6f1c43b766b945bb58b50530d5bb10e90757e4e1",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "release",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "release",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "81bcbd9ecd645fb47b93187e1c7951a454a256d6c70bd3ad88bb76f5ef40a12d"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.gpu [%rd1], 128",
+      "expected": {
+        "kind": "tensormap",
+        "sem": "acquire",
+        "scope": "gpu",
+        "space": "all",
+        "range": 1,
+        "bytes": 128,
+        "base": "reg",
+        "wide": 1,
+        "offset": 0,
+        "defs": 0,
+        "uses": 1,
+        "address_used": 1
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "75d580259888b494f3892ee8739fdb5b8ae0ab95fca3aa5932013e8596be729a",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "gpu",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "gpu",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "be1450124a852fa8d64f0bffa9ef2834c4f7268e0ba72b2045246471b633dbcb"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.release.sys",
+      "expected": {
+        "kind": "tensormap",
+        "sem": "release",
+        "scope": "sys",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "22317b457e7329362254ac06c32d1d957a454e62db172c5cb4a70a665ddc65ec",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "release",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "release",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "8e96b7a14f54b35720e81e5203a21cd95ed9281d1f732a4eb1f85cbffd928e0a"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.sys [%rd1], 128",
+      "expected": {
+        "kind": "tensormap",
+        "sem": "acquire",
+        "scope": "sys",
+        "space": "all",
+        "range": 1,
+        "bytes": 128,
+        "base": "reg",
+        "wide": 1,
+        "offset": 0,
+        "defs": 0,
+        "uses": 1,
+        "address_used": 1
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "4186868ca515f062ef0a936043cd0e9fdd879a6ae98080ee1601435a736ceb4d",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "sys",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "sys",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "be1450124a852fa8d64f0bffa9ef2834c4f7268e0ba72b2045246471b633dbcb"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.gpu [%r1], 128",
+      "expected": {
+        "kind": "tensormap",
+        "sem": "acquire",
+        "scope": "gpu",
+        "space": "all",
+        "range": 1,
+        "bytes": 128,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 1,
+        "address_used": 1
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "0388244360d358d658fbef3842e9abc889601ae19c04773cf1a4e0dfb8c0af7a",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "gpu",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "gpu",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "be1450124a852fa8d64f0bffa9ef2834c4f7268e0ba72b2045246471b633dbcb"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.gpu [%rd1+16], 128",
+      "expected": {
+        "kind": "tensormap",
+        "sem": "acquire",
+        "scope": "gpu",
+        "space": "all",
+        "range": 1,
+        "bytes": 128,
+        "base": "reg",
+        "wide": 1,
+        "offset": 16,
+        "defs": 0,
+        "uses": 1,
+        "address_used": 1
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "c8733c2d56880fcfca9a2062519708ba5eab3ad900a0b5cb210ecab746db83f4",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "gpu",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 16,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "gpu",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 16,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "f8557a94ab0eec825ccaefb4b932b82275936ad3bb2fb64a51f57ca32d376b0d"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.gpu [tmap], 128",
+      "expected": {
+        "kind": "tensormap",
+        "sem": "acquire",
+        "scope": "gpu",
+        "space": "all",
+        "range": 1,
+        "bytes": 128,
+        "base": "symbol",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "6b0ac0209c01e078676d2535b172df841f56d759712b4d7bdf4c720a3cc53e19",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "gpu",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "symbol",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "gpu",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "symbol",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "7f8a7a9ea1db4b0ba0b073af2c4a5e6a0aa9e1134c8a3dd6e2c0e17f6497fd5f"
+      }
+    },
+    {
+      "instruction": "@%p1 fence.proxy.tensormap::generic.acquire.gpu [%rd1], 128",
+      "expected": {
+        "kind": "tensormap",
+        "sem": "acquire",
+        "scope": "gpu",
+        "space": "all",
+        "range": 1,
+        "bytes": 128,
+        "base": "reg",
+        "wide": 1,
+        "offset": 0,
+        "defs": 0,
+        "uses": 2,
+        "address_used": 1
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "64b3afb9f45797df6bcdcc646c494dc629284b87ba0ae1d687b095c0b0965afc",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "gpu",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 0,
+            "defs": 0,
+            "uses": 2,
+            "address_used": 1
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "gpu",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 0,
+            "defs": 0,
+            "uses": 2,
+            "address_used": 1
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "248b99ccaaaee66c11e826a36671f4b86073cd93d5b9dd18ea24620c2a11e394"
+      }
+    },
+    {
+      "instruction": "@%p1 fence.cta",
+      "expected": {
+        "kind": "thread",
+        "sem": "acq_rel",
+        "scope": "cta",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 1,
+        "address_used": 0
+      },
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "8613fee9f4ecd3d7ad2fac3b066472613e67aaba25ae547783f635121dc9ed8f",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "acq_rel",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "c1229749803dcbd03b453a708d78a2d2a925cc3e697a7dffdcf52a47f33c096a"
+      }
+    },
+    {
+      "instruction": "fence.sc.gpu",
+      "expected": {
+        "kind": "thread",
+        "sem": "sc",
+        "scope": "gpu",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "6.0",
+      "target": "sm_70",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "18a0744219f41421e4cfdf6983e73f5f3adbfaf863da66e6c1b5a476c5ead755",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "gpu",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "a4194640d62ebdd74b21a294fbe21170456c63abb07dbda4723daecddd298ce9"
+      }
+    },
+    {
+      "instruction": "fence.sc.cluster",
+      "expected": {
+        "kind": "thread",
+        "sem": "sc",
+        "scope": "cluster",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "7.8",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "9d9509f01c89082a9866cdd027d1b5d24c80fcacaf1e79d18f34d1e72694c618",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "thread",
+            "sem": "sc",
+            "scope": "cluster",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "e58591c981fcd4d7c06106b84d49ca114e13c374bfc5b110d7800e22699a740c"
+      }
+    },
+    {
+      "instruction": "fence.proxy.alias",
+      "expected": {
+        "kind": "alias",
+        "sem": "bidirectional",
+        "scope": "none",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "7.5",
+      "target": "sm_70",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "6d667e33dec0bde794771529fba51fa484a0c5276edcfb7175001ecf1dc606c4",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "alias",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "alias",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "8eab82b4ae0045ac7efa100469346ab8c4a3e3d6a6c00b1a354a02508295db8e"
+      }
+    },
+    {
+      "instruction": "membar.proxy.alias",
+      "expected": {
+        "kind": "alias",
+        "sem": "bidirectional",
+        "scope": "none",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "7.5",
+      "target": "sm_60",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "f06e1db684c0b98887a898226f36a10fcf86e8519f8888a390cc4977ad6ad15c",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "alias",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "alias",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "4fd4d6f934c5a68ea7ad2e70d3b558b8e3201185c70527ebc6031b42ba376879"
+      }
+    },
+    {
+      "instruction": "fence.proxy.async",
+      "expected": {
+        "kind": "async",
+        "sem": "bidirectional",
+        "scope": "none",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.0",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "b37656d2868f4ba2577dd5f8bb928e05baaf9e69c6e35e88524bf9a0ff11e61e",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "async",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "async",
+            "sem": "bidirectional",
+            "scope": "none",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "91618f1d6882fcd1c3c5b0d33a42f7bd498fddf1592ba8d048551e58eccb2d72"
+      }
+    },
+    {
+      "instruction": "fence.mbarrier_init.release.cluster",
+      "expected": {
+        "kind": "mbarrier_init",
+        "sem": "release",
+        "scope": "cluster",
+        "space": "shared::cta",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "8.0",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "51e1ec984be14091540147a51380fa26fedb1f4edb3b1956679cf1c8013798ae",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "mbarrier_init",
+            "sem": "release",
+            "scope": "cluster",
+            "space": "shared::cta",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "mbarrier_init",
+            "sem": "release",
+            "scope": "cluster",
+            "space": "shared::cta",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "82cace3cc083033ab85fec12091139f6f9f3a1d4e8609c3e877affc44f3c4d50"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.gpu [%rd1], 128",
+      "expected": {
+        "kind": "tensormap",
+        "sem": "acquire",
+        "scope": "gpu",
+        "space": "all",
+        "range": 1,
+        "bytes": 128,
+        "base": "reg",
+        "wide": 1,
+        "offset": 0,
+        "defs": 0,
+        "uses": 1,
+        "address_used": 1
+      },
+      "version": "8.3",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "a01516f56e7fa9825591677ee8fd61a1c8658d2d96cbf37c6ccb13c3a8873f69",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "gpu",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "tensormap",
+            "sem": "acquire",
+            "scope": "gpu",
+            "space": "all",
+            "range": 1,
+            "bytes": 128,
+            "base": "reg",
+            "wide": 1,
+            "offset": 0,
+            "defs": 0,
+            "uses": 1,
+            "address_used": 1
+          }
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": true,
+        "exit_code": 0,
+        "diagnostic": "",
+        "cubin_sha256": "be1450124a852fa8d64f0bffa9ef2834c4f7268e0ba72b2045246471b633dbcb"
+      }
+    },
+    {
+      "instruction": "membar.cta",
+      "expected": {
+        "kind": "membar",
+        "sem": "legacy_membar",
+        "scope": "cta",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "1.4",
+      "target": "sm_10",
+      "extra": "",
+      "assembler": false,
+      "ptx_sha256": "522312b55c2e64aeda141c236ac97eda8134bbfbc0328a3f9f5a7f7230d55fcd",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "membar",
+            "sem": "legacy_membar",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "membar",
+            "sem": "legacy_membar",
+            "scope": "cta",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ]
+    },
+    {
+      "instruction": "membar.sys",
+      "expected": {
+        "kind": "membar",
+        "sem": "legacy_membar",
+        "scope": "sys",
+        "space": "all",
+        "range": 0,
+        "bytes": 0,
+        "base": "reg",
+        "wide": 0,
+        "offset": 0,
+        "defs": 0,
+        "uses": 0,
+        "address_used": 0
+      },
+      "version": "2.0",
+      "target": "sm_20",
+      "extra": "",
+      "assembler": false,
+      "ptx_sha256": "5dc563f5165cc458536a1b47981a0105442628f96a28d06c5eb578b36c026e30",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": true,
+          "metadata": {
+            "kind": "membar",
+            "sem": "legacy_membar",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        },
+        {
+          "build": "fence-clang",
+          "accepted": true,
+          "metadata": {
+            "kind": "membar",
+            "sem": "legacy_membar",
+            "scope": "sys",
+            "space": "all",
+            "range": 0,
+            "bytes": 0,
+            "base": "reg",
+            "wide": 0,
+            "offset": 0,
+            "defs": 0,
+            "uses": 0,
+            "address_used": 0
+          }
+        }
+      ]
+    },
+    {
+      "instruction": "fence",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "640d9cb067c314854b3628a9624cc181d72990b87d29d199c4ceb1f3e43f569f",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence\nat line 5 in kernel 'k'\n  (thread fence requires an explicit scope)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence\nat line 5 in kernel 'k'\n  (thread fence requires an explicit scope)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-52/input.ptx, line 5; error   : Scope modifier required for instruction 'fence'\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-52/input.ptx, line 5; error   : Modifier '.acq_rel' requires scope with 'fence' instruction\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.sc",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "a4a39d5322df500b48e9608c20a7a482eabad1d0f2fa214279a851d17a966a78",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.sc\nat line 5 in kernel 'k'\n  (thread fence requires an explicit scope)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.sc\nat line 5 in kernel 'k'\n  (thread fence requires an explicit scope)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-53/input.ptx, line 5; error   : Scope modifier required for instruction 'fence'\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-53/input.ptx, line 5; error   : Modifier '.sc' requires scope with 'fence' instruction\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.acq_rel",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "cd1ddedbc9faaa1f487d5712addfd5442183e5c585cfbbae37f65bb33c22f111",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.acq_rel\nat line 5 in kernel 'k'\n  (thread fence requires an explicit scope)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.acq_rel\nat line 5 in kernel 'k'\n  (thread fence requires an explicit scope)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-54/input.ptx, line 5; error   : Scope modifier required for instruction 'fence'\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-54/input.ptx, line 5; error   : Modifier '.acq_rel' requires scope with 'fence' instruction\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.release.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "c83ec132444893977c555fce9c006835444ef45773f3dea3add73f6579f51faa",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.release.gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.release.gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-55/input.ptx, line 5; error   : Modifier '.release' requires modifier '.mbarrier_init' for instruction 'fence'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.acquire.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "4e00326b19434b103a4a171bd0a79800ad2cb247c733e5e50f7f63a7ada0ee89",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.acquire.gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.acquire.gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-56/input.ptx, line 5; error   : Illegal modifier '.acquire' for instruction 'fence'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.relaxed.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "c27c8fcc4da19dd648b4d3e5b2fa62d6b21ea6cb7a1bf05b9408905bc36d377a",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.relaxed.gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.relaxed.gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-57/input.ptx, line 5; error   : Illegal modifier '.relaxed' for instruction 'fence'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.cta.cta",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "f5ef35b3cdb8e2514ae4fe109df890762e9efd790e89cbd07493108838455b5f",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: duplicate or conflicting fence scopes"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: duplicate or conflicting fence scopes"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-58/input.ptx, line 5; error   : Multiple scope modifiers specified\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.gpu.sys",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "c6856b8e3fe5d067e8d89ec3f2d0f9d1ee7397d85360ab0966661c7d70a8b248",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: duplicate or conflicting fence scopes"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: duplicate or conflicting fence scopes"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-59/input.ptx, line 5; error   : Multiple scope modifiers specified\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.sc.sc.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "b3620143af6dca4550eff2663934dcf8a58bec3a3b788fc1a91ec7c623ec74ba",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.sc.sc.gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.sc.sc.gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-60/input.ptx, line 5; error   : Duplicate .sc modifier\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.sc.acq_rel.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "6b88c0b7893fd0f45b6280f712028562ce89970d5406ffc98b1bd58cdd97d0df",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.sc.acq_rel.gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.sc.acq_rel.gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-61/input.ptx, line 5; error   : Duplicate .acq_rel modifier\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.mystery.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "44fa1f69f09f48085859b30fa996d359a7fae436bf4c03390be8719e64a21575",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.mystery.gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.mystery.gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-62/input.ptx, line 5; error   : Unknown modifier '.mystery'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.sc.gpu.L2::cache_hint",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "8547b3952adee6d3388df8919349ddc2fd9c777d5d26cdff6a5476a48a15a43d",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.sc.gpu.L2::cache_hint\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.sc.gpu.L2::cache_hint\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-63/input.ptx, line 5; error   : Illegal modifier '.L2::cache_hint' for instruction 'fence'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.sc.gpu %r1",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "ffaf85c2c76cfef02f4941ac5b6ad77f1a376c3c07c93ab49ba649c653c66303",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.sc.gpu %r1\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.sc.gpu %r1\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-64/input.ptx, line 5; error   : Arguments mismatch for instruction 'fence'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence..gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "aaa32dc996f422a939a01d518d4f811a4a59f263fe6fd71410526947357a878f",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence..gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence..gpu\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-65/input.ptx, line 5; fatal   : Parsing error near '.': syntax error\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.gpu.",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "acec42901661564ce14e01c0b8d018e3d67bb7e8c7b844e8101d162f0a5c68c5",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.gpu.\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.gpu.\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-66/input.ptx, line 5; fatal   : Parsing error near '.': syntax error\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "membar",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "9371ade8c8a20ef60f250c861e376fd81def38c5cd811ead8dce8171fabe2b5b",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar\nat line 5 in kernel 'k'\n  (membar requires exactly one level)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar\nat line 5 in kernel 'k'\n  (membar requires exactly one level)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-67/input.ptx, line 5; error   : Membar level required for instruction 'membar'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "membar.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "7326fb3f5c9daeb2607d677af4d48c58f206669689d3d8d60043f0800c7efe6d",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.gpu\nat line 5 in kernel 'k'\n  (membar level)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.gpu\nat line 5 in kernel 'k'\n  (membar level)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-68/input.ptx, line 5; error   : Illegal modifier '.gpu' for instruction 'membar'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "membar.cluster",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "4f6d1cf424bcd247d51ae3a52c3093cba079a21dae1c7a05718eed93d1c5ca6b",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.cluster\nat line 5 in kernel 'k'\n  (membar level)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.cluster\nat line 5 in kernel 'k'\n  (membar level)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-69/input.ptx, line 5; error   : Illegal modifier '.cluster' for instruction 'membar'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "membar.gl.sys",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "99b15d5fcb80cebc2de3d997da2ce172704734821ca302e8ce0c72aee83da424",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.gl.sys\nat line 5 in kernel 'k'\n  (membar requires exactly one level)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.gl.sys\nat line 5 in kernel 'k'\n  (membar requires exactly one level)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-70/input.ptx, line 5; error   : Multiple scope modifiers specified\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "membar.gl.sc",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "1b846d54cba9a99e802db14ce2ed7de2b846658668560c23a5b636c4ce6a8959",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.gl.sc\nat line 5 in kernel 'k'\n  (membar requires exactly one level)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.gl.sc\nat line 5 in kernel 'k'\n  (membar requires exactly one level)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-71/input.ptx, line 5; error   : Illegal modifier '.sc' for instruction 'membar'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "membar.gl [%rd1], 128",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "36977004851ca1a4f48d3410169ac5969a1fd0709b102a366471482614bd1f7f",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.gl[%rd1], 128\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.gl[%rd1], 128\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-72/input.ptx, line 5; error   : Arguments mismatch for instruction 'membar'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "membar.proxy",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "7097b63907fc6de01cc6033dbc6dd2b01eb4f652698998b89e196a3ae879440c",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.proxy\nat line 5 in kernel 'k'\n  (proxy fence requires a proxy kind)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.proxy\nat line 5 in kernel 'k'\n  (proxy fence requires a proxy kind)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-73/input.ptx, line 5; error   : .proxykind modifier required for instruction 'membar.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "membar.proxy.async",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "f3ca6d743275feab40589b94d6a9168927072d265d4f84fbfcb5398ffcc9025a",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.proxy.async\nat line 5 in kernel 'k'\n  (proxy fence kind)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.proxy.async\nat line 5 in kernel 'k'\n  (proxy fence kind)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-74/input.ptx, line 5; error   : Illegal modifier '.async' for instruction 'membar.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "membar.proxy.tensormap::generic.release.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "a5f6e332ae914fa617b3ca3871d78596db37d9131bdae419ba7751564b2479bc",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.proxy.tensormap::generic.release.gpu\nat line 5 in kernel 'k'\n  (proxy fence kind)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  membar.proxy.tensormap::generic.release.gpu\nat line 5 in kernel 'k'\n  (proxy fence kind)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-75/input.ptx, line 5; error   : .proxykind modifier required for instruction 'membar.proxy'\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-75/input.ptx, line 5; error   : Illegal modifier '.tensormap::generic' for instruction 'membar.proxy'\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-75/input.ptx, line 5; error   : Illegal modifier '.gpu' for instruction 'membar.proxy'\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-75/input.ptx, line 5; error   : Illegal modifier '.release' for instruction 'membar.proxy'\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-75/input.ptx, line 5; error   : Illegal modifier '.gpu' for instruction 'membar.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "3ce65a9ce302ca0520723da4d02a7e2cfbb17cc0b9e80f012600692a1de865c5",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy\nat line 5 in kernel 'k'\n  (proxy fence requires a proxy kind)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy\nat line 5 in kernel 'k'\n  (proxy fence requires a proxy kind)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-76/input.ptx, line 5; error   : .proxykind modifier required for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.unknown",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "1925be5cac221d1e26fcc446e07cc4d3f44638990a81ac19dc5f1efa28848e3e",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.unknown\nat line 5 in kernel 'k'\n  (proxy fence kind)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.unknown\nat line 5 in kernel 'k'\n  (proxy fence kind)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-77/input.ptx, line 5; error   : Unknown modifier '.unknown'\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-77/input.ptx, line 5; error   : .proxykind modifier required for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.alias.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "fb3077f531b43d2701f31661e422512bddb93823ef5c4c29d039899bc2ef26aa",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.alias.gpu\nat line 5 in kernel 'k'\n  (alias proxy fence takes no additional modifiers)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.alias.gpu\nat line 5 in kernel 'k'\n  (alias proxy fence takes no additional modifiers)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-78/input.ptx, line 5; error   : Illegal modifier '.gpu' for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.alias [%rd1], 128",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "c6b93849047b9cff13c1e572a9bac58153fa6d4f5e18acdfe8e97689492b2c7b",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.alias[%rd1], 128\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.alias[%rd1], 128\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-79/input.ptx, line 5; error   : Illegal modifier '.alias' for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.async.shared",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "d82bc673e15bef9fb336530881f995a87cae58691a00b568c7673c67b03a355b",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.async.shared\nat line 5 in kernel 'k'\n  (async proxy fence state space)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.async.shared\nat line 5 in kernel 'k'\n  (async proxy fence state space)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-80/input.ptx, line 5; error   : State space incorrect for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.async.local",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "558236d1cd1085d3e3fda353fd1b7812ae880f09d1c346f6e7af81009925bac2",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.async.local\nat line 5 in kernel 'k'\n  (async proxy fence state space)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.async.local\nat line 5 in kernel 'k'\n  (async proxy fence state space)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-81/input.ptx, line 5; error   : State space incorrect for instruction 'fence.proxy'\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-81/input.ptx, line 5; error   : State space incorrect for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.async.cta",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "2edcd462c54caa74e1752f96abd41bbdd7b1a97babb0a5db87b885788cf6574a",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.async.cta\nat line 5 in kernel 'k'\n  (async proxy fence state space)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.async.cta\nat line 5 in kernel 'k'\n  (async proxy fence state space)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-82/input.ptx, line 5; error   : Illegal modifier '.cta' for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.async.shared::cta.cta",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "bb282be0a4823708b80fe9f1a9614fb727c5ff6488774cede564f911eb917cf7",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.async.shared::cta.cta\nat line 5 in kernel 'k'\n  (async proxy fence modifier count)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.async.shared::cta.cta\nat line 5 in kernel 'k'\n  (async proxy fence modifier count)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-83/input.ptx, line 5; error   : Illegal modifier '.cta' for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.async.acquire",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "af427e27bc33daaf808dad32efad623031026aefe0920ee75d599c6b86ef0a51",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.async.acquire\nat line 5 in kernel 'k'\n  (async proxy fence state space)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.async.acquire\nat line 5 in kernel 'k'\n  (async proxy fence state space)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-84/input.ptx, line 5; error   : Illegal modifier '.acquire' for instruction 'fence.proxy'\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-84/input.ptx, line 5; error   : Modifier '.acquire' requires scope with 'fence.proxy' instruction\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.async.global [%rd1], 128",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "a03875b34e26d86b3a17103f672b689a1baf8fa82da3bb9b6f38a1eb0f135f38",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.async.global[%rd1], 128\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.async.global[%rd1], 128\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-85/input.ptx, line 5; error   : No state space qualifier expected for instruction 'fence.proxy'\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-85/input.ptx, line 5; error   : Illegal modifier '.async' for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "d4dda87fa1eaa7b2c4b51dad98d77487fdc922b1ac8a377f7f5d3827ae42dacd",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.gpu\nat line 5 in kernel 'k'\n  (tensormap proxy fence requires semantics and scope)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.gpu\nat line 5 in kernel 'k'\n  (tensormap proxy fence requires semantics and scope)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-86/input.ptx, line 5; error   : .acquire/.release modifier required for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "8395a8f8bf3b89fb3e7859a0a301e58907a6eadadc6e0a9f3cbc0477635e913f",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.acquire\nat line 5 in kernel 'k'\n  (tensormap proxy fence requires semantics and scope)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.acquire\nat line 5 in kernel 'k'\n  (tensormap proxy fence requires semantics and scope)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-87/input.ptx, line 5; error   : .acquire modifier required for instruction 'fence.proxy' with 2 arguments\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-87/input.ptx, line 5; error   : Modifier '.acquire' requires scope with 'fence.proxy' instruction\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.sc.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "4811e7e665bff83ae25349dab80f939583637befa75b151e06462c719487bcf4",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.sc.gpu\nat line 5 in kernel 'k'\n  (tensormap proxy fence semantics)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.sc.gpu\nat line 5 in kernel 'k'\n  (tensormap proxy fence semantics)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-88/input.ptx, line 5; error   : Illegal modifier '.sc' for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "01eb91babb46b7b3e05ef4a5ed4036267d6f6ad10fb31fc38ceb45bce6c20ed4",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: expected '[', got ';'"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: expected '[', got ';'"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-89/input.ptx, line 5; error   : .acquire modifier required for instruction 'fence.proxy' with 2 arguments\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.gpu [%rd1], 64",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "de482a37a0bde074f0b3b7f65cad15540fb76f95b2cd8e61b33a7dbf9b7b822e",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.acquire.gpu[%rd1], 64\nat line 5 in kernel 'k'\n  (tensormap proxy fence size must be immediate 128)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.acquire.gpu[%rd1], 64\nat line 5 in kernel 'k'\n  (tensormap proxy fence size must be immediate 128)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-90/input.ptx, line 5; error   : Argument 1 of instruction 'fence.proxy': unexpected value '64', expected to be 128\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.gpu [%rd1], %r1",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "84998a4a8aac9fe49824f9693868099e4b5c2cd653d2a19aeca09039fd29a68d",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.acquire.gpu[%rd1], %r1\nat line 5 in kernel 'k'\n  (tensormap proxy fence size must be immediate 128)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.acquire.gpu[%rd1], %r1\nat line 5 in kernel 'k'\n  (tensormap proxy fence size must be immediate 128)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-91/input.ptx, line 5; error   : Arguments mismatch for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.gpu [%rd1], 128, 1",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "f02246e9c5e8953ab96b8d6e44204357a43dba3740e58b20ea74e4f1b6588a56",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.acquire.gpu[%rd1], 128, 1\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.acquire.gpu[%rd1], 128, 1\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-92/input.ptx, line 5; error   : Arguments mismatch for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.release.gpu [%rd1], 128",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "5284c3adade030253bf44dd9feb074ab5957d3b75d81b34a3758f944d7a6c66c",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.release.gpu[%rd1], 128\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.release.gpu[%rd1], 128\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-93/input.ptx, line 5; error   : .release modifier required for instruction 'fence.proxy' with 0 arguments\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.acquire [%rd1], 128",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "33d1735764ec7eaebf680fc4bb4e131408d87f5b5644ef3fb0a395b4a05c0658",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.acquire.acquire[%rd1], 128\nat line 5 in kernel 'k'\n  (tensormap proxy fence semantics)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.proxy.tensormap::generic.acquire.acquire[%rd1], 128\nat line 5 in kernel 'k'\n  (tensormap proxy fence semantics)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-94/input.ptx, line 5; error   : Duplicate .acquire modifier\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-94/input.ptx, line 5; error   : Modifier '.acquire' requires scope with 'fence.proxy' instruction\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.gpu.sys [%rd1], 128",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "76962b4fd14128710b05a7cafdff8e888f6abb016e712d8a615b1c1bfeea25c6",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: duplicate or conflicting fence scopes"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: duplicate or conflicting fence scopes"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-95/input.ptx, line 5; error   : Multiple scope modifiers specified\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-95/input.ptx, line 5; error   : .acquire/.release modifier required for instruction 'fence.proxy'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.mbarrier_init.acquire.cluster",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "524373fa5b989eadfcfc9a3d487ad1afb05380d59632e7ba8cae37ccb1cc51ec",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.mbarrier_init.acquire.cluster\nat line 5 in kernel 'k'\n  (mbarrier_init fence requires release.cluster)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.mbarrier_init.acquire.cluster\nat line 5 in kernel 'k'\n  (mbarrier_init fence requires release.cluster)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-96/input.ptx, line 5; error   : Modifier '.mbarrier_init' cannot be combined with modifier '.acquire'\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-96/input.ptx, line 5; error   : Illegal modifier '.acquire' for instruction 'fence'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.mbarrier_init.release.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "68b04b217e2e82ff8a91bd8fa872fb9a4c13eeacd84ff666b18e4e0fc2dd9c49",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.mbarrier_init.release.gpu\nat line 5 in kernel 'k'\n  (mbarrier_init fence requires release.cluster)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.mbarrier_init.release.gpu\nat line 5 in kernel 'k'\n  (mbarrier_init fence requires release.cluster)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-97/input.ptx, line 5; error   : Modifier '.mbarrier_init' cannot be combined with modifier '.gpu'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.mbarrier_init.release.cluster [%rd1], 128",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "316308ad4889a8d3380176cf0692febe0cd5fc829a46e40d8feb8a346b9b1bc8",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.mbarrier_init.release.cluster[%rd1], 128\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.mbarrier_init.release.cluster[%rd1], 128\nat line 5 in kernel 'k'\n  (unexpected fence operands)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-98/input.ptx, line 5; error   : Arguments mismatch for instruction 'fence'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.op_restrict.release.cluster",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "cceac6dde61a2fb6462335aea9b85ed220a566be381d0d5a94f57a4c79b10b14",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.op_restrict.release.cluster\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [unsupported-ptx]: unsupported PTX:\n  fence.op_restrict.release.cluster\nat line 5 in kernel 'k'\n  (thread fence semantics or modifier)"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-99/input.ptx, line 5; error   : Unknown modifier '.op_restrict'\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-99/input.ptx, line 5; error   : Modifier '.release' requires modifier '.mbarrier_init' for instruction 'fence'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.sc.gpu",
+      "expected": null,
+      "version": "5.0",
+      "target": "sm_70",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "2046405e83e17700c023e614c604b657b18ffa35af17570dbf6eede6b66dd1ab",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.sc.gpu requires PTX 6.0 and sm_70 or later"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.sc.gpu requires PTX 6.0 and sm_70 or later"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-100/input.ptx, line 5; error   : Feature 'fence instruction' requires PTX ISA .version 6.0 or later\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-100/input.ptx, line 5; error   : Feature '.sc' requires PTX ISA .version 6.0 or later\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-100/input.ptx, line 2; error   : PTX .version 5.0 does not support .target sm_70\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.sc.gpu",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_60",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "3cae5cde26b793da1402dd3e8821b77b51d6fb7f76c7f43c3b69aea74a7d721d",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.sc.gpu requires PTX 6.0 and sm_70 or later"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.sc.gpu requires PTX 6.0 and sm_70 or later"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-101/input.ptx, line 5; error   : Feature 'fence instruction' requires .target sm_70 or higher\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-101/input.ptx, line 5; error   : Feature '.sc' requires .target sm_70 or higher\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.sc.cluster",
+      "expected": null,
+      "version": "7.7",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "c6a260365732d3dd44de7192526e8a8c174c8c6be0d27abc3f26f95b71ee9e75",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.sc.cluster requires PTX 7.8 and sm_90 or later"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.sc.cluster requires PTX 7.8 and sm_90 or later"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-102/input.ptx, line 5; error   : Feature '.cluster scope' requires PTX ISA .version 7.8 or later\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-102/input.ptx, line 2; error   : PTX .version 7.7 does not support .target sm_90\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.sc.cluster",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_80",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "4a0c18eb71d9ffcd4c6e8f21d14c1172be68552653d5760ac25cff579ebfbfae",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.sc.cluster requires PTX 7.8 and sm_90 or later"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.sc.cluster requires PTX 7.8 and sm_90 or later"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-103/input.ptx, line 5; error   : Feature '.cluster scope' requires .target sm_90 or higher\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.alias",
+      "expected": null,
+      "version": "7.4",
+      "target": "sm_70",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "da95aef454c21149f3d04746cd12aa33896f1f3c991555d949b87b6015be9eac",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.proxy.alias requires PTX 7.5 and sm_70 or later"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.proxy.alias requires PTX 7.5 and sm_70 or later"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-104/input.ptx, line 5; error   : Modifier '.alias' requires PTX ISA .version 7.5 or later\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-104/input.ptx, line 5; error   : Feature 'fence.proxy' requires PTX ISA .version 7.5 or later\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "membar.proxy.alias",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_50",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "1207b2427215703ff4675c0c095495b25c9954ccde3dd83d5e4992f3700fb875",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: membar.proxy.alias requires PTX 7.5 and sm_60 or later"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: membar.proxy.alias requires PTX 7.5 and sm_60 or later"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-105/input.ptx, line 5; error   : Modifier '.alias' requires .target sm_60 or higher\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-105/input.ptx, line 5; error   : Feature 'membar.proxy' requires .target sm_60 or higher\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.async",
+      "expected": null,
+      "version": "7.8",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "05ade243c53cce44e9c2a7f1cc3a2933894ee9e9cfb0c85773ad2643d2da8342",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.proxy.async requires PTX 8.0 and sm_90 or later"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.proxy.async requires PTX 8.0 and sm_90 or later"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-106/input.ptx, line 5; error   : Modifier '.async' requires PTX ISA .version 8.0 or later\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.async",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_80",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "d311b6d401d59c743ee5e79230f54c5030d27a24e01ffbe1fa2d2bfef9e09a2f",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.proxy.async requires PTX 8.0 and sm_90 or later"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.proxy.async requires PTX 8.0 and sm_90 or later"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-107/input.ptx, line 5; error   : Modifier '.async' requires .target sm_90 or higher\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.mbarrier_init.release.cluster",
+      "expected": null,
+      "version": "7.8",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "789b1e95ba7edc669918094780f5e78fa533bdd74405990d636c1698a5ad7e1c",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.mbarrier_init.release.cluster requires PTX 8.0 and sm_90 or later"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.mbarrier_init.release.cluster requires PTX 8.0 and sm_90 or later"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-108/input.ptx, line 5; error   : Feature '.op_restrict' requires PTX ISA .version 8.0 or later\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-108/input.ptx, line 5; error   : Modifier '.mbarrier_init' requires PTX ISA .version 8.0 or later\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.mbarrier_init.release.cluster",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_80",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "dc8f19e22894364b61cbd0263a401dd4ed1f5efc10719eb983920963b1382cd4",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.mbarrier_init.release.cluster requires PTX 8.0 and sm_90 or later"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.mbarrier_init.release.cluster requires PTX 8.0 and sm_90 or later"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-109/input.ptx, line 5; error   : Feature '.op_restrict' requires .target sm_90 or higher\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-109/input.ptx, line 5; error   : Modifier '.mbarrier_init' requires .target sm_90 or higher\nptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-109/input.ptx, line 5; error   : Feature '.cluster scope' requires .target sm_90 or higher\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.gpu [%rd1], 128",
+      "expected": null,
+      "version": "8.2",
+      "target": "sm_90",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "0569a1ffe5218871e3893bbd2d833b2f789a117cdbf979ed7ac634d1f970b768",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.proxy.tensormap::generic.acquire.gpu requires PTX 8.3 and sm_90 or later"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.proxy.tensormap::generic.acquire.gpu requires PTX 8.3 and sm_90 or later"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-110/input.ptx, line 5; error   : Feature 'fence.proxy with unidirection proxy fence' requires PTX ISA .version 8.3 or later\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    },
+    {
+      "instruction": "fence.proxy.tensormap::generic.acquire.gpu [%rd1], 128",
+      "expected": null,
+      "version": "8.5",
+      "target": "sm_80",
+      "extra": "",
+      "assembler": true,
+      "ptx_sha256": "b2afee14c356d96aefb04cc0d66b9d3aa8402044b1e24d75aff131d2ab3ef177",
+      "parser": [
+        {
+          "build": "fence-gcc",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.proxy.tensormap::generic.acquire.gpu requires PTX 8.3 and sm_90 or later"
+        },
+        {
+          "build": "fence-clang",
+          "accepted": false,
+          "diagnostic": "VirtualGPU error [ptx-parse]: line 5: fence.proxy.tensormap::generic.acquire.gpu requires PTX 8.3 and sm_90 or later"
+        }
+      ],
+      "nvidia_assembler": {
+        "accepted": false,
+        "exit_code": 255,
+        "diagnostic": "ptxas /mnt/d/Codex-work/tsim-cuda-lab/fence-semantics-proof-conformance/case-111/input.ptx, line 5; error   : Instruction 'fence.proxy with unidirection proxy fence' not supported on .target 'sm_80'\nptxas fatal   : Ptx assembly aborted due to errors"
+      }
+    }
+  ],
+  "limitations": [
+    "No global scoped causality integration",
+    "No asynchronous proxy completion model",
+    "No physical GPU execution",
+    "Pre-Volta membar syntax has no assembler comparison"
+  ],
+  "syntax_cases": 112,
+  "assembler_comparisons": 110,
+  "accepted_cases": 52,
+  "rejected_cases": 60,
+  "regressions": {
+    "core": {
+      "engine_revision": "771bb8f96abc3721700219d88fa74e10d43dcfd5",
+      "kind": "upstream functional conformance; not hardware differential testing",
+      "build_exit_code": 0,
+      "suites": [
+        {
+          "suite": "test_ptx",
+          "exit_code": 0,
+          "passed": 31,
+          "total": 31,
+          "failures": [],
+          "success": true
+        },
+        {
+          "suite": "test_exec",
+          "exit_code": 0,
+          "passed": 24,
+          "total": 24,
+          "failures": [],
+          "success": true
+        },
+        {
+          "suite": "test_exec2",
+          "exit_code": 0,
+          "passed": 12,
+          "total": 12,
+          "failures": [],
+          "success": true
+        },
+        {
+          "suite": "test_exec3",
+          "exit_code": 0,
+          "passed": 186,
+          "total": 186,
+          "failures": [],
+          "success": true
+        },
+        {
+          "suite": "test_fastpath",
+          "exit_code": 0,
+          "passed": 7,
+          "total": 7,
+          "failures": [],
+          "success": true
+        },
+        {
+          "suite": "test_barriers",
+          "exit_code": 0,
+          "passed": 20,
+          "total": 20,
+          "failures": [],
+          "success": true
+        },
+        {
+          "suite": "test_memory",
+          "exit_code": 0,
+          "passed": 66,
+          "total": 66,
+          "failures": [],
+          "success": true
+        },
+        {
+          "suite": "test_regalloc",
+          "exit_code": 0,
+          "passed": 12,
+          "total": 12,
+          "failures": [],
+          "success": true
+        }
+      ],
+      "passed": true,
+      "total_checks": 358
+    },
+    "supplemental_upstream": {
+      "passed": true,
+      "kind": "Supplemental upstream Hopper and distributed-shared-memory regressions; not hardware execution",
+      "suites": [
+        {
+          "suite": "test_hopper",
+          "passed": 38,
+          "total": 38,
+          "exit_code": 0
+        },
+        {
+          "suite": "test_dsmem",
+          "passed": 13,
+          "total": 13,
+          "exit_code": 0
+        }
+      ]
+    },
+    "source_cases": 102,
+    "event_checks": 114,
+    "dependency_checks": 359,
+    "patch_replay": {
+      "idempotence_passed": true,
+      "reverse_stack_passed": true,
+      "older_four_patch_upgrade_passed": true,
+      "older_five_patch_upgrade_passed": true,
+      "nested_checkout_cache_replay_passed": true
+    }
+  }
+}

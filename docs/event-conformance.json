@@ -123,7 +123,7 @@
     "cta_barrier_events.py": "cbffaf834184d5ab4fe93514d15e67d332a13236a3fe67942f8074b6fba7c764",
     "cta_barrier_report.py": "493c8fd5172fdb8dec1527bec337e697ec20b0f13366ffd9ef175ac8114ef128",
     "register_dependencies.py": "9bac9f4a4d187d03af39f672bcea303af50793cd6a13e43d936994187facf335",
-    "memory_model.py": "61b9c29ddcfb52f3776b2f0cccce4a29212ad4c2aaddae93a19f63ef6e260e7d",
+    "memory_model.py": "46b3019f9e86b603989fb1d045f678359a6079b37ba2b522a58565b2fc9759e5",
     "event_conformance.py": "7665a58c18caa0367cbf26bc90d58a33b9ab4d84625143a23904b28800f5091d"
   },
   "reference_sha256": {
@@ -136,7 +136,8 @@
     "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
     "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
     "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
-    "zz-execution-events.patch": "d1f266d412380f64b394b07a1c309b99ee716f68eabda5980cc39c695fb1c9fd"
+    "zz-execution-events.patch": "d1f266d412380f64b394b07a1c309b99ee716f68eabda5980cc39c695fb1c9fd",
+    "zzz-fence-semantics.patch": "a409f47bb46a8ae4efea8b5599b958be80eb18e223effb4720c0e29f9a93efa5"
   },
   "total_checks": 114
 }

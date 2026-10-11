@@ -1,0 +1,209 @@
+diff --git a/include/vgpu/ptx/ast.hpp b/include/vgpu/ptx/ast.hpp
+--- a/include/vgpu/ptx/ast.hpp
++++ b/include/vgpu/ptx/ast.hpp
+@@ -981,10 +981,23 @@
+ // bar.sync made every fence wait for the whole block, which a kernel that
+ // fences on one warp's path would have hung on.
+ struct OpNop {};
+-// membar / fence. Executed as a host memory fence, because blocks run on
+-// several host threads and what one block wrote must be visible, in order,
+-// to another that synchronizes through memory rather than a barrier.
+-struct OpFence {};
++// Fence categories have different PTX ordering guarantees. In particular a
++// proxy or operation-restricted fence is not an ordinary SC thread fence.
++enum class MemoryScope { None, Cta, Cluster, Gpu, Sys };
++enum class FenceKind { Thread, Membar, ProxyAlias, ProxyAsync, ProxyTensormap, MbarrierInit };
++enum class FenceSem { AcqRel, Sc, Acquire, Release, Bidirectional, LegacyMembar };
++enum class FenceSpace { All, Global, SharedCta, SharedCluster };
++struct OpFence {
++  FenceKind kind = FenceKind::Thread;
++  FenceSem sem = FenceSem::AcqRel;
++  MemoryScope scope = MemoryScope::None;
++  FenceSpace space = FenceSpace::All;
++  // Only tensormap::generic.acquire has a range. Keep its address as a real
++  // operand so liveness, dependency capture and execution cannot drop it.
++  bool has_range = false;
++  Addr addr;
++  uint32_t bytes = 0;
++};
+ // activemask.b32 d -- the mask of lanes of this warp currently executing. Warp
+ // algorithms use it as the membership for a following .sync operation.
+ struct OpActiveMask { Reg dst; };
+diff --git a/src/ptx/parser.cpp b/src/ptx/parser.cpp
+--- a/src/ptx/parser.cpp
++++ b/src/ptx/parser.cpp
+@@ -122,18 +122,20 @@
+     if (d.dynamic) d.offset = fn.dynamic_shared_offset;
+ }
+ 
+-std::vector<std::string> split_dots(const std::string& s) {
++std::vector<std::string> split_dots(const std::string& s, bool exact = false) {
+   std::vector<std::string> parts;
+   std::string cur;
+   for (char c : s) {
+     if (c == '.') {
+-      if (!cur.empty() && !is_cache_hint(cur)) parts.push_back(normalize_scope(cur));
++      if (exact) parts.push_back(cur);
++      else if (!cur.empty() && !is_cache_hint(cur)) parts.push_back(normalize_scope(cur));
+       cur.clear();
+     } else {
+       cur += c;
+     }
+   }
+-  if (!cur.empty() && !is_cache_hint(cur)) parts.push_back(normalize_scope(cur));
++  if (exact) parts.push_back(cur);
++  else if (!cur.empty() && !is_cache_hint(cur)) parts.push_back(normalize_scope(cur));
+   return parts;
+ }
+ 
+@@ -4931,17 +4933,103 @@
+         ins.op = std::move(op);
+       }
+     } else if (op0 == "membar" || op0 == "fence") {
+-      // A host memory fence, not a no-op. This used to reason that blocks run
+-      // their instructions in order so there was nothing to fence against --
+-      // true of one thread, but blocks run on several, and on a weak-memory host
+-      // (ARM: Graviton, or a GH200's own Grace) the hardware reorders across
+-      // them. CUB's decoupled look-back depends on exactly this fence. It is
+-      // still not a barrier: this used to be OpBar, which made it wait for every
+-      // warp in the block.
+-      // fence.proxy.tensormap::generic takes the map's address and size; the
+-      // other proxy fences take nothing. Either way it orders, and orders only.
+-      while (!at_end() && !peek_punct(";")) next();
+-      ins.op = OpFence{};
++      // Do not normalize ::cta or discard cache hints here: these modifiers
++      // describe the ordering domain, and arbitrary hints are illegal.
++      const auto fp = split_dots(opcode, true);
++      OpFence op;
++      int sm = 0, major = 0, minor = 0;
++      std::sscanf(target_.c_str(), "sm_%d", &sm);
++      std::sscanf(version_.c_str(), "%d.%d", &major, &minor);
++      auto require_isa = [&](int isa, int arch) {
++        if (major * 10 + minor < isa || sm < arch)
++          fail(ins.line, opcode + " requires PTX " + std::to_string(isa / 10) + "." +
++                             std::to_string(isa % 10) + " and sm_" + std::to_string(arch) + " or later");
++      };
++      auto set_scope = [&](const std::string& p) -> bool {
++        MemoryScope value;
++        if (p == "cta") value = MemoryScope::Cta;
++        else if (p == "cluster") value = MemoryScope::Cluster;
++        else if (p == "gpu") value = MemoryScope::Gpu;
++        else if (p == "sys") value = MemoryScope::Sys;
++        else return false;
++        if (op.scope != MemoryScope::None) fail(ins.line, "duplicate or conflicting fence scopes");
++        op.scope = value;
++        return true;
++      };
++      if (fp.size() > 1 && fp[1] == "proxy") {
++        require_isa(75, op0 == "membar" ? 60 : 70);
++        if (fp.size() < 3) return unsupported("proxy fence requires a proxy kind");
++        op.sem = FenceSem::Bidirectional;
++        if (fp[2] == "alias") {
++          if (fp.size() != 3) return unsupported("alias proxy fence takes no additional modifiers");
++          op.kind = FenceKind::ProxyAlias;
++        } else if (op0 == "fence" && fp[2] == "async") {
++          require_isa(80, 90);
++          op.kind = FenceKind::ProxyAsync;
++          if (fp.size() == 4) {
++            if (fp[3] == "global") op.space = FenceSpace::Global;
++            else if (fp[3] == "shared::cta") op.space = FenceSpace::SharedCta;
++            else if (fp[3] == "shared::cluster") op.space = FenceSpace::SharedCluster;
++            else return unsupported("async proxy fence state space");
++          } else if (fp.size() != 3) return unsupported("async proxy fence modifier count");
++        } else if (op0 == "fence" && fp[2] == "tensormap::generic") {
++          require_isa(83, 90);
++          if (fp.size() != 5) return unsupported("tensormap proxy fence requires semantics and scope");
++          op.kind = FenceKind::ProxyTensormap;
++          bool have_sem = false;
++          for (size_t j = 3; j < fp.size(); ++j) {
++            if (set_scope(fp[j])) continue;
++            if (have_sem || (fp[j] != "acquire" && fp[j] != "release"))
++              return unsupported("tensormap proxy fence semantics");
++            op.sem = fp[j] == "acquire" ? FenceSem::Acquire : FenceSem::Release;
++            have_sem = true;
++          }
++          if (!have_sem || op.scope == MemoryScope::None)
++            return unsupported("tensormap proxy fence requires semantics and scope");
++          if (op.sem == FenceSem::Acquire) {
++            op.has_range = true;
++            op.addr = parse_addr(fn);
++            if (op.addr.base_kind == Addr::Base::EntryParam || op.addr.base_kind == Addr::Base::CallSlot)
++              return unsupported("tensormap proxy fence address must be generic, not a parameter slot");
++            expect_punct(",");
++            const auto size = parse_operand();
++            const auto* n = std::get_if<ImmInt>(&size);
++            if (!n || n->value != 128) return unsupported("tensormap proxy fence size must be immediate 128");
++            op.bytes = 128;
++          }
++        } else return unsupported("proxy fence kind");
++      } else if (op0 == "membar") {
++        if (fp.size() != 2) return unsupported("membar requires exactly one level");
++        op.kind = FenceKind::Membar;
++        op.sem = sm >= 70 ? FenceSem::Sc : FenceSem::LegacyMembar;
++        if (fp[1] == "cta") op.scope = MemoryScope::Cta;
++        else if (fp[1] == "gl") op.scope = MemoryScope::Gpu;
++        else if (fp[1] == "sys") op.scope = MemoryScope::Sys;
++        else return unsupported("membar level");
++        require_isa(fp[1] == "sys" ? 20 : 14, fp[1] == "sys" ? 20 : 10);
++      } else if (fp.size() > 1 && fp[1] == "mbarrier_init") {
++        require_isa(80, 90);
++        if (fp != std::vector<std::string>{"fence", "mbarrier_init", "release", "cluster"})
++          return unsupported("mbarrier_init fence requires release.cluster");
++        op.kind = FenceKind::MbarrierInit;
++        op.sem = FenceSem::Release;
++        op.scope = MemoryScope::Cluster;
++        op.space = FenceSpace::SharedCta;
++      } else {
++        require_isa(60, 70);
++        bool have_sem = false;
++        for (size_t j = 1; j < fp.size(); ++j) {
++          if (set_scope(fp[j])) continue;
++          if (have_sem || (fp[j] != "sc" && fp[j] != "acq_rel"))
++            return unsupported("thread fence semantics or modifier");
++          op.sem = fp[j] == "sc" ? FenceSem::Sc : FenceSem::AcqRel;
++          have_sem = true;
++        }
++        if (op.scope == MemoryScope::None) return unsupported("thread fence requires an explicit scope");
++        if (op.scope == MemoryScope::Cluster) require_isa(78, 90);
++      }
++      if (!peek_punct(";")) return unsupported("unexpected fence operands");
++      ins.op = std::move(op);
+     } else if (op0 == "nanosleep") {
+       // A backoff hint. Consuming it as a no-op is correct; the operand is a
+       // duration nothing here can meaningfully honour.
+diff --git a/src/exec/interpreter.cpp b/src/exec/interpreter.cpp
+--- a/src/exec/interpreter.cpp
++++ b/src/exec/interpreter.cpp
+@@ -4780,9 +4780,29 @@
+       return;
+     }
+     if (std::holds_alternative<OpNop>(ins.op)) return;
+-    if (std::holds_alternative<OpFence>(ins.op)) {
+-      // Blocks run on several host threads; see OpFence.
+-      std::atomic_thread_fence(std::memory_order_seq_cst);
++    if (const auto* op = std::get_if<OpFence>(&ins.op)) {
++      if (op->has_range) {
++        Lanes scratch;
++        const Lanes& base = addr_base(w, ctx, ins, op->addr, scratch);
++        for (uint32_t lane = 0; lane < W_; ++lane) {
++          if (!(m & (Mask{1} << lane))) continue;
++          const uint64_t address = base[lane] + static_cast<uint64_t>(op->addr.offset);
++          if (resolved_space(address) != Space::Global || address > UINT64_MAX - (op->bytes - 1))
++            ctx_fail(ins, static_cast<int>(lane), Err::InvalidValue,
++                     "tensormap proxy fence range must be in generic global address space");
++        }
++      }
++      // These are host ordering guarantees for eager functional execution.
++      // PTX scope/proxy causality is retained above, not widened into SC by
++      // this implementation. No CTA wait or asynchronous completion occurs.
++      switch (op->sem) {
++        case FenceSem::Sc:
++        case FenceSem::LegacyMembar: std::atomic_thread_fence(std::memory_order_seq_cst); break;
++        case FenceSem::Acquire: std::atomic_thread_fence(std::memory_order_acquire); break;
++        case FenceSem::Release: std::atomic_thread_fence(std::memory_order_release); break;
++        case FenceSem::AcqRel:
++        case FenceSem::Bidirectional: std::atomic_thread_fence(std::memory_order_acq_rel); break;
++      }
+       return;
+     }
+     if (const auto* op = std::get_if<OpActiveMask>(&ins.op)) {

@@ -6,15 +6,16 @@
     "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
     "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
     "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
-    "zz-execution-events.patch": "d1f266d412380f64b394b07a1c309b99ee716f68eabda5980cc39c695fb1c9fd"
+    "zz-execution-events.patch": "d1f266d412380f64b394b07a1c309b99ee716f68eabda5980cc39c695fb1c9fd",
+    "zzz-fence-semantics.patch": "a409f47bb46a8ae4efea8b5599b958be80eb18e223effb4720c0e29f9a93efa5"
   },
   "target_sha256": {
     "CMakeLists.txt": "ddc998c6a27cc06a4f8d288679a5d260b2e9e0bba06152d5700cc6ad15d82f87",
     "amd/src/codeobject.cpp": "fd16748b319b463cbc639cd01705f61589a97433eeb1592e76f4e90a95c04662",
     "include/vgpu/exec/launch.hpp": "618a16a75abbd558b2650ca1803092cc0a04dab35e53abaa17d53a435fa4b10c",
-    "include/vgpu/ptx/ast.hpp": "e7a2299ec2df527e37c33953711b6ddb388838007537a5c3b7711c7aaac0ccab",
-    "src/exec/interpreter.cpp": "e3675a5ace040a73f9cf70015f02b95df47548193708a3f091f8e348ec14736d",
-    "src/ptx/parser.cpp": "d874d913bfb7ffaa8f3119d02d0dede1e03133613c521b9845ae51198bf80e0a",
+    "include/vgpu/ptx/ast.hpp": "7fd6857fec9baa5394aa2035f07db5d198e313d8720aea3f0b27b3d76a18c4d3",
+    "src/exec/interpreter.cpp": "417946f2ae5e9002c3fc9b075a8aba94ba9951346a65f9a1c6e0a3beb302611b",
+    "src/ptx/parser.cpp": "f17e1a79bb2c21d40e2ccb06d67f318cd173ff129ad437138339482f4a6a908b",
     "src/ptx/regalloc.cpp": "02b0ad0257d2cffd99c9c05d6abb2971a1073b3e8bf8d0eeadba7de76e44d290",
     "tests/unit/test_barriers.cpp": "01db2153227cbe706c24e5d183f649c5b18fc3c719511e1b35ed47761e19eba3",
     "tests/unit/test_exec3.cpp": "2204b92d03753f723245e43480fc5b8f5f28e9169d58a8bcba8dca64e9090506"
@@ -30,9 +31,10 @@
     "tests/unit/test_barriers.cpp",
     "tests/unit/test_exec3.cpp"
   ],
-  "diff_sha256": "bb36e03ff59a3986ae452e9948a05413a5e625d927c666a143d95c5bea2cb232",
+  "diff_sha256": "44342043610d4d4f1fe6e31c1230bcfb0b020795f98362e514474742a1b75f97",
   "idempotence_passed": true,
   "reverse_stack_passed": true,
   "older_four_patch_upgrade_passed": true,
+  "older_five_patch_upgrade_passed": true,
   "nested_checkout_cache_replay_passed": true
 }

@@ -268,6 +268,15 @@
       "independent_dag_relations": 44544,
       "behavioral_mutations": 6,
       "boundary": "Explicit actor/scope/read-from identity, release/acquire/RMW/fence/CTA snapshot relations; not yet interpreter diagnostics, data values, complete axiomatic outcome validation, proxies, API ordering or hardware testing"
+    },
+    {
+      "feature": "Typed PTX fence scopes, proxy categories and range operands",
+      "evidence": "fence-semantics-conformance.json",
+      "status": "tested parser and eager execution subset",
+      "syntax_cases": 112,
+      "assembler_comparisons": 110,
+      "runtime_checks_per_compiler": 2119,
+      "boundary": "Exact modifiers, ISA/SM gates, scope/order/state-space metadata, live address operands and nonblocking host fences; no global scoped clocks, proxy completion, GPU latency or physical hardware testing"
     }
   ]
 }

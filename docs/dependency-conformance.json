@@ -520,7 +520,7 @@
         "WAW": 8448,
         "WAR": 248
       },
-      "event_sha256": "36bf867aac07604ce3de9f34f1984115bb1eb7c4ff4b419585c98a6d8ad43ccd"
+      "event_sha256": "3d5735eb8479b5d0b60612f3f73189ab643fd3a24175c95fead7406131eab5bb"
     },
     {
       "name": "wait-a100-random",
@@ -553,7 +553,7 @@
         "WAW": 8448,
         "WAR": 248
       },
-      "event_sha256": "509168787dd874519dce7d15d1a9e32547b3b190e7ace6dbab0fcf9676483365"
+      "event_sha256": "f4472f29fec6b46148c9efa4a527ce7b409ccf8e947c05b8793e36e57dfe4067"
     },
     {
       "name": "wait-h100-random",
@@ -586,7 +586,7 @@
         "WAW": 16896,
         "WAR": 496
       },
-      "event_sha256": "3479ae9aa31c04364b02bcb9ee5585400daf17af8106ba0452a5e0babc57ed5d"
+      "event_sha256": "6eede53f038003484dcc856a3a24009d199275f9f9e373b057179201f3438523"
     },
     {
       "name": "wait-reads-a100-random",
@@ -619,7 +619,7 @@
         "WAW": 16896,
         "WAR": 496
       },
-      "event_sha256": "a67bc280dfb7d5588a54d80d9f292c6dd2e858581fa0364b17fefc34af868550"
+      "event_sha256": "6695dfe1330f2678fa61afd19958d8f9a12e11e7012bbf1b23bb8520605e223e"
     },
     {
       "name": "wait-reads-h100-random",
@@ -652,7 +652,7 @@
         "WAW": 8448,
         "WAR": 248
       },
-      "event_sha256": "a90ae91e68b4d24b961f8c8cc5d51f610055ab2791c6bd8124bd5f6c2f5c1390"
+      "event_sha256": "7d0bf99fa54ab32366d590962d4300b41fd68f48dcd563f655f823624e75e28b"
     },
     {
       "name": "nonvirtual-wait-a100-random",
@@ -685,7 +685,7 @@
         "WAW": 8448,
         "WAR": 248
       },
-      "event_sha256": "2e822c19335e15e44284e9e217e50748fefc1af96de17be7b0784a0e5ef33ade"
+      "event_sha256": "90f5828efe171215226290a1afc7fcf6dda75c8d7cfc1d0c65473284df91f3a4"
     },
     {
       "name": "nonvirtual-wait-h100-random",
@@ -726,7 +726,7 @@
         "RAW": 192,
         "WAW": 8
       },
-      "event_sha256": "65b1bd9692dd64c63ea2a66cf79d5b25bfc7d5f4ad8af5f4b90a078c40adc54c"
+      "event_sha256": "70825c339a5d1beb679b18dc137274c6c5de9cb721afd1eac551b7c565b6a80e"
     },
     {
       "name": "lane-writers-a100-random",
@@ -756,7 +756,7 @@
         "RAW": 192,
         "WAW": 8
       },
-      "event_sha256": "de4894a71808306a4b2b32bc8d6a2f2f9866b09c47737694f1afcc1101af3193"
+      "event_sha256": "ceb929d36f515ddee388e5f09d7d9dfdedf0b4492474e1985635c14ee11a078f"
     },
     {
       "name": "lane-writers-h100-random",
@@ -926,7 +926,8 @@
     "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
     "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
     "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
-    "zz-execution-events.patch": "d1f266d412380f64b394b07a1c309b99ee716f68eabda5980cc39c695fb1c9fd"
+    "zz-execution-events.patch": "d1f266d412380f64b394b07a1c309b99ee716f68eabda5980cc39c695fb1c9fd",
+    "zzz-fence-semantics.patch": "a409f47bb46a8ae4efea8b5599b958be80eb18e223effb4720c0e29f9a93efa5"
   },
   "operand_role_references": 43,
   "total_checks": 359

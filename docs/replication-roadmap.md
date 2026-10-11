@@ -2,7 +2,7 @@
 
 The goal is a progressively comprehensive NVIDIA CUDA execution and GPU architecture simulator on a CPU. A passing demonstration is a milestone, not completion of this program. Original execution code remains attributed to the pinned PantheonSim engine; tsim's changes are independently tracked and verified.
 
-The [scoped memory causality foundation](scoped-memory-order.md) now has a per-thread component for mutual scopes, observed write identities, RMW publication chains, fence patterns and CTA arrival snapshots. An independent causal DAG and compiler/sanitizer/mutation checks validate its relations. It remains separate from interpreter accesses; preserving PTX scope metadata and connecting actual global observations is the next memory-consistency integration step.
+The [scoped memory causality foundation](scoped-memory-order.md) now has a per-thread component for mutual scopes, observed write identities, RMW publication chains, fence patterns and CTA arrival snapshots. An independent causal DAG and compiler/sanitizer/mutation checks validate its relations. [Typed fence metadata](fence-semantics.md) now survives parsing and execution, with 112 syntax cases, 110 NVIDIA assembler comparisons and 2,119 execution checks per compiler harness. The causality component remains separate from interpreter accesses; typed load/store/atomic metadata and actual global observations are the next memory-consistency integration step.
 
 The initial functional baseline compiles CUDA 12.6.3 source into compute_80 PTX, runs 16 integration checks, and records actual interpreter warp state. It has no hardware timing model. Upstream capability claims are leads for verification, not automatically claims about this build.
 

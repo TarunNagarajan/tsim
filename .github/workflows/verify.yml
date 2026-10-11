@@ -23,6 +23,8 @@ jobs:
         run: python3 tsim.py test
       - name: Verify core PTX conformance
         run: python3 tsim.py conformance
+      - name: Verify typed PTX fences against NVIDIA assembler and CPU execution
+        run: python3 tests/fence_semantics_components.py --cache .local --out .local/fence-semantics-conformance
       - name: Verify scoped per-thread causality and semantic mutations
         run: python3 tests/scoped_memory_order_components.py --out .local/scoped-memory-conformance
       - name: Verify CUDA feature and synchronization conformance
@@ -53,6 +55,7 @@ jobs:
           path: |
             .local/verification
             .local/core-conformance
+            .local/fence-semantics-conformance
             .local/scoped-memory-conformance
             .local/source-conformance
             .local/event-conformance
