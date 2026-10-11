@@ -1,0 +1,122 @@
+{
+  "kind": "Observed per-thread scoped generic-proxy causality references; not integrated interpreter or hardware validation",
+  "passed": true,
+  "runtime_integrated": false,
+  "hardware_validation": "unverified",
+  "component_sha256": {
+    "include/tsim/scoped_memory_order.hpp": "9b302a9a372fee7a1137bcd9fbbc7ef18c9e057d59bf2a2b2623a8c5fd262871",
+    "tests/scoped_memory_order_model.cpp": "8f4e8f40662709dbef5973ffe229067f7941307158fb6d2b0cf9be8f4054c85a",
+    "tests/scoped_memory_order_components.py": "bbeac98e04c2de2b2519d20d06a8e2fa1e9579fe9a268f45bd821d79467caa01"
+  },
+  "builds": [
+    {
+      "name": "gcc-release",
+      "compiler": "g++-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "command": [
+        "/usr/bin/g++-13",
+        "-std=c++20",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-I/mnt/d/Codex-work/tsim-cuda-lab/source/include",
+        "/mnt/d/Codex-work/tsim-cuda-lab/source/tests/scoped_memory_order_model.cpp",
+        "-o",
+        "/mnt/d/Codex-work/tsim-cuda-lab/scoped-memory-foundation-proof-conformance/gcc-release"
+      ],
+      "exit_code": 0,
+      "checks": 6888,
+      "scope_scenarios": 3616,
+      "dag_relations": 44544,
+      "binary_sha256": "ebe5fc39c9e1fb57b352ebe3d1780d78b60dd7acc4fd652dafd2cd2e48877e83"
+    },
+    {
+      "name": "clang-release",
+      "compiler": "Ubuntu clang version 18.1.3 (1ubuntu1)",
+      "command": [
+        "/usr/bin/clang++-18",
+        "-std=c++20",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-I/mnt/d/Codex-work/tsim-cuda-lab/source/include",
+        "/mnt/d/Codex-work/tsim-cuda-lab/source/tests/scoped_memory_order_model.cpp",
+        "-o",
+        "/mnt/d/Codex-work/tsim-cuda-lab/scoped-memory-foundation-proof-conformance/clang-release"
+      ],
+      "exit_code": 0,
+      "checks": 6888,
+      "scope_scenarios": 3616,
+      "dag_relations": 44544,
+      "binary_sha256": "df0c0f8a20c12d7f3bfd3b130b718da0ee80bd600abbca49e474d86ec30d2e1d"
+    },
+    {
+      "name": "gcc-address-undefined-sanitizers",
+      "compiler": "g++-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "command": [
+        "/usr/bin/g++-13",
+        "-std=c++20",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-I/mnt/d/Codex-work/tsim-cuda-lab/source/include",
+        "/mnt/d/Codex-work/tsim-cuda-lab/source/tests/scoped_memory_order_model.cpp",
+        "-o",
+        "/mnt/d/Codex-work/tsim-cuda-lab/scoped-memory-foundation-proof-conformance/gcc-address-undefined-sanitizers"
+      ],
+      "exit_code": 0,
+      "checks": 6888,
+      "scope_scenarios": 3616,
+      "dag_relations": 44544,
+      "binary_sha256": "6053e944c9024683c8229b5416d65ebfb56d25ae5c753e086b8b39fc3a156aaa"
+    }
+  ],
+  "mutations": [
+    {
+      "name": "cta-scope-widened",
+      "exit_code": 1,
+      "diagnostic": "FAIL scoped_memory_order: strong flag race requires mutual scope",
+      "behavioral_rejection": true
+    },
+    {
+      "name": "acqrel-treated-as-sc",
+      "exit_code": 1,
+      "diagnostic": "FAIL scoped_memory_order: SC fences synchronize only at mutual scope",
+      "behavioral_rejection": true
+    },
+    {
+      "name": "fence-snapshot-leak",
+      "exit_code": 1,
+      "diagnostic": "FAIL scoped_memory_order: fence pattern excludes post-fence payload",
+      "behavioral_rejection": true
+    },
+    {
+      "name": "width-pattern-collapsed",
+      "exit_code": 1,
+      "diagnostic": "FAIL scoped_memory_order: wider strong write cannot extend narrower release pattern",
+      "behavioral_rejection": true
+    },
+    {
+      "name": "relaxed-rmw-acquires",
+      "exit_code": 1,
+      "diagnostic": "FAIL scoped_memory_order: relaxed RMW carries without acquiring",
+      "behavioral_rejection": true
+    },
+    {
+      "name": "failed-cas-writes",
+      "exit_code": 1,
+      "diagnostic": "FAIL scoped_memory_order: failed CAS acquires without replacing write version",
+      "behavioral_rejection": true
+    }
+  ],
+  "semantic_source": "https://docs.nvidia.com/cuda/archive/12.6.3/parallel-thread-execution/index.html#memory-consistency-model",
+  "total_checks": 6888,
+  "scope_scenarios": 3616,
+  "independent_dag_relations": 44544,
+  "behavioral_mutations": 6
+}

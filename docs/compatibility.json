@@ -258,6 +258,16 @@
       "audited_schedules": 18,
       "status": "uncalibrated modeled subset",
       "boundary": "Distinct captured lane jobs, finite FIFO/slots/port, overlapping word locks, L2 line pins, joined responses and dirty backing tails; no data/coherence/scoped ordering/SASS/calibration"
+    },
+    {
+      "feature": "Per-thread scoped generic-proxy causality foundation",
+      "evidence": "scoped-memory-conformance.json",
+      "status": "standalone analytical core; interpreter integration open",
+      "checks": 6888,
+      "scope_scenarios": 3616,
+      "independent_dag_relations": 44544,
+      "behavioral_mutations": 6,
+      "boundary": "Explicit actor/scope/read-from identity, release/acquire/RMW/fence/CTA snapshot relations; not yet interpreter diagnostics, data values, complete axiomatic outcome validation, proxies, API ordering or hardware testing"
     }
   ]
 }

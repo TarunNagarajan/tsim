@@ -23,6 +23,8 @@ jobs:
         run: python3 tsim.py test
       - name: Verify core PTX conformance
         run: python3 tsim.py conformance
+      - name: Verify scoped per-thread causality and semantic mutations
+        run: python3 tests/scoped_memory_order_components.py --out .local/scoped-memory-conformance
       - name: Verify CUDA feature and synchronization conformance
         run: python3 tsim.py source-conformance
       - name: Verify execution events and architecture inputs
@@ -51,6 +53,7 @@ jobs:
           path: |
             .local/verification
             .local/core-conformance
+            .local/scoped-memory-conformance
             .local/source-conformance
             .local/event-conformance
             .local/dependency-conformance
