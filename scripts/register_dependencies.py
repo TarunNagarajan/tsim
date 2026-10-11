@@ -9,6 +9,8 @@ import re
 from execution_events import summarize_events, validate_dependency_issue
 from collective_events import CollectiveEvents, collective_kind
 from memory_model import validate_compilation_artifacts
+from cta_barrier_events import barrier_form
+from cta_barrier_report import observed_controls
 
 class CompiledInstructions:
     """Check instruction spelling and start line against verified PTX text."""
@@ -46,7 +48,7 @@ class LaneDependencies:
         self.contexts = {}
         self.last_sequence = 0
 
-    def issue(self, event, collective=None, collective_schema=2):
+    def issue(self, event, collective=None, collective_schema=2, cta=None):
         validate_dependency_issue(event)
         sequence = event['sequence']
         if type(sequence) is not int or sequence <= self.last_sequence:
@@ -81,6 +83,15 @@ class LaneDependencies:
         def reg(key): return ('register', event['frame'], key)
         execution = 0 if waiting else event['execution_mask']
         uses = list(event['uses'])
+        definitions = event['defs']
+        if cta is not None:
+            if not barrier_form(event['instruction']): raise ValueError('CTA operand action requires a CTA instruction')
+            if cta['issue'] != sequence or cta['execution_mask'] != event['execution_mask']:
+                raise ValueError('CTA operand action ownership differs from instruction')
+            if cta['type'] == 'cta_barrier_wait': uses, definitions = [], []
+            elif cta['type'] == 'cta_barrier_arrive': definitions = []
+            elif cta['type'] == 'cta_barrier_result': uses = []
+            else: raise ValueError('Unknown CTA operand action')
         if groups and next(iter(groups.values()))['data_use'] >= 0: uses.pop(0)
         if waiting and collective_schema == 2:
             uses = []
@@ -89,7 +100,7 @@ class LaneDependencies:
         # Legacy captures do not identify the pre-dispatch membership read.
         # Retain their explicitly conservative selected-operand dependencies.
         for key in uses: add(reads, reg(key), event['execution_mask'])
-        for key in event['defs']: add(writes, reg(key), execution)
+        for key in definitions: add(writes, reg(key), execution)
         if event['predicate_use'] != -1: add(reads, reg(event['predicate_use']), event['path_mask'])
         for key in event['implicit_uses']: add(reads, ('implicit', key), event['execution_mask'])
         for key in event['implicit_defs']: add(writes, ('implicit', key), event['execution_mask'])
@@ -142,6 +153,7 @@ class LaneDependencies:
         if kind:
             node.update(collective_kind=kind, collective_wait=waiting, actual_execution_mask=execution,
                         conservative_selection_reads=waiting and collective_schema == 1, undefined_results=undefined)
+        if cta is not None: node['cta_action'] = cta['type']
         return node
 
 def analyze_dependencies(run_directory):
@@ -155,12 +167,17 @@ def analyze_dependencies(run_directory):
     instructions = CompiledInstructions((run / 'kernel.ptx').read_text())
     graph = LaneDependencies(); nodes = []; launches = {}; counts = Counter()
     # Completion order may interleave across CPU workers. Preserve issue order.
-    children = {}; events = []
+    children = {}; events = []; cta_actions = {}; stream = []
     with events_path.open() as source:
         for row in source:
             event = json.loads(row)
+            stream.append(event)
             if event['type'] in ['launch', 'issue']: events.append(event)
             if event['type'].startswith('collective_'): children.setdefault(event['issue'], []).append(event)
+            if event['type'] in ['cta_barrier_wait', 'cta_barrier_arrive', 'cta_barrier_result']:
+                cta_actions[event['issue']] = event
+    phases, gates = observed_controls(stream) if summary['complete_supported_cta_barriers'] else ([], [])
+    phase_by_arrival = {participant['arrival']: phase for phase in phases for participant in phase['participants']}
     for event in events:
         if event['type'] == 'launch': launches[event['launch']] = event
         if event['type'] != 'issue': continue
@@ -168,8 +185,11 @@ def analyze_dependencies(run_directory):
             raise ValueError('Dependency instruction differs from compiled PTX spelling or line')
         instruction = re.sub(r'^\s*@\s*!?\s*\S+\s+', '', event['instruction']).strip()
         opcode = instruction.split()[0]
-        if opcode.startswith('bar.red') or opcode.split('.')[0] == 'elect':
+        if opcode.split('.')[0] == 'elect':
             raise ValueError('Cross-lane operands require a lane-transfer dependency model')
+        cta = cta_actions.get(event['sequence'])
+        if barrier_form(instruction) and event['execution_mask'] and (cta is None or not summary['complete_supported_cta_barriers']):
+            raise ValueError('CTA dependencies require complete typed phase/retirement capture')
         if collective_kind(event['instruction']) and not summary['complete_supported_collectives']:
             raise ValueError('Collective dependencies require complete executed lane-transfer capture')
         launch = launches[event['launch']]
@@ -181,13 +201,24 @@ def analyze_dependencies(run_directory):
         if event['warp'] >= warps: raise ValueError('Dependency warp outside block')
         valid_lanes = min(32, threads - event['warp'] * 32)
         if event['path_mask'] >= 1 << valid_lanes: raise ValueError('Dependency path has nonexistent block lanes')
-        node = graph.issue(event, children.pop(event['sequence'], []), summary['collective_schema'] or 2); nodes.append(node)
+        node = graph.issue(event, children.pop(event['sequence'], []), summary['collective_schema'] or 2, cta)
+        node['memory_access'] = bool(event['execution_mask']) and opcode.split('.')[0] in ['ld', 'st', 'atom', 'red']
+        if cta is not None and cta['type'] == 'cta_barrier_result':
+            phase = phase_by_arrival[cta['arrival']]
+            node['cta_result'] = {'release': phase['release'], 'result': phase['result']}
+            for participant in phase['participants']:
+                for destination in event['defs']:
+                    node['edges'].append({'source': participant['issue'], 'target': event['sequence'], 'kind': 'CTA_REDUCTION',
+                        'resource': ['cta', phase['barrier'], phase['phase']], 'lane_mask': participant['execution_mask'],
+                        'destination_resource': ['register', event['frame'], destination], 'destination_lane_mask': event['execution_mask']})
+        nodes.append(node)
         for edge in node['edges']: counts[edge['kind']] += 1
         counts['live_in_lane_reads'] += sum(item['lane_mask'].bit_count() for item in node['live_ins'])
     return {'schema': 2, 'kind': 'observed lane-aware PTX register hazard graph; not a complete GPU scoreboard',
             'event_sha256': hashlib.sha256(events_path.read_bytes()).hexdigest(),
             'ptx_sha256': metadata['compilation_sha256']['kernel.ptx'],
             'counts': dict(counts), 'nodes': nodes, 'complete_scoreboard_dependencies': False,
+            'cta_phases': phases, 'cta_control_gates': gates,
             'hardware_cycles': False,
             'limits': ['explicit virtual operands plus CC.CF; no physical register mapping',
                        'register layout and frame checks do not prove all opcode operand extraction complete',

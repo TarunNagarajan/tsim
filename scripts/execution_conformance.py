@@ -17,16 +17,18 @@ def verify_execution(cache, out, replay_from=None):
     sys.path.insert(0, str(ROOT / 'tests'))
     from sm_execution_components import verify_execution_components
     from sm_schedule_reference import verify_schedule
+    from cta_dependency_reference import verify_cta_dependencies
     from sm_memory_components import verify_sm_memory
     from sector_memory_components import verify_sector_memory
+    from cta_timing_components import verify_cta_timing
     out = Path(out).resolve(); out.mkdir(parents=True, exist_ok=True)
     checks = verify_execution_components()
-    checks.extend(verify_sm_memory()); checks.extend(verify_sector_memory())
+    checks.extend(verify_sm_memory()); checks.extend(verify_sector_memory()); checks.extend(verify_cta_timing())
     def digest(path): return hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
     report = {'kind': 'hand-solved SM execution and independently audited CUDA schedule replay; uncalibrated',
               'passed': False, 'checks': checks, 'cases': [], 'hardware_cycles': False,
-              'model_sha256': {n: digest(ROOT / 'scripts' / n) for n in ['sm_execution.py', 'sm_residency.py', 'register_dependencies.py', 'execution_events.py', 'collective_events.py', 'cta_barrier_events.py', 'memory_model.py', 'cache_hierarchy.py', 'sector_read_service.py', 'sector_memory_service.py', 'execution_conformance.py']},
-              'reference_sha256': {n: digest(ROOT / 'tests' / n) for n in ['sm_execution_components.py', 'sm_schedule_reference.py', 'sm_memory_components.py', 'sector_memory_components.py', 'sector_service_reference.py', 'conformance/carry_dependencies.cu', 'conformance/collective_dependencies.cu', 'conformance/collective_discarded.cu', 'conformance/execution_launches.cu', 'conformance/collective_wait_reads.cu', 'conformance/device_calls.cu', 'conformance/cache_policies.cu', 'conformance/cache_hint.cu', 'conformance/memory_spaces.cu']},
+              'model_sha256': {n: digest(ROOT / 'scripts' / n) for n in ['sm_execution.py', 'sm_residency.py', 'register_dependencies.py', 'execution_events.py', 'collective_events.py', 'cta_barrier_events.py', 'cta_barrier_report.py', 'cta_barrier_timing.py', 'memory_model.py', 'cache_hierarchy.py', 'sector_read_service.py', 'sector_memory_service.py', 'execution_conformance.py']},
+              'reference_sha256': {n: digest(ROOT / 'tests' / n) for n in ['cta_timing_components.py', 'cta_timing_reference.py', 'cta_dependency_reference.py', 'register_dependency_components.py', 'conformance/cta_timing.cu', 'sm_execution_components.py', 'sm_schedule_reference.py', 'sm_memory_components.py', 'sector_memory_components.py', 'sector_service_reference.py', 'conformance/carry_dependencies.cu', 'conformance/collective_dependencies.cu', 'conformance/collective_discarded.cu', 'conformance/execution_launches.cu', 'conformance/collective_wait_reads.cu', 'conformance/device_calls.cu', 'conformance/cache_policies.cu', 'conformance/cache_hint.cu', 'conformance/memory_spaces.cu']},
               'example_sha256': {n: digest(ROOT / 'examples' / n) for n in ['vector_add.cu', 'shared_reduce.cu']},
               'writer_sha256': digest(ROOT / 'include/tsim/execution_events.hpp'),
               'patch_sha256': {p.name: digest(p) for p in sorted((ROOT / 'patches').glob('*.patch'))}}
@@ -54,7 +56,7 @@ def verify_execution(cache, out, replay_from=None):
         return path
     def audit(name, path, config=None, compiler=None, memory=None):
         result = analyze_execution(path, config, compiler, memory); graph = analyze_dependencies(path)
-        check(name + ' independent hazard/port/queue/admission/retirement interval audit', verify_schedule(result, graph))
+        check(name + ' independent hazard/port/queue/admission/retirement interval audit', verify_schedule(result, graph) and verify_cta_dependencies([json.loads(row) for row in (path/'execution-events.jsonl').read_text().splitlines()],graph))
         (path / (name + '-sm-execution.json')).write_text(json.dumps(result, indent=2))
         report['cases'].append({'name': name, 'event_sha256': result['event_sha256'], 'ptx_sha256': result['ptx_sha256'],
                                 'artifact_directory': path.name, 'timed_memory': memory is not None,
@@ -127,10 +129,45 @@ def verify_execution(cache, out, replay_from=None):
             except AssertionError: checks.append('independent audit rejects ' + label)
             else: raise AssertionError('Independent audit accepted ' + label)
         for label, source, message in [('volatile', ROOT / 'tests/conformance/collective_wait_reads.cu', 'Memory ordering'),
-                                       ('barrier', ROOT / 'examples/shared_reduce.cu', 'execution pipeline'),
                                        ('device-call', ROOT / 'tests/conformance/device_calls.cu', 'call ABI')]:
             path = run('unsupported-' + label, source)
             reject(label + ' refuses undeclared readiness', lambda path=path: analyze_execution(path), message)
+        for gpu in ['a100','h100']:
+            for schedule in ['deterministic','random','adversarial']:
+                name='cta-'+gpu+'-'+schedule
+                path=run(name,ROOT/'tests/conformance/cta_timing.cu',gpu,schedule,workers=4)
+                compile_resources(path,cache)
+                compiler=path/'compiler-resources'
+                result,cta_graph=audit(name,path,compiler=compiler)
+                audit(name+'-staged',path,compiler=compiler,memory=memory)
+                audit(name+'-finite-release',path,config=replace(base,cta_barrier=Pipeline(7,3,1,'sm')),compiler=compiler,memory=replace(memory,lsu_slots_per_sm=1,mshrs=1,l2_slots=1,l2_queue=1))
+                audit(name+'-two-sm',path,config=replace(base,sm_count=2),compiler=compiler,memory=replace(memory,sm_count=2))
+                check(name+' actual phase and reduction data ownership',len(cta_graph['cta_phases'])==80 and cta_graph['counts']['CTA_REDUCTION']>0 and not cta_graph['counts'].get('live_in_lane_reads'))
+                if gpu=='h100' and schedule=='random': cta_reference,cta_reference_graph=result,cta_graph
+        shared=run('cta-shared-fixed',ROOT/'examples/shared_reduce.cu')
+        audit('cta-shared-fixed',shared)
+        reject('shared timed service is refused until bank completion is modeled',lambda:analyze_execution(shared,memory_config=memory),'global load/store')
+        for label,mutation in [
+            ('early release',lambda r:r['launches'][0]['cta_barrier_service']['phases'][0].update(start_cycle=0)),
+            ('missing memory prefix',lambda r:r['launches'][0]['cta_barrier_service']['phases'][0].update(memory_prior_issues=[])),
+            ('borrowed phase reset',lambda r:r['launches'][0]['cta_barrier_service']['phases'][-1].update(previous_phase=None)),
+            ('invented release capacity',lambda r:r['launches'][0]['cta_barrier_service']['peak_inflight_per_sm'].clear())]:
+            altered=deepcopy(cta_reference); mutation(altered)
+            try:verify_schedule(altered,cta_reference_graph)
+            except AssertionError:checks.append('independent CTA audit rejects '+label)
+            else:raise AssertionError('Independent CTA audit accepted '+label)
+        dependency_events=[json.loads(row) for row in (out/'cta-h100-random'/'execution-events.jsonl').read_text().splitlines()]
+        for label,mutation in [
+            ('missing reduction contributor',lambda n:n['edges'].remove(next(e for e in n['edges'] if e['kind']=='CTA_REDUCTION'))),
+            ('invented source lanes',lambda n:next(e for e in n['edges'] if e['kind']=='CTA_REDUCTION').update(lane_mask=1)),
+            ('invented destination lanes',lambda n:next(e for e in n['edges'] if e['kind']=='CTA_REDUCTION').update(destination_lane_mask=1)),
+            ('wrong saved phase answer',lambda n:n['cta_result'].update(result=999)),
+            ('wrong operand action',lambda n:n.update(cta_action='cta_barrier_arrive'))]:
+            altered=deepcopy(cta_reference_graph); node=next(n for n in altered['nodes'] if n.get('cta_result')); mutation(node)
+            try:verify_cta_dependencies(dependency_events,altered)
+            except AssertionError:checks.append('independent CTA dependency audit rejects '+label)
+            else:raise AssertionError('Independent dependency audit accepted '+label)
+        reject('missing release assumptions refuses CTA duration',lambda:analyze_execution(path,replace(base,cta_barrier=None),compiler_directory=compiler),'declared release service')
         capped = run('capped', ROOT / 'examples/vector_add.cu', limit=8)
         reject('capped capture refuses modeled duration', lambda: analyze_execution(capped))
         altered = out / 'changed-events'; shutil.copytree(vector[0], altered, dirs_exist_ok=True)

@@ -121,10 +121,10 @@
     "execution_events.py": "7767db1d5aa70d820f46fb0c0aea11b1703a0cb379aed0491a55374f1f2c5595",
     "collective_events.py": "c102cc7ec18e1f2f437399ddf4a538480f7971b43fcdef4eb1d007030714d4e5",
     "cta_barrier_events.py": "cbffaf834184d5ab4fe93514d15e67d332a13236a3fe67942f8074b6fba7c764",
-    "cta_barrier_report.py": "87e293431d7a785bdf55c04745c7063a27ad6dcd524b7ad4246d3ac7781363eb",
-    "register_dependencies.py": "40d63212e437f768f47abd02c97e03e18c3d0d6cc2968433a21ecde78b5d17df",
+    "cta_barrier_report.py": "493c8fd5172fdb8dec1527bec337e697ec20b0f13366ffd9ef175ac8114ef128",
+    "register_dependencies.py": "9bac9f4a4d187d03af39f672bcea303af50793cd6a13e43d936994187facf335",
     "memory_model.py": "61b9c29ddcfb52f3776b2f0cccce4a29212ad4c2aaddae93a19f63ef6e260e7d",
-    "event_conformance.py": "b1171fc9abd25b5b97113fc8fd955b497cb3be0141040419255cb784eeca607f"
+    "event_conformance.py": "7665a58c18caa0367cbf26bc90d58a33b9ab4d84625143a23904b28800f5091d"
   },
   "reference_sha256": {
     "cta_barrier_event_components.py": "9e3669f98c36d16c92ee609517209b6fa992eb2b81194d36d5899a8f0c8a308b",

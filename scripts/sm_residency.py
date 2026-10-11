@@ -10,8 +10,13 @@ from pathlib import Path
 import re
 
 from memory_model import analyze_transactions, positive_integer
+from cta_barrier_events import barrier_form
 
 PROGRAMMING = 'https://docs.nvidia.com/cuda/archive/12.6.3/cuda-c-programming-guide/index.html#technical-specifications-per-compute-capability'
+
+def validate_estimated_cta(instruction):
+    if barrier_form(instruction) and not re.fullmatch(r'bar(?:rier)?(?:\.cta)?\.(?:sync|arrive)(?:\.aligned)?\s+0(?:\s*,.*)?', instruction.rstrip(';')):
+        raise ValueError('Additional named or dynamic block barrier resources are not captured')
 
 def nonnegative(value, name):
     if isinstance(value, bool) or not isinstance(value, int) or value < 0: raise ValueError(name + ' must be a nonnegative integer')
@@ -183,9 +188,7 @@ def analyze_residency(run_directory, compiler_directory=None):
         instruction = re.sub(r'^\s*@\s*!?\s*%[A-Za-z0-9_$]+\s+', '', event['instruction']).strip()
         if instruction.startswith('setmaxnreg.'):
             raise ValueError('Dynamic register redistribution requires a separate residency model')
-        if compiler is None and instruction.startswith('bar.') and not instruction.startswith('bar.warp.'):
-            if not re.fullmatch(r'bar\.(?:sync|arrive)(?:\.aligned)?\s+0(?:\s*,.*)?', instruction):
-                raise ValueError('Additional named or dynamic block barrier resources are not captured')
+        if compiler is None: validate_estimated_cta(instruction)
     records = []
     for event in events:
         if event['type'] != 'launch': continue

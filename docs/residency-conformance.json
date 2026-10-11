@@ -66,7 +66,7 @@
   ],
   "hardware_cycles": false,
   "sdk_header_sha256": "56d2a6093635b4efe655a4590540670ef114147cc3fc1137ab7a748d20c075d7",
-  "model_sha256": "6ed2bb6707dea5f8882eac9043f6c84571ffe252f7da77b2f7d65a6e91702c60",
+  "model_sha256": "f0c8f35715253302dca68a6943be479fda4224c4ecd0f50b0f37b97fa624a320",
   "sdk_differential_cases": 3872,
   "total_checks": 61
 }

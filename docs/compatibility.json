@@ -123,6 +123,14 @@
       "feature": "universal CUDA/PTX compatibility",
       "status": "unverified",
       "cases": []
+    },
+    {
+      "feature": "CTA timing functional publication, saved reductions and early exits",
+      "cases": [
+        "cta_timing"
+      ],
+      "status": "tested subset",
+      "boundary": "Converged warp phases; host arithmetic reference; timing verified independently as an uncalibrated model"
     }
   ],
   "architecture_models": [
@@ -182,13 +190,14 @@
     {
       "feature": "Configured SM execution replay",
       "evidence": "execution-conformance.json",
-      "checks": 238,
+      "checks": 320,
       "analytical_component_checks": 52,
-      "audited_schedules": 62,
+      "audited_schedules": 87,
       "status": "uncalibrated modeled subset",
-      "boundary": "Observed paths, SDK admission/placement, virtual hazards and asynchronous weak global load/store queues/writebacks with cross-launch port continuity; full control/scoreboard, data/ordering, other spaces and calibration open",
+      "boundary": "Observed paths, SDK admission/placement, virtual hazards, finite CTA phase releases and prior-memory completion; staged global queues/writebacks; full scoreboard/data/coherence/other spaces and calibration open",
       "asynchronous_sm_checks": 30,
-      "global_store_component_checks": 29
+      "global_store_component_checks": 29,
+      "cta_component_checks": 35
     },
     {
       "feature": "Staged global load/store and dirty writeback service",
@@ -204,6 +213,13 @@
       "status": "tested observed subset",
       "checks": 114,
       "boundary": "Actual converged warp arrivals/releases/results/retirement with exact causal ownership; compiled PTX provenance; no regenerated paths, memory completion or calibrated release latency"
+    },
+    {
+      "feature": "Configured CTA phase release and staged reduction dependencies",
+      "evidence": "cta-timing-conformance.json",
+      "checks": 320,
+      "status": "uncalibrated modeled subset",
+      "boundary": "Actual phase causes, pre-arrival memory acknowledgements, finite SM release service, reuse reset and saved-result writes; no visibility/coherence or calibrated latency claim"
     }
   ]
 }

@@ -6,6 +6,7 @@ graph, queue definitions and physical admission budgets.
 from collections import defaultdict
 from math import isclose
 from sector_service_reference import verify_service
+from cta_timing_reference import verify_cta_service
 
 def verify_schedule(report, graph):
     nodes = {n['sequence']: n for n in graph['nodes']}
@@ -46,7 +47,7 @@ def verify_schedule(report, graph):
             assert 0 <= active <= pipe['capacity'], 'Pipeline capacity'
             peaks[key] = max(peaks[key], active)
         assert active == 0, 'Pipeline drain'
-    previous_end = 0; previous_pipeline = previous_memory = None
+    previous_end = 0; previous_pipeline = previous_memory = previous_barrier = None
     lsu_starts = defaultdict(list); l2_starts, backing_starts = [], []
     for launch in report['launches']:
         assert launch['start_cycle'] == previous_end, 'Sequential launch origin'
@@ -54,6 +55,10 @@ def verify_schedule(report, graph):
         previous_pipeline = launch['next_pipeline_readiness']
         instruction_end = max(r['complete_cycle'] for r in launch['issues'])
         assert launch['instruction_end_cycle'] == instruction_end, 'Instruction retirement'
+        barrier_ends = verify_cta_service(report, graph, launch, previous_barrier)
+        previous_barrier = launch['cta_barrier_service']['next_port_readiness']
+        execution_end = max([instruction_end] + list(barrier_ends.values()))
+        assert launch['execution_end_cycle'] == execution_end, 'Execution and CTA drain boundary'
         if launch['memory_service']:
             service = launch['memory_service']; assert service['config'] == report['memory_config'], 'Memory configuration identity'
             assert service['initial_port_readiness'] == previous_memory, 'Persistent memory readiness'
@@ -72,15 +77,15 @@ def verify_schedule(report, graph):
                 assert previous_memory[name] == (max(starts) + service['config'][interval] if starts else initial[name]), 'Next ' + name + ' deadline'
                 aggregate.extend(starts)
             last_backing = max((r['complete_cycle'] for r in service['writebacks']), default=instruction_end)
-            assert launch['end_cycle'] == max(instruction_end, last_backing), 'Backing drain boundary'
-        else: assert launch['end_cycle'] == instruction_end, 'Launch retirement'
+            assert launch['end_cycle'] == max(execution_end, last_backing), 'Backing drain boundary'
+        else: assert launch['end_cycle'] == execution_end, 'Launch retirement'
         previous_end = launch['end_cycle']
         footprint = launch['footprint']; areas = [0] * count; sweeps = [[] for _ in range(count)]
         mapping = {tuple(b['block']): b for b in launch['blocks']}
         assert len(mapping) == len(launch['blocks']), 'Unique block identity'
         for block, interval in mapping.items():
             own = [r for r in launch['issues'] if tuple(r['block']) == block]
-            assert own and interval['release_cycle'] == max(r['complete_cycle'] for r in own), 'Block drains all tails'
+            assert own and interval['release_cycle'] == max([r['complete_cycle'] for r in own]+[barrier_ends.get(block,0)]), 'Block drains all tails'
             assert len(interval['warp_partitions']) == footprint['warps'], 'Warp placement completeness'
             for row in own:
                 assert interval['sm'] == row['sm'] and interval['warp_partitions'][row['warp']] == row['partition'], 'Stable placement'

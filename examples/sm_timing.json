@@ -3,6 +3,7 @@
   "sm_count": 1,
   "provenance": "Uncalibrated example: fixed warp-instruction latencies and finite queues; not NVIDIA hardware measurements",
   "provenance_kind": "assumption",
+  "cta_barrier": {"latency": 2, "interval": 1, "capacity": 16, "scope": "sm"},
   "pipelines": {
     "alu": {
       "latency": 4,

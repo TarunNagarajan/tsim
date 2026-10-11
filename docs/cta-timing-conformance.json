@@ -1,0 +1,41 @@
+{
+  "passed": true,
+  "kind": "configured CPU CTA readiness and independently audited captured data/control causes",
+  "hardware_cycles": false,
+  "physical_gpu_validated": false,
+  "patch_sha256": {
+    "atomic-nan.patch": "3a66fbe1aa7058fd114750a49229b9fe64a3136a54a2e8935e7d103323a9a8c1",
+    "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
+    "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
+    "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
+    "zz-execution-events.patch": "d1f266d412380f64b394b07a1c309b99ee716f68eabda5980cc39c695fb1c9fd"
+  },
+  "model_sha256": {
+    "cta_barrier_timing.py": "34f1dc0115fad51c48db7d98e904b6c36324dc056999588d1ce438163c73539c",
+    "register_dependencies.py": "9bac9f4a4d187d03af39f672bcea303af50793cd6a13e43d936994187facf335",
+    "sm_execution.py": "30bc8938db97e9102d53291e0abbd62ce195df36fd2a8fed7272468f121ed967",
+    "sm_residency.py": "f0c8f35715253302dca68a6943be479fda4224c4ecd0f50b0f37b97fa624a320"
+  },
+  "reference_sha256": {
+    "cta_timing_components.py": "2d44b85b02cde16542f6af7afce048df091e6b18107cf27f0d44e8a121bce6e2",
+    "cta_timing_reference.py": "378f2d70d01e8fedee458c845f3d725cbab577d7e2d5aaf40dfda403e3caa6ca",
+    "cta_dependency_reference.py": "10f35e0125650a32dc8479a8b7a67953cea78e4e612be4ec7ef704d97d6387d2",
+    "sm_schedule_reference.py": "0796554fbc8835c78880dacc9d6c555fa22b7b50415d3342d0eaa54598d75511",
+    "conformance/cta_timing.cu": "6f02627fd3c56018d43b37a20a41d3fc1712c35efcbf4e15c92c147e224b88cf"
+  },
+  "source_cases": 90,
+  "event_checks": 114,
+  "dependency_checks": 359,
+  "execution_checks": 320,
+  "cta_component_checks": 35,
+  "independently_reaudited_schedules": 87,
+  "large_capture_phases": 1620,
+  "large_capture_waiter_gates": 2740,
+  "large_capture_model_cycles": 10905,
+  "windows_report_sha256": "a04522b459e8a0d3e210b8a5b7add22240b5495bc03eca1a4f44e7f9e5b00c28",
+  "windows_event_sha256": "649db103fe7f6999e10552962f8de8ac51c1fca1c86704bf0af82410282c0ff7",
+  "windows_ptx_sha256": "d60f4e6cd7d3192e3863eabe022fad40bd4ed502999bbd08bc737fbdc000a09d",
+  "windows_phases": 80,
+  "windows_cli_report_with_spaces": "passed",
+  "windows_fourworker_host_comparisons": 4000
+}

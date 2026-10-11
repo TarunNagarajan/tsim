@@ -17,6 +17,7 @@ from sm_residency import BlockFootprint, SMResidency, analyze_residency, profile
 from memory_model import positive_integer, analyze_transactions
 from cache_hierarchy import decode_policy, PTX as CACHE_POLICY_SOURCE
 from sector_memory_service import MemoryConfig, SectorMemoryService
+from cta_barrier_timing import BarrierService, captured_phases
 
 @dataclass(frozen=True)
 class Pipeline:
@@ -35,6 +36,7 @@ class TimingConfig:
     pipelines: dict
     provenance: str
     provenance_kind: str = 'assumption'
+    cta_barrier: Pipeline | None = None
 
     def validate(self):
         positive_integer(self.sm_count, 'modeled SM count')
@@ -44,29 +46,39 @@ class TimingConfig:
         for name, pipeline in self.pipelines.items():
             if not isinstance(name, str) or not name or not isinstance(pipeline, Pipeline): raise ValueError('Malformed pipeline definition')
             pipeline.validate()
+        if self.cta_barrier is not None:
+            if not isinstance(self.cta_barrier, Pipeline): raise ValueError('Malformed CTA release service')
+            self.cta_barrier.validate()
+            if self.cta_barrier.scope != 'sm': raise ValueError('CTA release service requires SM scope')
 
     def record(self):
         self.validate()
-        return {'schema': 1, 'sm_count': self.sm_count, 'provenance': self.provenance,
+        result = {'schema': 1, 'sm_count': self.sm_count, 'provenance': self.provenance,
                 'provenance_kind': self.provenance_kind,
                 'pipelines': {name: asdict(pipe) for name, pipe in sorted(self.pipelines.items())}}
+        if self.cta_barrier is not None: result['cta_barrier'] = asdict(self.cta_barrier)
+        return result
 
 def default_config():
     return TimingConfig(1, {
         'alu': Pipeline(4, 1, 4), 'fp32': Pipeline(4, 1, 4), 'convert': Pipeline(4, 1, 4),
         'parameter': Pipeline(1, 1, 2), 'memory': Pipeline(24, 1, 8),
         'control': Pipeline(1, 1, 2), 'collective': Pipeline(8, 1, 4),
-    }, 'Uncalibrated example: fixed warp-instruction latencies and finite queues; not NVIDIA hardware measurements')
+    }, 'Uncalibrated example: fixed warp-instruction latencies and finite queues; not NVIDIA hardware measurements',
+       cta_barrier=Pipeline(2, 1, 16, 'sm'))
 
 def load_config(path):
     data = json.loads(Path(path).read_text())
-    if not isinstance(data, dict) or set(data) != {'schema', 'sm_count', 'pipelines', 'provenance', 'provenance_kind'}:
+    required = {'schema', 'sm_count', 'pipelines', 'provenance', 'provenance_kind'}
+    if not isinstance(data, dict) or not required <= set(data) or set(data) - required - {'cta_barrier'}:
         raise ValueError('Malformed SM execution configuration')
     if type(data['schema']) is not int or data['schema'] != 1: raise ValueError('Unsupported execution configuration schema')
     if not isinstance(data['pipelines'], dict): raise ValueError('Malformed pipeline table')
     try: pipes = {name: Pipeline(**values) for name, values in data['pipelines'].items()}
     except TypeError as error: raise ValueError('Malformed pipeline fields') from error
-    config = TimingConfig(data['sm_count'], pipes, data['provenance'], data['provenance_kind']); config.validate()
+    try: barrier = Pipeline(**data['cta_barrier']) if 'cta_barrier' in data else None
+    except TypeError as error: raise ValueError('Malformed CTA release service fields') from error
+    config = TimingConfig(data['sm_count'], pipes, data['provenance'], data['provenance_kind'], barrier); config.validate()
     return config
 
 @dataclass(frozen=True)
@@ -92,7 +104,8 @@ class Issue:
     control: bool = False
     memory: SectorRequest | None = None
 
-def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=None, pipeline_readiness=None, memory_readiness=None):
+def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=None, pipeline_readiness=None, memory_readiness=None,
+                    phases=(), barrier_readiness=None):
     """Discrete-event simulation with reads at issue and writes at retirement.
 
     RAW and WAW await preceding retirement. WAR awaits preceding operand read
@@ -137,10 +150,19 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
         for dependency in issue.dependencies:
             if not isinstance(dependency, tuple) or len(dependency) != 2: raise ValueError('Malformed hazard predecessor')
             source, kind = dependency
-            if type(source) is not int or source not in by_id or source >= issue.sequence or kind not in ['RAW', 'WAW', 'WAR']:
+            if type(source) is not int or source not in by_id or source >= issue.sequence or kind not in ['RAW', 'WAW', 'WAR', 'CTA_REDUCTION']:
                 raise ValueError('Unknown, forward or unsupported hazard predecessor')
             previous = by_id[source]
-            if (previous.block, previous.warp) != (issue.block, issue.warp): raise ValueError('Register predecessor crosses warp ownership')
+            if previous.block != issue.block or (kind != 'CTA_REDUCTION' and previous.warp != issue.warp):
+                raise ValueError('Register predecessor crosses warp ownership')
+    barriers = BarrierService(phases, by_id, streams, config.cta_barrier, origin, barrier_readiness)
+    if any(sm >= config.sm_count for sm in barriers.ports): raise ValueError('CTA port outside modeled SM count')
+    for issue in issues:
+        for source, kind in issue.dependencies:
+            if kind == 'CTA_REDUCTION' and not any(source in plan['phase'].arrivals and
+                issue.sequence in [target for _, target in plan['phase'].waiters]
+                for plan in barriers.plans.values()):
+                raise ValueError('CTA reduction predecessor lacks its actual phase/result gate')
     residents = [SMResidency(profile) for _ in range(config.sm_count)]
     queues = [[deque() for _ in range(profile.partitions)] for _ in residents]
     pipeline_states = [{} for _ in residents]
@@ -160,10 +182,12 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
     areas = [0 for _ in residents]
     positions = {key: 0 for key in streams}; ready_at = {key: origin for key in streams}
     remaining = {block: sum(len(streams[(block, warp)]) for warp in range(footprint.warps)) for block in blocks}
+    for phase in phases: remaining[phase.block] += 1
     scheduled, intervals, records, completions = {}, {}, [], []
     pending = deque(blocks); next_sm = 0; partition_start = [0] * config.sm_count
     cycle = origin; completed = 0; counts = Counter()
-    while completed < len(issues):
+    phase_completed = 0
+    while completed < len(issues) or phase_completed < len(phases):
         if service is not None:
             for response in service.advance(cycle):
                 sequence = response['identity']; record = scheduled[sequence]
@@ -171,6 +195,10 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
                 pipe = config.pipelines[record['pipeline']]
                 key = (record['pipeline'], record['partition'] if pipe.scope == 'partition' else -1)
                 heapq.heappush(completions, (response['complete_cycle'], sequence, record['sm'], key, tuple(record['block'])))
+        for block, finish in barriers.advance(cycle, scheduled, intervals):
+            remaining[block] -= 1; phase_completed += 1
+            if not remaining[block]:
+                residents[intervals[block]['sm']].release(block); intervals[block]['release_cycle'] = finish
         # Retire before this cycle's admission and issue phases.
         while completions and completions[0][0] <= cycle:
             finish, sequence, sm, pipe_key, block = heapq.heappop(completions)
@@ -203,9 +231,14 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
                     pipe_key = (issue.pipeline, partition if pipe.scope == 'partition' else -1)
                     state = pipeline_states[sm].setdefault(pipe_key, {'next': origin, 'inflight': 0, 'peak': 0})
                     available = ready_at[warp_key]; unresolved = False
+                    gate = barriers.gate(issue.sequence)
+                    if gate is None: unresolved = True
+                    else: available = max(available, gate)
                     for source, kind in issue.dependencies:
                         predecessor = scheduled.get(source)
-                        if predecessor is None: raise ValueError('Predecessor missing from ordered warp issue stream')
+                        if predecessor is None:
+                            if kind == 'CTA_REDUCTION': unresolved = True; continue
+                            raise ValueError('Predecessor missing from ordered warp issue stream')
                         required = predecessor['issue_cycle'] if kind == 'WAR' else predecessor['complete_cycle']
                         if required is None: unresolved = True
                         else: available = max(available, required)
@@ -237,7 +270,8 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
                         break
                     queue.append(warp_key)
             if last_winner is not None: partition_start[sm] = (last_winner + 1) % profile.partitions
-        if completed == len(issues): break
+        if completed == len(issues) and phase_completed == len(phases): break
+        wakeups.extend(barriers.wakeups(cycle, scheduled, intervals))
         if service is not None:
             wake = service.next_wakeup()
             if wake is not None: wakeups.append(wake)
@@ -247,7 +281,7 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
         for sm, resident in enumerate(residents): areas[sm] += resident.used_warps * (following - cycle)
         cycle = following
     if pending or completions or any(resident.live for resident in residents): raise AssertionError('Execution resource conservation failed')
-    instruction_end = cycle; memory_report = None
+    instruction_end = max(record['complete_cycle'] for record in records); execution_end = cycle; memory_report = None
     if service is not None:
         if service.requests: raise AssertionError('Instruction completion preceded memory response')
         service.finish(); cycle = max(cycle, service.cycle)
@@ -260,6 +294,7 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
     duration = cycle - origin
     return {'start_cycle': origin, 'end_cycle': cycle, 'model_cycles': duration, 'issues': records,
             'instruction_end_cycle': instruction_end, 'memory_service': memory_report,
+            'execution_end_cycle': execution_end, 'cta_barrier_service': barriers.report(),
             'initial_pipeline_readiness': pipeline_readiness,
             'next_pipeline_readiness': [{'sm': sm, 'pipeline': name, 'partition': partition, 'next_issue_cycle': state['next']}
                                         for sm, states in enumerate(pipeline_states) for (name, partition), state in sorted(states.items())],
@@ -274,11 +309,14 @@ def classify_issue(event, node):
     instruction = re.sub(r'^\s*@\s*!?\s*\S+\s+', '', event['instruction']).strip()
     opcode = instruction.split()[0]; base = opcode.split('.')[0]
     if base not in ['mov', 'add', 'sub', 'addc', 'subc', 'mad', 'madc', 'mul', 'and', 'or', 'xor', 'not',
-                    'shl', 'shr', 'setp', 'selp', 'cvt', 'cvta', 'fns', 'bra', 'ret', 'ld', 'st',
-                    'shfl', 'vote', 'redux', 'match', 'fma']:
+                    'shl', 'shr', 'bfi', 'bfe', 'setp', 'selp', 'cvt', 'cvta', 'fns', 'bra', 'ret', 'ld', 'st',
+                    'shfl', 'vote', 'redux', 'match', 'fma', 'bar', 'barrier']:
         raise ValueError('No declared execution pipeline for ' + opcode)
     if node.get('conservative_selection_reads'): raise ValueError('Execution requires exact schema-2 parked reads')
     if node['live_ins'] or node.get('undefined_results'): raise ValueError('Execution requires known register origins and defined collective sources')
+    if base in ['bar', 'barrier']:
+        if event['execution_mask'] and not node.get('cta_action'): raise ValueError('CTA instruction requires actual phase action capture')
+        return 'control', True
     if node.get('collective_wait') or not event['execution_mask']: return 'control', True
     if base in ['bra', 'ret']: return 'control', True
     if base in ['shfl', 'vote', 'redux', 'match']: return 'collective', False
@@ -348,17 +386,20 @@ def analyze_execution(run_directory, config=None, compiler_directory=None, memor
             raise ValueError('Timed memory issue disagrees with conserved physical-address capture')
         plans[event['launch']].append(Issue(event['sequence'], tuple(event['block']), event['warp'], pipeline, dependencies, control, request))
     if any(live.values()): raise ValueError('Captured warp does not retire every kernel lane')
-    results = []; origin = 0; profile = profile_for(residency['profile']['gpu']); pipeline_readiness = memory_readiness = None
+    results = []; origin = 0; profile = profile_for(residency['profile']['gpu']); pipeline_readiness = memory_readiness = barrier_readiness = None
     for record in residency['launches']:
         plan = plans[record['launch']]
         if len({issue.block for issue in plan}) != record['grid_blocks']: raise ValueError('Missing block issue stream')
         footprint = BlockFootprint(**record['footprint'])
-        result = simulate_launch(profile, footprint, plan, config, origin, memory_config, pipeline_readiness, memory_readiness)
+        phases = captured_phases(graph, record['launch'])
+        result = simulate_launch(profile, footprint, plan, config, origin, memory_config, pipeline_readiness, memory_readiness,
+                                 phases, barrier_readiness)
         result.update(launch=record['launch'], kernel=record['kernel'], register_provenance=record['register_provenance'], footprint=record['footprint'],
                       ptx_estimated_registers_per_thread=record['ptx_estimated_registers_per_thread'], compiler_allocation=record['compiler_allocation'])
         results.append(result); origin = result['end_cycle']
         pipeline_readiness = result['next_pipeline_readiness']
         memory_readiness = result['memory_service']['next_port_readiness'] if memory_config else None
+        barrier_readiness = result['cta_barrier_service']['next_port_readiness']
     return {'schema': 1, 'kind': 'configured SM execution replay of observed PTX paths; uncalibrated model cycles',
             'event_sha256': graph['event_sha256'], 'ptx_sha256': graph['ptx_sha256'], 'config': config.record(),
             'profile': residency['profile'], 'model_cycles': origin, 'launches': results,

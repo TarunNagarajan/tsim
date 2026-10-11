@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 from execution_events import summarize_events
 from memory_model import validate_compilation_artifacts
-from register_dependencies import CompiledInstructions
 
 def observed_controls(events):
     issues, arrivals, exits, pending = {}, {}, {}, {}
@@ -41,6 +40,7 @@ def observed_controls(events):
     return phases, gates
 
 def analyze_barriers(run_directory):
+    from register_dependencies import CompiledInstructions
     run = Path(run_directory).resolve()
     metadata = validate_compilation_artifacts(run)
     events_path = run/'execution-events.jsonl'

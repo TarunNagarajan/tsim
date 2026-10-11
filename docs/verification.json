@@ -377,5 +377,21 @@
     "event_checks": 114,
     "windows_four_worker_capture_and_report_with_spaces": "passed",
     "timed_barriers_integrated": false
+  },
+  "cta_capture_clean_checkout": {
+    "commit": "5e1305e7212bcb8e9e6dc16456fef6a39b18891b",
+    "run_url": "https://github.com/TarunNagarajan/tsim/actions/runs/38099058627",
+    "job": 114350989553,
+    "all_workflow_steps": "passed"
+  },
+  "cta_timing_regression": {
+    "passed": true,
+    "evidence": "cta-timing-conformance.json",
+    "execution_checks": 320,
+    "audited_schedules": 87,
+    "cta_component_checks": 35,
+    "source_cases": 90,
+    "windows_cli_report_with_spaces": "passed",
+    "hardware_cycles": false
   }
 }

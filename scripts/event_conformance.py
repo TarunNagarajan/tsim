@@ -37,7 +37,7 @@ def verify_events(cache, out, replay_from=None):
             record = json.loads(record_path.read_text())
             source = Path(record['source'])
             saved = record_path.parent
-            if source.is_file() and (saved / 'source.cu').read_bytes() == source.read_bytes() and not record['nvcc_args']:
+            if source.is_file() and (saved / 'source.cu').is_file() and (saved / 'source.cu').read_bytes() == source.read_bytes() and not record['nvcc_args']:
                 compiled.setdefault(str(source), saved)
     def run(name, source, capture=True, workers=1, scheduler='deterministic', limit=400000, negative=False):
         args = argparse.Namespace(source=source, gpu='h100', trace=True, trace_limit=200000,

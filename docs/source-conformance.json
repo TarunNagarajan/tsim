@@ -122,6 +122,17 @@
       "passed": true
     },
     {
+      "case": "cta_timing",
+      "source": "cta_timing",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "workers": 4,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "a100",
@@ -267,6 +278,17 @@
     {
       "case": "cta_barrier_phases",
       "source": "cta_barrier_phases",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "workers": 4,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "cta_timing",
+      "source": "cta_timing",
       "profile": "a100",
       "scheduler": "adversarial",
       "seed": 17,
@@ -430,6 +452,17 @@
       "passed": true
     },
     {
+      "case": "cta_timing",
+      "source": "cta_timing",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "workers": 4,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "a100",
@@ -575,6 +608,17 @@
     {
       "case": "cta_barrier_phases",
       "source": "cta_barrier_phases",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "workers": 4,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "cta_timing",
+      "source": "cta_timing",
       "profile": "h100",
       "scheduler": "deterministic",
       "seed": 17,
@@ -738,6 +782,17 @@
       "passed": true
     },
     {
+      "case": "cta_timing",
+      "source": "cta_timing",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "workers": 4,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "h100",
@@ -883,6 +938,17 @@
     {
       "case": "cta_barrier_phases",
       "source": "cta_barrier_phases",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "workers": 4,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "cta_timing",
+      "source": "cta_timing",
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
@@ -937,5 +1003,5 @@
     }
   ],
   "passed": true,
-  "total_checks": 84
+  "total_checks": 90
 }

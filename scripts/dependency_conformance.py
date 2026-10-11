@@ -27,7 +27,7 @@ def verify_dependencies(cache, out, replay_from=None):
     report = {'kind': 'lane-aware observed PTX register/carry hazards; not hardware scoreboard validation',
               'passed': False, 'checks': checks, 'hardware_cycles': False, 'cases': [], 'compiler_syntax_checks': [],
               'model_sha256': {name: hashlib.sha256((ROOT / 'scripts' / name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
-                               for name in ['register_dependencies.py', 'execution_events.py', 'collective_events.py', 'cta_barrier_events.py', 'dependency_conformance.py']},
+                               for name in ['register_dependencies.py', 'execution_events.py', 'collective_events.py', 'cta_barrier_events.py', 'cta_barrier_report.py', 'dependency_conformance.py']},
               'reference_sha256': {name: hashlib.sha256((ROOT / 'tests' / name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
                                    for name in ['register_dependency_components.py', 'register_dependency_extraction.cpp', 'collective_event_components.py',
                                                 'collective_dependency_components.py', 'collective_wait_components.py',
