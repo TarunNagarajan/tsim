@@ -1,0 +1,79 @@
+{
+  "passed": true,
+  "kind": "actual CPU CTA synchronization capture and compiler-verified causal mapping",
+  "patch_sha256": {
+    "atomic-nan.patch": "3a66fbe1aa7058fd114750a49229b9fe64a3136a54a2e8935e7d103323a9a8c1",
+    "build-portability.patch": "008290fa7d52971b22faf83afc14036d19d8ad09789870156105c10c634606dc",
+    "warp-trace.patch": "32350e4cc3eb69f555b02db3b5519c8d220e8c8f56990b40109fff62f286655f",
+    "z-shared-memory-ordering.patch": "a1eead004c42245ee91b9c6bd57ac609502810ee2ea9dbf962fcd37371079697",
+    "zz-execution-events.patch": "d1f266d412380f64b394b07a1c309b99ee716f68eabda5980cc39c695fb1c9fd"
+  },
+  "writer_sha256": "6088ad0cb411356a75f96a3eea725e07ba9207e7949ba51c75432e126550676a",
+  "model_sha256": {
+    "cta_barrier_events.py": "cbffaf834184d5ab4fe93514d15e67d332a13236a3fe67942f8074b6fba7c764",
+    "cta_barrier_report.py": "87e293431d7a785bdf55c04745c7063a27ad6dcd524b7ad4246d3ac7781363eb",
+    "execution_events.py": "7767db1d5aa70d820f46fb0c0aea11b1703a0cb379aed0491a55374f1f2c5595"
+  },
+  "reference_sha256": {
+    "cta_barrier_event_components.py": "9e3669f98c36d16c92ee609517209b6fa992eb2b81194d36d5899a8f0c8a308b",
+    "cta_barrier_events_model.cpp": "815e3d3915e6780e8a6f7c362f9065dbf8e26f27055a79ccbcbfcc905a87158c"
+  },
+  "core_checks": 358,
+  "source_cases": 84,
+  "event_checks": 114,
+  "dependency_checks": 359,
+  "sm_checks": 238,
+  "memory_checks": 77,
+  "independently_reaudited_sm_schedules": 62,
+  "windows_event_summary": {
+    "schema": 1,
+    "kind": "observed logical PTX traffic; not hardware transactions or cycles",
+    "records": 112725,
+    "launches": 19,
+    "issues": 23725,
+    "memory": {
+      "global_store_accesses": 49330,
+      "global_store_bytes": 197320,
+      "param_load_accesses": 4740,
+      "param_load_bytes": 37920,
+      "shared_load_accesses": 2240,
+      "shared_load_bytes": 8960,
+      "shared_store_accesses": 2240,
+      "shared_store_bytes": 8960
+    },
+    "truncated": false,
+    "coverage_gaps": 0,
+    "fault_boundaries": 0,
+    "unfinished_issues": 0,
+    "unfinished_launches": 0,
+    "stream_finished": true,
+    "complete_supported_memory": true,
+    "dependency_schema": 2,
+    "collective_schema": 2,
+    "collectives": {},
+    "complete_supported_collectives": true,
+    "cta_barrier_schema": 1,
+    "cta_barriers": {
+      "arrivals": 2880,
+      "blocking_arrivals": 2740,
+      "releases": 1620,
+      "released_waiters": 2740,
+      "exit_dependencies": 70,
+      "result_reads": 1930,
+      "exit_records": 220,
+      "retired_lanes": 4740,
+      "convergence_waits": 35,
+      "nonblocking_arrivals": 140
+    },
+    "complete_supported_cta_barriers": true,
+    "complete_scoreboard_dependencies": false
+  },
+  "windows_report_sha256": "427b7c9e46e4f502e94fec743bda1e9c10c7ebffa478782fa95bf26b5966df49",
+  "windows_report_event_sha256": "1110a3dfa79b0e4eb15face5b232dee19f40957e3c5e05bda35eb3dc317bc7e3",
+  "windows_report_ptx_sha256": "3c1637ee3e53d4174a2fb3b7b7275f174bd10f4bd04f29aa08580179b42f68c1",
+  "windows_report_phases": 1620,
+  "windows_report_waiter_gates": 2740,
+  "windows_cli_capture_and_report_with_spaces": "passed",
+  "physical_gpu_validated": false,
+  "hardware_cycles": false
+}

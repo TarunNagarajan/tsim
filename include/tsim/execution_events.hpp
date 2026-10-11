@@ -64,6 +64,7 @@ class ExecutionEvents {
             "\"execution_path\":\"reference\",\"address_encoding\":\"hexadecimal virtual address\","
             "\"memory_coverage\":\"ld/st and scalar atom/red; other paths emit gaps\","
             "\"dependency_schema\":2,"
+            "\"cta_barrier_schema\":1,\"cta_barrier_coverage\":\"actual converged arrivals, releases, result reads and kernel exits\","
             "\"collective_schema\":2,\"collective_coverage\":\"executed groups, virtual data-source lanes and exact parked membership reads\","
             "\"dependency_coverage\":\"virtual registers and CC.CF; call ABI and other implicit state incomplete\","
             "\"hardware_cycles\":false");
@@ -140,6 +141,52 @@ class ExecutionEvents {
   void collective_wait(long long member_use, unsigned long long member_lane_mask) {
     if (parent_) write("\"type\":\"collective_wait\",\"issue\":" + std::to_string(parent_) +
         ",\"member_use\":" + std::to_string(member_use) + ",\"member_lane_mask\":" + std::to_string(member_lane_mask));
+  }
+  void cta_barrier_wait(unsigned long long mask) {
+    if (parent_) write("\"type\":\"cta_barrier_wait\",\"issue\":" + std::to_string(parent_) +
+        ",\"execution_mask\":" + std::to_string(mask));
+  }
+  unsigned long long cta_barrier_arrive(unsigned id, unsigned long long phase, unsigned count,
+      unsigned reduction, bool blocking, unsigned long long mask, unsigned votes) {
+    if (!parent_) return 0;
+    std::ostringstream s;
+    s << "\"type\":\"cta_barrier_arrive\",\"issue\":" << parent_ << ",\"barrier\":" << id
+      << ",\"phase\":" << phase << ",\"count\":" << count << ",\"reduction\":" << reduction
+      << ",\"blocking\":" << (blocking ? "true" : "false") << ",\"execution_mask\":" << mask
+      << ",\"true_votes\":" << votes;
+    return write(s.str());
+  }
+  void cta_barrier_result(unsigned long long arrival, unsigned long long mask, unsigned long long result) {
+    if (parent_) write("\"type\":\"cta_barrier_result\",\"issue\":" + std::to_string(parent_) +
+        ",\"arrival\":" + std::to_string(arrival) + ",\"execution_mask\":" + std::to_string(mask) +
+        ",\"result\":" + std::to_string(result));
+  }
+  unsigned long long cta_exit(unsigned long long launch, const std::string& kernel,
+      const std::array<unsigned, 3>& block, unsigned warp, unsigned long long mask, bool implicit = false) {
+    std::ostringstream s;
+    s << "\"type\":\"cta_exit\",\"issue\":" << (implicit ? 0 : parent_) << ",\"launch\":" << launch
+      << ",\"kernel\":" << quoted(kernel) << ",\"block\":[" << block[0] << ',' << block[1] << ',' << block[2]
+      << "],\"warp\":" << warp << ",\"execution_mask\":" << mask;
+    return write(s.str());
+  }
+  void cta_barrier_release(unsigned long long launch, const std::string& kernel,
+      const std::array<unsigned, 3>& block, unsigned id, unsigned long long phase,
+      unsigned count, unsigned reduction, unsigned long long participants, unsigned long long waiters,
+      const std::vector<unsigned long long>& arrivals, const std::vector<unsigned long long>& exits,
+      unsigned long long result) {
+    std::ostringstream s;
+    s << "\"type\":\"cta_barrier_release\",\"launch\":" << launch << ",\"kernel\":" << quoted(kernel)
+      << ",\"block\":[" << block[0] << ',' << block[1] << ',' << block[2] << "],\"barrier\":" << id
+      << ",\"phase\":" << phase << ",\"count\":" << count << ",\"reduction\":" << reduction
+      << ",\"participants_mask\":" << participants << ",\"waiters_mask\":" << waiters
+      << ",\"result\":" << result;
+    auto references = [&](const char* key, const std::vector<unsigned long long>& values) {
+      s << ",\"" << key << "\":[";
+      for (size_t i = 0; i < values.size(); ++i) { if (i) s << ','; s << values[i]; }
+      s << ']';
+    };
+    references("arrivals", arrivals); references("exits", exits);
+    write(s.str());
   }
   class LaunchScope {
     ExecutionEvents& stream_;

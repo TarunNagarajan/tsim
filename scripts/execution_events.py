@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 from collective_events import CollectiveEvents
+from cta_barrier_events import CTABarrierEvents
 
 def validate_dependency_issue(event):
     """Validate schema-2 register-file identities and lane masks."""
@@ -60,6 +61,7 @@ def summarize_events(path):
     observed = Counter()
     accesses = {}
     collectives = None
+    cta_barriers = None
     with Path(path).open() as source:
         for line in source:
             event = json.loads(line)
@@ -79,6 +81,10 @@ def summarize_events(path):
                 if stream is not None or previous != 1 or event['schema'] != 1:
                     raise ValueError('Unsupported or duplicate execution event header')
                 stream = event
+                if 'cta_barrier_schema' in event:
+                    if type(event['cta_barrier_schema']) is not int or event['cta_barrier_schema'] != 1:
+                        raise ValueError('Unsupported CTA barrier schema')
+                    cta_barriers = CTABarrierEvents(issues, launches)
                 if event.get('dependency_schema', 1) not in [1, 2]: raise ValueError('Unsupported dependency schema')
                 if 'collective_schema' in event:
                     if type(event['collective_schema']) is not int or event['collective_schema'] not in [1, 2]:
@@ -99,6 +105,7 @@ def summarize_events(path):
                 if key not in launches or key in launch_ends:
                     raise ValueError('Invalid launch completion')
                 launch_ends[key] = event['status']
+                if cta_barriers: cta_barriers.finish_launch(key, event['status'])
                 faults += event['status'] != 'completed'
             elif kind == 'issue':
                 if event['launch'] not in launches or event['launch'] in launch_ends:
@@ -112,7 +119,14 @@ def summarize_events(path):
                     raise ValueError('Invalid expected memory access count')
                 issues[previous] = event
                 accesses[previous] = set()
-            elif kind in ['memory', 'issue_end', 'coverage_gap', 'collective_group', 'collective_transfer', 'collective_wait']:
+                if cta_barriers: cta_barriers.issue(event)
+            elif kind == 'cta_barrier_release' or (kind == 'cta_exit' and event['issue'] == 0):
+                if not cta_barriers: raise ValueError('CTA transition lacks schema declaration')
+                if event['launch'] not in launches or event['launch'] in launch_ends:
+                    raise ValueError('CTA transition outside live launch')
+                cta_barriers.record(event)
+            elif kind in ['memory', 'issue_end', 'coverage_gap', 'collective_group', 'collective_transfer', 'collective_wait',
+                          'cta_barrier_arrive', 'cta_barrier_wait', 'cta_barrier_result', 'cta_exit']:
                 key = event['issue']
                 if key not in issues or key in ends:
                     raise ValueError('Event outside live parent instruction')
@@ -122,6 +136,7 @@ def summarize_events(path):
                         raise ValueError('Unknown instruction completion status')
                     ends[key] = event['status']
                     if collectives: collectives.finish(key, event['status'])
+                    if cta_barriers: cta_barriers.finish_issue(key, event['status'])
                     expected = parent['expected_memory_accesses']
                     if observed[key] > expected or (event['status'] == 'completed' and observed[key] != expected):
                         raise ValueError('Memory access conservation failed')
@@ -131,6 +146,9 @@ def summarize_events(path):
                 elif kind.startswith('collective_'):
                     if collectives is None: raise ValueError('Collective records lack schema declaration')
                     collectives.record(event)
+                elif kind.startswith('cta_'):
+                    if not cta_barriers: raise ValueError('CTA transition lacks schema declaration')
+                    cta_barriers.record(event)
                 else:
                     if not isinstance(event['lane'], int) or not 0 <= event['lane'] < 64:
                         raise ValueError('Invalid memory lane')
@@ -172,4 +190,9 @@ def summarize_events(path):
             'collective_schema': stream.get('collective_schema') if stream else None,
             'collectives': dict(collectives.counts) if collectives else {},
             'complete_supported_collectives': bool(collectives and complete),
+            'cta_barrier_schema': stream.get('cta_barrier_schema') if stream else None,
+            'cta_barriers': dict(cta_barriers.counts) if cta_barriers else {},
+            'complete_supported_cta_barriers': bool(cta_barriers and complete and
+                cta_barriers.complete_launches == len(launches) and not cta_barriers.incomplete_launches and
+                not cta_barriers.counts['implicit_exits']),
             'complete_scoreboard_dependencies': False}

@@ -25,7 +25,7 @@ def verify_execution(cache, out, replay_from=None):
     def digest(path): return hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
     report = {'kind': 'hand-solved SM execution and independently audited CUDA schedule replay; uncalibrated',
               'passed': False, 'checks': checks, 'cases': [], 'hardware_cycles': False,
-              'model_sha256': {n: digest(ROOT / 'scripts' / n) for n in ['sm_execution.py', 'sm_residency.py', 'register_dependencies.py', 'execution_events.py', 'collective_events.py', 'memory_model.py', 'cache_hierarchy.py', 'sector_read_service.py', 'sector_memory_service.py', 'execution_conformance.py']},
+              'model_sha256': {n: digest(ROOT / 'scripts' / n) for n in ['sm_execution.py', 'sm_residency.py', 'register_dependencies.py', 'execution_events.py', 'collective_events.py', 'cta_barrier_events.py', 'memory_model.py', 'cache_hierarchy.py', 'sector_read_service.py', 'sector_memory_service.py', 'execution_conformance.py']},
               'reference_sha256': {n: digest(ROOT / 'tests' / n) for n in ['sm_execution_components.py', 'sm_schedule_reference.py', 'sm_memory_components.py', 'sector_memory_components.py', 'sector_service_reference.py', 'conformance/carry_dependencies.cu', 'conformance/collective_dependencies.cu', 'conformance/collective_discarded.cu', 'conformance/execution_launches.cu', 'conformance/collective_wait_reads.cu', 'conformance/device_calls.cu', 'conformance/cache_policies.cu', 'conformance/cache_hint.cu', 'conformance/memory_spaces.cu']},
               'example_sha256': {n: digest(ROOT / 'examples' / n) for n in ['vector_add.cu', 'shared_reduce.cu']},
               'writer_sha256': digest(ROOT / 'include/tsim/execution_events.hpp'),

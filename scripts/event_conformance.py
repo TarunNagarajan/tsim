@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 
@@ -13,10 +14,16 @@ def verify_events(cache, out, replay_from=None):
     from execution_events import summarize_events
     sys.path.insert(0, str(ROOT / 'tests'))
     from engine_patches_model import verify_patches
+    from cta_barrier_event_components import verify_cta_event_components
     out = Path(out).resolve(); out.mkdir(parents=True, exist_ok=True)
-    checks = []
+    checks = verify_cta_event_components()
     report = {'kind': 'interpreter event conformance; analytical references, not hardware differential',
               'checks': checks, 'passed': False,
+              'model_sha256': {name: hashlib.sha256((ROOT / 'scripts' / name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+                               for name in ['execution_events.py', 'collective_events.py', 'cta_barrier_events.py', 'cta_barrier_report.py', 'register_dependencies.py', 'memory_model.py', 'event_conformance.py']},
+              'reference_sha256': {name: hashlib.sha256((ROOT / 'tests' / name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+                                  for name in ['cta_barrier_event_components.py', 'cta_barrier_events_model.cpp']},
+              'writer_sha256': hashlib.sha256((ROOT / 'include/tsim/execution_events.hpp').read_bytes().replace(b'\r\n', b'\n')).hexdigest(),
               'patch_sha256': {p.name: hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
                                for p in sorted((ROOT / 'patches').glob('*.patch'))}}
     def check(name, condition):
@@ -41,6 +48,22 @@ def verify_events(cache, out, replay_from=None):
         check(name + ' process', code != 0 if negative else code == 0)
         return path
     try:
+        cta_unit = out / 'cta-writer-model'
+        subprocess.run(['clang++', '-std=c++20', '-O2', '-pthread', '-I' + str(ROOT / 'include'),
+                        str(ROOT / 'tests/cta_barrier_events_model.cpp'), '-o', str(cta_unit)], check=True)
+        for name, arguments in [('cta-writer', []), ('cta-implicit-writer', ['implicit'])]:
+            target = out / (name + '.jsonl'); target.unlink(missing_ok=True)
+            env = os.environ.copy(); env['TSIM_EVENTS'] = str(target); env['TSIM_EVENTS_LIMIT'] = '200000'
+            result = subprocess.run([str(cta_unit), *arguments], env=env, text=True, capture_output=True)
+            check(name + ' four workers exit', result.returncode == 0)
+            summary = summarize_events(target)
+            if arguments:
+                check('implicit nested exit does not inherit outer parent', summary['cta_barriers']['implicit_exits'] == 4 and
+                      summary['complete_supported_memory'] and not summary['complete_supported_cta_barriers'])
+            else:
+                check('four-worker phase/result/outside-scope exit ownership', summary['complete_supported_cta_barriers'] and
+                      summary['cta_barriers']['arrivals'] == 12 and summary['cta_barriers']['result_reads'] == 8 and
+                      summary['cta_barriers']['retired_lanes'] == 256 and summary['cta_barriers']['exit_dependencies'] == 4)
         check('managed patch replay and edit protection', verify_patches(out))
         unit = out / 'event-writer-model'
         subprocess.run(['clang++', '-std=c++20', '-O2', '-pthread', '-I' + str(ROOT / 'include'),
@@ -131,12 +154,30 @@ def verify_events(cache, out, replay_from=None):
               (phases / 'stdout.log').read_text() == (phases_plain / 'stdout.log').read_text() and
               'comparisons=49330 launches=19' in (phases / 'stdout.log').read_text())
         phase_summary = summarize_events(phases / 'execution-events.jsonl')
+        check('actual CTA arrivals/results/exits conserve nineteen-launch phase reference',
+              phase_summary['complete_supported_cta_barriers'] and all(phase_summary['cta_barriers'].get(key) == value
+              for key, value in {'arrivals':2880, 'releases':1620, 'result_reads':1930, 'nonblocking_arrivals':140,
+                                'blocking_arrivals':2740, 'retired_lanes':4740, 'exit_dependencies':70}.items()))
         check('nineteen CTA phase launches conserve all scalar accesses',
               phase_summary['complete_supported_memory'] and phase_summary['launches'] == 19 and
               phase_summary['memory']['global_store_accesses'] == 49330 and
               phase_summary['memory']['global_store_bytes'] == 197320 and
               phase_summary['memory']['shared_load_accesses'] == 2240 and
               phase_summary['memory']['shared_store_accesses'] == 2240)
+        from cta_barrier_report import analyze_barriers
+        controls = analyze_barriers(phases)
+        check('actual CTA control report conserves every release and waiter gate',
+              len(controls['phases']) == 1620 and len(controls['control_gates']) == 2740 and
+              sum(len(p['exits']) for p in controls['phases']) == 70)
+        (phases / 'cta-barriers.json').write_text(json.dumps(controls, indent=2))
+        negative = out / 'changed-cta-report'; negative.mkdir(exist_ok=True)
+        for name in ['run.json', 'kernel.ptx', 'program', 'execution-events.jsonl']:
+            shutil.copy2(phases / name, negative / name)
+        data = rows(negative); next(row for row in data if row['type'] == 'issue')['instruction'] = 'mov.u32 %r0, 19;'
+        (negative / 'execution-events.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in data))
+        try: analyze_barriers(negative)
+        except ValueError as error: check('CTA report refuses modified PTX spelling', 'compiled PTX' in str(error))
+        else: raise AssertionError('CTA report accepted modified PTX spelling')
         spaces = run('memory-spaces', ROOT / 'tests/conformance/memory_spaces.cu')
         data = rows(spaces)
         local = [r for r in data if r['type'] == 'memory' and r['space'] == 'local']

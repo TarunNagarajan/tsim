@@ -15,7 +15,7 @@ def verify_memory(cache, out, replay_from=None):
     report = {'kind': 'analytical transaction/cache components; not NVIDIA hardware differential testing',
               'checks': checks, 'passed': False, 'hardware_cycles': False,
               'component_sha256': {name: hashlib.sha256((ROOT / name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
-                                   for name in ['scripts/memory_model.py', 'scripts/execution_events.py']}}
+                                   for name in ['scripts/memory_model.py', 'scripts/execution_events.py', 'scripts/collective_events.py', 'scripts/cta_barrier_events.py']}}
     compiled = {}
     if replay_from:
         for record in sorted(Path(replay_from).glob('*/run.json')):

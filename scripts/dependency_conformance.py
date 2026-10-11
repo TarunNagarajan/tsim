@@ -27,7 +27,7 @@ def verify_dependencies(cache, out, replay_from=None):
     report = {'kind': 'lane-aware observed PTX register/carry hazards; not hardware scoreboard validation',
               'passed': False, 'checks': checks, 'hardware_cycles': False, 'cases': [], 'compiler_syntax_checks': [],
               'model_sha256': {name: hashlib.sha256((ROOT / 'scripts' / name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
-                               for name in ['register_dependencies.py', 'execution_events.py', 'collective_events.py', 'dependency_conformance.py']},
+                               for name in ['register_dependencies.py', 'execution_events.py', 'collective_events.py', 'cta_barrier_events.py', 'dependency_conformance.py']},
               'reference_sha256': {name: hashlib.sha256((ROOT / 'tests' / name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
                                    for name in ['register_dependency_components.py', 'register_dependency_extraction.cpp', 'collective_event_components.py',
                                                 'collective_dependency_components.py', 'collective_wait_components.py',
@@ -354,6 +354,13 @@ def verify_dependencies(cache, out, replay_from=None):
         reject('modified instruction line rejects provenance', lambda: analyze_dependencies(negative), 'compiled PTX')
         modified = deepcopy(data); modified[0].pop('dependency_schema')
         modified[0].pop('collective_schema', None); modified[0].pop('collective_coverage', None)
+        modified[0].pop('cta_barrier_schema', None); modified[0].pop('cta_barrier_coverage', None)
+        modified = [row for row in modified if not row['type'].startswith('cta_')]
+        legacy_sequences = {row['sequence']: sequence for sequence, row in enumerate(modified, 1)}
+        for row in modified:
+            row['sequence'] = legacy_sequences[row['sequence']]
+            for reference in ['issue', 'group']:
+                if reference in row: row[reference] = legacy_sequences[row[reference]]
         for event in modified:
             if event['type'] == 'issue': event.pop('implicit_defs'); event.pop('implicit_uses')
         write(modified)

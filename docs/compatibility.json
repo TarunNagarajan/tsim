@@ -129,7 +129,7 @@
     {
       "feature": "Conserved scalar/vector memory events",
       "evidence": "event-conformance.json",
-      "checks": 62,
+      "checks": 114,
       "status": "tested subset",
       "boundary": "PTX reference capture; unsupported paths emit gaps; scoreboard incomplete"
     },
@@ -197,6 +197,13 @@
       "read_base_checks": 54,
       "status": "uncalibrated modeled subset",
       "boundary": "Actual fills/miss merging and finite LSU/L2/MSHR/writeback resources; store L2 commits, dirty victim blocking and shared backing tails; no data/coherence/weak-memory/atomic/DRAM-bank calibration claim"
+    },
+    {
+      "feature": "Typed actual CTA phase causes and waiter control gates",
+      "evidence": "cta-barrier-events-conformance.json",
+      "status": "tested observed subset",
+      "checks": 114,
+      "boundary": "Actual converged warp arrivals/releases/results/retirement with exact causal ownership; compiled PTX provenance; no regenerated paths, memory completion or calibrated release latency"
     }
   ]
 }

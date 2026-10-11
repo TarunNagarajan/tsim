@@ -74,6 +74,9 @@ def parser():
     s = sub.add_parser('dependency-report', help='Analyze observed lane-aware register and carry hazards')
     s.add_argument('run_directory', type=Path)
     s.add_argument('--out', type=Path)
+    s = sub.add_parser('barrier-report', help='Analyze actual CTA phase causes and waiter control gates')
+    s.add_argument('run_directory', type=Path)
+    s.add_argument('--out', type=Path)
     s = sub.add_parser('dependency-conformance', help='Verify register hazards, predication and implicit carry capture')
     s.add_argument('--out', type=Path)
     s = sub.add_parser('residency-report', help='Analyze SM resource ceilings from PTX estimates or compiler allocations')
@@ -237,7 +240,7 @@ def main():
                 if getattr(args, flag): converted.append('--' + flag)
             for value in args.nvcc_arg: converted.append('--nvcc-arg=' + value)
         if args.command == 'inspect': converted.append(linux_path(args.trace.resolve()))
-        if args.command in ['memory-report', 'cache-report', 'residency-report', 'compile-resources', 'dependency-report', 'execution-report']: converted.append(linux_path(args.run_directory.resolve()))
+        if args.command in ['memory-report', 'cache-report', 'residency-report', 'compile-resources', 'dependency-report', 'barrier-report', 'execution-report']: converted.append(linux_path(args.run_directory.resolve()))
         if getattr(args, 'config', None): converted += ['--config', linux_path(args.config.resolve())]
         if getattr(args, 'memory_config', None): converted += ['--memory-config', linux_path(args.memory_config.resolve())]
         if getattr(args, 'compiler_resources', None): converted += ['--compiler-resources', linux_path(args.compiler_resources.resolve())]
@@ -316,6 +319,13 @@ def main():
         target = args.out or args.run_directory / 'register-dependencies.json'
         target.write_text(json.dumps(report, indent=2))
         print('Register dependency report: ' + str(target.resolve()))
+        return 0
+    if args.command == 'barrier-report':
+        from cta_barrier_report import analyze_barriers
+        report = analyze_barriers(args.run_directory)
+        target = args.out or args.run_directory / 'cta-barriers.json'
+        target.write_text(json.dumps(report, indent=2))
+        print('CTA barrier report: ' + str(target.resolve()))
         return 0
     if args.command == 'dependency-conformance':
         from dependency_conformance import verify_dependencies

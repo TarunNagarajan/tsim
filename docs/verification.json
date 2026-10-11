@@ -364,5 +364,18 @@
     "dependency_checks": 359,
     "sm_checks": 238,
     "windows_four_worker_event_capture": "passed"
+  },
+  "cta_barrier_clean_checkout": {
+    "commit": "2cd4f47c778454b538b00efe94a567619072e567",
+    "run_url": "https://github.com/TarunNagarajan/tsim/actions/runs/38097483728",
+    "job": 114346298801,
+    "all_workflow_steps": "passed"
+  },
+  "cta_event_regression": {
+    "passed": true,
+    "evidence": "cta-barrier-events-conformance.json",
+    "event_checks": 114,
+    "windows_four_worker_capture_and_report_with_spaces": "passed",
+    "timed_barriers_integrated": false
   }
 }
