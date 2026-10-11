@@ -123,6 +123,7 @@
       "config_sha256": "4a4fd0777a95df8702551c4431a0d358f08b512b9d93a374b96156e86eee806d",
       "memory_config_sha256": "cc3d61f0e822127a67c3728aacbd5de4874c46bd000c3e8dde3d788b099bcbef",
       "shared_config_sha256": "ba3da564bb0dfceb3e8814bddf01fe95fa6f74b3190c5a4186bed4bd1186747f",
+      "atomic_config_sha256": null,
       "model_cycles": 407,
       "issues": 391,
       "compiler_artifact_sha256": null,
@@ -130,13 +131,14 @@
     },
     {
       "name": "shared-banks-a100-deterministic",
-      "event_sha256": "3e9f51a3c68ed75101f13060b8a66dc038e6c12e2e87c1151c831eb49a6dfaa4",
+      "event_sha256": "1c55313eb4e5e027f06421a51268fdd973644678925aaf3cd3c7021d18ab3671",
       "ptx_sha256": "45ec1c8e6ee41d5a81e0ff161ffd65d0c88eacd59b8ea4b00b3df3ee2d4335a1",
       "artifact_directory": "shared-banks-a100-deterministic",
       "timed_memory": true,
       "config_sha256": "4a4fd0777a95df8702551c4431a0d358f08b512b9d93a374b96156e86eee806d",
       "memory_config_sha256": "cc3d61f0e822127a67c3728aacbd5de4874c46bd000c3e8dde3d788b099bcbef",
       "shared_config_sha256": "ba3da564bb0dfceb3e8814bddf01fe95fa6f74b3190c5a4186bed4bd1186747f",
+      "atomic_config_sha256": null,
       "model_cycles": 9714,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -149,13 +151,14 @@
     },
     {
       "name": "shared-banks-a100-deterministic-finite",
-      "event_sha256": "3e9f51a3c68ed75101f13060b8a66dc038e6c12e2e87c1151c831eb49a6dfaa4",
+      "event_sha256": "1c55313eb4e5e027f06421a51268fdd973644678925aaf3cd3c7021d18ab3671",
       "ptx_sha256": "45ec1c8e6ee41d5a81e0ff161ffd65d0c88eacd59b8ea4b00b3df3ee2d4335a1",
       "artifact_directory": "shared-banks-a100-deterministic",
       "timed_memory": true,
       "config_sha256": "4a4fd0777a95df8702551c4431a0d358f08b512b9d93a374b96156e86eee806d",
       "memory_config_sha256": "c3d24a2a09cadc630edd5445dd962067f8a0afa7042d37cfd8ad78abb867248d",
       "shared_config_sha256": "e04a06851dcf8826c5d614ad4acc1223ceb3e61d4d24a7d81bca0d150287784c",
+      "atomic_config_sha256": null,
       "model_cycles": 38444,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -168,13 +171,14 @@
     },
     {
       "name": "shared-banks-a100-deterministic-two-sm",
-      "event_sha256": "3e9f51a3c68ed75101f13060b8a66dc038e6c12e2e87c1151c831eb49a6dfaa4",
+      "event_sha256": "1c55313eb4e5e027f06421a51268fdd973644678925aaf3cd3c7021d18ab3671",
       "ptx_sha256": "45ec1c8e6ee41d5a81e0ff161ffd65d0c88eacd59b8ea4b00b3df3ee2d4335a1",
       "artifact_directory": "shared-banks-a100-deterministic",
       "timed_memory": true,
       "config_sha256": "08c5494534319ecfe278fdf6b17afcfee07a6321d0663c0a8bb6cd034ca9c23d",
       "memory_config_sha256": "b2640695d92b45ec47aa49843c16fa7eb6ec2c6b39f2e41a68b76c96d6812876",
       "shared_config_sha256": "55f7dba413052cbd4eef24d240d53b28b9b34f1b1769f6f526b339bc819b9714",
+      "atomic_config_sha256": null,
       "model_cycles": 9248,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -194,6 +198,7 @@
       "config_sha256": "4a4fd0777a95df8702551c4431a0d358f08b512b9d93a374b96156e86eee806d",
       "memory_config_sha256": "cc3d61f0e822127a67c3728aacbd5de4874c46bd000c3e8dde3d788b099bcbef",
       "shared_config_sha256": "ba3da564bb0dfceb3e8814bddf01fe95fa6f74b3190c5a4186bed4bd1186747f",
+      "atomic_config_sha256": null,
       "model_cycles": 9714,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -213,6 +218,7 @@
       "config_sha256": "4a4fd0777a95df8702551c4431a0d358f08b512b9d93a374b96156e86eee806d",
       "memory_config_sha256": "c3d24a2a09cadc630edd5445dd962067f8a0afa7042d37cfd8ad78abb867248d",
       "shared_config_sha256": "e04a06851dcf8826c5d614ad4acc1223ceb3e61d4d24a7d81bca0d150287784c",
+      "atomic_config_sha256": null,
       "model_cycles": 38444,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -232,6 +238,7 @@
       "config_sha256": "08c5494534319ecfe278fdf6b17afcfee07a6321d0663c0a8bb6cd034ca9c23d",
       "memory_config_sha256": "b2640695d92b45ec47aa49843c16fa7eb6ec2c6b39f2e41a68b76c96d6812876",
       "shared_config_sha256": "55f7dba413052cbd4eef24d240d53b28b9b34f1b1769f6f526b339bc819b9714",
+      "atomic_config_sha256": null,
       "model_cycles": 9248,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -251,6 +258,7 @@
       "config_sha256": "4a4fd0777a95df8702551c4431a0d358f08b512b9d93a374b96156e86eee806d",
       "memory_config_sha256": "cc3d61f0e822127a67c3728aacbd5de4874c46bd000c3e8dde3d788b099bcbef",
       "shared_config_sha256": "ba3da564bb0dfceb3e8814bddf01fe95fa6f74b3190c5a4186bed4bd1186747f",
+      "atomic_config_sha256": null,
       "model_cycles": 9714,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -270,6 +278,7 @@
       "config_sha256": "4a4fd0777a95df8702551c4431a0d358f08b512b9d93a374b96156e86eee806d",
       "memory_config_sha256": "c3d24a2a09cadc630edd5445dd962067f8a0afa7042d37cfd8ad78abb867248d",
       "shared_config_sha256": "e04a06851dcf8826c5d614ad4acc1223ceb3e61d4d24a7d81bca0d150287784c",
+      "atomic_config_sha256": null,
       "model_cycles": 38444,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -289,6 +298,7 @@
       "config_sha256": "08c5494534319ecfe278fdf6b17afcfee07a6321d0663c0a8bb6cd034ca9c23d",
       "memory_config_sha256": "b2640695d92b45ec47aa49843c16fa7eb6ec2c6b39f2e41a68b76c96d6812876",
       "shared_config_sha256": "55f7dba413052cbd4eef24d240d53b28b9b34f1b1769f6f526b339bc819b9714",
+      "atomic_config_sha256": null,
       "model_cycles": 9248,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -301,13 +311,14 @@
     },
     {
       "name": "shared-banks-h100-deterministic",
-      "event_sha256": "3397eedc59c9f3f53ddcb91698f82691720f533811074ebdc96ea0693198e6e3",
+      "event_sha256": "9c9bd694546e284ddbbbe103f76a738aa44f2f96de294929c458b46172a29dfd",
       "ptx_sha256": "45ec1c8e6ee41d5a81e0ff161ffd65d0c88eacd59b8ea4b00b3df3ee2d4335a1",
       "artifact_directory": "shared-banks-h100-deterministic",
       "timed_memory": true,
       "config_sha256": "4a4fd0777a95df8702551c4431a0d358f08b512b9d93a374b96156e86eee806d",
       "memory_config_sha256": "cc3d61f0e822127a67c3728aacbd5de4874c46bd000c3e8dde3d788b099bcbef",
       "shared_config_sha256": "ba3da564bb0dfceb3e8814bddf01fe95fa6f74b3190c5a4186bed4bd1186747f",
+      "atomic_config_sha256": null,
       "model_cycles": 9714,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -320,13 +331,14 @@
     },
     {
       "name": "shared-banks-h100-deterministic-finite",
-      "event_sha256": "3397eedc59c9f3f53ddcb91698f82691720f533811074ebdc96ea0693198e6e3",
+      "event_sha256": "9c9bd694546e284ddbbbe103f76a738aa44f2f96de294929c458b46172a29dfd",
       "ptx_sha256": "45ec1c8e6ee41d5a81e0ff161ffd65d0c88eacd59b8ea4b00b3df3ee2d4335a1",
       "artifact_directory": "shared-banks-h100-deterministic",
       "timed_memory": true,
       "config_sha256": "4a4fd0777a95df8702551c4431a0d358f08b512b9d93a374b96156e86eee806d",
       "memory_config_sha256": "c3d24a2a09cadc630edd5445dd962067f8a0afa7042d37cfd8ad78abb867248d",
       "shared_config_sha256": "e04a06851dcf8826c5d614ad4acc1223ceb3e61d4d24a7d81bca0d150287784c",
+      "atomic_config_sha256": null,
       "model_cycles": 38444,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -339,13 +351,14 @@
     },
     {
       "name": "shared-banks-h100-deterministic-two-sm",
-      "event_sha256": "3397eedc59c9f3f53ddcb91698f82691720f533811074ebdc96ea0693198e6e3",
+      "event_sha256": "9c9bd694546e284ddbbbe103f76a738aa44f2f96de294929c458b46172a29dfd",
       "ptx_sha256": "45ec1c8e6ee41d5a81e0ff161ffd65d0c88eacd59b8ea4b00b3df3ee2d4335a1",
       "artifact_directory": "shared-banks-h100-deterministic",
       "timed_memory": true,
       "config_sha256": "08c5494534319ecfe278fdf6b17afcfee07a6321d0663c0a8bb6cd034ca9c23d",
       "memory_config_sha256": "b2640695d92b45ec47aa49843c16fa7eb6ec2c6b39f2e41a68b76c96d6812876",
       "shared_config_sha256": "55f7dba413052cbd4eef24d240d53b28b9b34f1b1769f6f526b339bc819b9714",
+      "atomic_config_sha256": null,
       "model_cycles": 9248,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -365,6 +378,7 @@
       "config_sha256": "4a4fd0777a95df8702551c4431a0d358f08b512b9d93a374b96156e86eee806d",
       "memory_config_sha256": "cc3d61f0e822127a67c3728aacbd5de4874c46bd000c3e8dde3d788b099bcbef",
       "shared_config_sha256": "ba3da564bb0dfceb3e8814bddf01fe95fa6f74b3190c5a4186bed4bd1186747f",
+      "atomic_config_sha256": null,
       "model_cycles": 9714,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -384,6 +398,7 @@
       "config_sha256": "4a4fd0777a95df8702551c4431a0d358f08b512b9d93a374b96156e86eee806d",
       "memory_config_sha256": "c3d24a2a09cadc630edd5445dd962067f8a0afa7042d37cfd8ad78abb867248d",
       "shared_config_sha256": "e04a06851dcf8826c5d614ad4acc1223ceb3e61d4d24a7d81bca0d150287784c",
+      "atomic_config_sha256": null,
       "model_cycles": 38444,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -403,6 +418,7 @@
       "config_sha256": "08c5494534319ecfe278fdf6b17afcfee07a6321d0663c0a8bb6cd034ca9c23d",
       "memory_config_sha256": "b2640695d92b45ec47aa49843c16fa7eb6ec2c6b39f2e41a68b76c96d6812876",
       "shared_config_sha256": "55f7dba413052cbd4eef24d240d53b28b9b34f1b1769f6f526b339bc819b9714",
+      "atomic_config_sha256": null,
       "model_cycles": 9248,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -422,6 +438,7 @@
       "config_sha256": "4a4fd0777a95df8702551c4431a0d358f08b512b9d93a374b96156e86eee806d",
       "memory_config_sha256": "cc3d61f0e822127a67c3728aacbd5de4874c46bd000c3e8dde3d788b099bcbef",
       "shared_config_sha256": "ba3da564bb0dfceb3e8814bddf01fe95fa6f74b3190c5a4186bed4bd1186747f",
+      "atomic_config_sha256": null,
       "model_cycles": 9714,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -441,6 +458,7 @@
       "config_sha256": "4a4fd0777a95df8702551c4431a0d358f08b512b9d93a374b96156e86eee806d",
       "memory_config_sha256": "c3d24a2a09cadc630edd5445dd962067f8a0afa7042d37cfd8ad78abb867248d",
       "shared_config_sha256": "e04a06851dcf8826c5d614ad4acc1223ceb3e61d4d24a7d81bca0d150287784c",
+      "atomic_config_sha256": null,
       "model_cycles": 38444,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -460,6 +478,7 @@
       "config_sha256": "08c5494534319ecfe278fdf6b17afcfee07a6321d0663c0a8bb6cd034ca9c23d",
       "memory_config_sha256": "b2640695d92b45ec47aa49843c16fa7eb6ec2c6b39f2e41a68b76c96d6812876",
       "shared_config_sha256": "55f7dba413052cbd4eef24d240d53b28b9b34f1b1769f6f526b339bc819b9714",
+      "atomic_config_sha256": null,
       "model_cycles": 9248,
       "issues": 1068,
       "compiler_artifact_sha256": {
@@ -500,7 +519,7 @@
   "cpu_workers": 4,
   "host_comparisons_per_fixture": 2688,
   "model_sha256": {
-    "sm_execution.py": "1ff99690a2a427544be6882fc2a50819ee73bde61839c216a967e755223ab2f4",
+    "sm_execution.py": "140a21eb8ab1914737a951827a3b9e34b8f2fc93c3d198ca5a80baef7d73d245",
     "sm_residency.py": "f0c8f35715253302dca68a6943be479fda4224c4ecd0f50b0f37b97fa624a320",
     "register_dependencies.py": "9bac9f4a4d187d03af39f672bcea303af50793cd6a13e43d936994187facf335",
     "execution_events.py": "7767db1d5aa70d820f46fb0c0aea11b1703a0cb379aed0491a55374f1f2c5595",
@@ -512,9 +531,10 @@
     "cache_hierarchy.py": "d079e1db84282d26e89d8e8c5be23b83fd26767d43b317b61e0ff8d73666d019",
     "sector_read_service.py": "286570d94c4103c82a6dae3b45e1247cc6674a27d635b771c1dd1a40b1a94d42",
     "sector_memory_service.py": "42f1a046a38fc85c911116a660e79d476cb2f6c84408e88e0798f79c6054035f",
-    "execution_conformance.py": "0c8f11eb4779ad59275b9ec7ab7391d9cc7f9d714933b6e53308ff2cc62070fc",
+    "execution_conformance.py": "d1e8dd4cf8aa8007fcae20ca7968775cfcb1a103ac19ca615aa67f1ac1f113cf",
     "shared_memory_service.py": "49b87db97cdab06c016b7ebea1c94b1f565649894836208afeadb26221b2399f",
-    "memory_system.py": "583cbeabff2aa483d673be58031e894533db490d50dd4dac481f619087fe3a3a"
+    "memory_system.py": "a6257d37285452825d7a9063f8d623e4919170c966bc867048909d28306a2d34",
+    "global_atomic_service.py": "1146dd380b19d15df76ef8fe026d8eaf4ede15eecb97ad84c56939f1d567f9aa"
   },
   "reference_sha256": {
     "cta_timing_components.py": "2d44b85b02cde16542f6af7afce048df091e6b18107cf27f0d44e8a121bce6e2",
@@ -523,7 +543,7 @@
     "register_dependency_components.py": "a702ca3f62cecb04de90c173e51e09d96f58d3806ada3d9803b3a6e775365dd6",
     "conformance/cta_timing.cu": "6f02627fd3c56018d43b37a20a41d3fc1712c35efcbf4e15c92c147e224b88cf",
     "sm_execution_components.py": "5bb6b6f9240cef3585e17d0166d97daa8af5cc148585133916e1224a65049e02",
-    "sm_schedule_reference.py": "26a449823ee12a1f18df8b2f44589e2f7e1871d36cbb1e10be3f83204f7838b5",
+    "sm_schedule_reference.py": "37e5034bd57db565a396855a260b54ef479b26968472a59aaba2adde98f4c239",
     "sm_memory_components.py": "4c7f8a996c0308c50d6049573e2c5cbd2dc8c408fa69cddf100deb7bf3f3e255",
     "sector_memory_components.py": "a4c12c1ecea607bb9b7b5707bff94d28fe391c8611dd92201dd77c51ca29dfca",
     "sector_service_reference.py": "4538ab3708cd50e2ab9fcb78ecdc1db6067177e06e8cf4cb1b48d45c5fedd017",
@@ -539,10 +559,14 @@
     "shared_memory_components.py": "c86a1da6e403c476460de366501c92981f0dc9a21795f78baf4708a6b6a607a7",
     "shared_service_reference.py": "aaf3330ea963815b22b25a52a1df081898a8cf3d8cd98b477a4462fc5097290c",
     "sm_shared_components.py": "185348605d2e24c252e98f268eeda7133b328420e81fbf81297e44f1704d25e0",
-    "memory_system_reference.py": "da5eef1cce2543be8d05b864b46de9f7a3f4b5a469753ae1dc1db676cccb4547",
-    "conformance/shared_bank_timing.cu": "a28944908b37bb8c5ddc773e9867e0d408bcd940647e16c3c6484df4050e221d"
+    "memory_system_reference.py": "ea8e18166e5c6cb58eb8ed1af209c80e45fc44e073ff96612958517bdf5b39db",
+    "conformance/shared_bank_timing.cu": "a28944908b37bb8c5ddc773e9867e0d408bcd940647e16c3c6484df4050e221d",
+    "global_atomic_components.py": "c5ca5ffd00a581ca03454bb337866a6aa09679a4b98667ca344784b43cbee8fd",
+    "global_atomic_reference.py": "52eb0c77c73fbe4cbdb4a6665cdb4f2932c21977ada3992a4baa7f9ac03582c7",
+    "sm_atomic_components.py": "c9876f621505bfe2a639ba2e462d654fc694a67090b4f2c5d23996f383a47e0e",
+    "conformance/global_atomic_timing.cu": "dc8725a1eec5aef469765fbc9e2f136a47c001bf8749fe74cf5e3178500ed61e"
   },
-  "cli_sha256": "4d63af97bc9654f7a9cb3287fc321aba134e40968e5caf55449f195acd4eba86",
+  "cli_sha256": "ee158ee1957eb50283116dbc24e9cee7b9b22668aefd66b8c934e9c777087894",
   "writer_sha256": "6088ad0cb411356a75f96a3eea725e07ba9207e7949ba51c75432e126550676a",
   "patch_sha256": {
     "atomic-nan.patch": "3a66fbe1aa7058fd114750a49229b9fe64a3136a54a2e8935e7d103323a9a8c1",
@@ -563,7 +587,7 @@
     "issues": 1068
   },
   "regression_checks": {
-    "source": 96,
+    "source": 102,
     "memory": 77,
     "cache": 76,
     "sector-read": 54,

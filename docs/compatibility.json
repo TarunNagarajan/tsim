@@ -116,8 +116,10 @@
     },
     {
       "feature": "SM instruction pipelines, scoreboards and cycle timing",
-      "status": "unimplemented",
-      "cases": []
+      "status": "uncalibrated modeled subset",
+      "cases": [],
+      "evidence": "execution-conformance.json",
+      "boundary": "Observed virtual hazards and explicitly classified finite pipelines; complete scoreboards, regenerated control, SASS dependencies and physical cycle calibration remain open"
     },
     {
       "feature": "universal CUDA/PTX compatibility",
@@ -139,6 +141,14 @@
         "shared_bank_timing"
       ],
       "boundary": "CUDA host arithmetic verifies vector4/subword/64-bit/broadcast/shared scalar32/64 atomics and mixed global/shared generic loads through two CTA handoffs; timing remains explicitly synthetic"
+    },
+    {
+      "feature": "Global scalar atomic return values, reductions and mixed-space RMW",
+      "status": "tested subset",
+      "cases": [
+        "global_atomic_timing"
+      ],
+      "boundary": "Host references check scalar32/64 ticket permutations, per-word updates, mixed generic global/shared atomics, add/CAS success and failure/min/max/exch/bit/inc/dec/reduction values and CTA handoffs; timing/data coherence remains separately modeled and uncalibrated"
     }
   ],
   "architecture_models": [
@@ -198,16 +208,18 @@
     {
       "feature": "Configured SM execution replay",
       "evidence": "execution-conformance.json",
-      "checks": 476,
+      "checks": 613,
       "analytical_component_checks": 52,
-      "audited_schedules": 106,
+      "audited_schedules": 124,
       "status": "uncalibrated modeled subset",
-      "boundary": "Observed paths, SDK admission, virtual hazards, finite CTA releases; staged global queues/writebacks plus shared logical byte-word/bank/atomic service with indivisible common LSU response joins; data/coherence/other spaces/SASS splitting/calibration open",
+      "boundary": "Observed paths, SDK admission, virtual hazards, finite CTA release, staged global/cache/writeback, shared banks and global scalar RMW with indivisible LSU joins; data/coherence/other spaces/SASS/calibration open",
       "asynchronous_sm_checks": 30,
       "global_store_component_checks": 29,
       "cta_component_checks": 35,
       "shared_component_checks": 85,
-      "common_lsu_sm_checks": 20
+      "common_lsu_sm_checks": 20,
+      "global_atomic_component_checks": 73,
+      "global_atomic_sm_checks": 12
     },
     {
       "feature": "Staged global load/store and dirty writeback service",
@@ -238,6 +250,14 @@
       "audited_schedules": 19,
       "status": "uncalibrated modeled subset",
       "boundary": "Actual scalar/vector/subword byte spans, finite word-bank/atomic locks, common LSU capacity and last-fragment retirement through CTA/resident tails; no values/coherence/SASS splitting/calibration"
+    },
+    {
+      "feature": "Global scalar RMW completion and protected cache victims",
+      "evidence": "global-atomic-conformance.json",
+      "checks": 85,
+      "audited_schedules": 18,
+      "status": "uncalibrated modeled subset",
+      "boundary": "Distinct captured lane jobs, finite FIFO/slots/port, overlapping word locks, L2 line pins, joined responses and dirty backing tails; no data/coherence/scoped ordering/SASS/calibration"
     }
   ]
 }

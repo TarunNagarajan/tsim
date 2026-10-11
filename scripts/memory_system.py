@@ -1,9 +1,10 @@
 """Indivisible LSU admission and completion joins for global/shared PTX traffic."""
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import asdict,dataclass
 from sector_memory_service import MemoryConfig, SectorMemoryService
 from shared_memory_service import SharedConfig, SharedRequest, SharedMemoryService
 from memory_model import positive_integer
+from global_atomic_service import AtomicConfig,GlobalAtomicRequest,AtomicMemoryService
 
 
 @dataclass(frozen=True)
@@ -23,8 +24,15 @@ class SectorRequest:
 
 @dataclass(frozen=True)
 class CompositeRequest:
-    global_fragment: SectorRequest
+    global_fragment: SectorRequest | GlobalAtomicRequest
     shared_fragment: SharedRequest
+
+
+def memory_record(request):
+    if isinstance(request,CompositeRequest):return {'global_fragment':memory_record(request.global_fragment),'shared_fragment':memory_record(request.shared_fragment)}
+    result=asdict(request)
+    if isinstance(request,GlobalAtomicRequest):result['sectors']=request.sectors
+    return result
 
 
 class MemorySystem:
@@ -35,12 +43,15 @@ class MemorySystem:
     The initiation interval is the maximum of participating route intervals.
     These are explicit assumptions, not measured NVIDIA port sharing.
     """
-    def __init__(self, memory_config=None, shared_config=None, readiness=None):
+    def __init__(self, memory_config=None, shared_config=None, readiness=None,atomic_config=None):
         if memory_config is None and shared_config is None: raise ValueError('Missing memory services')
         for config,kind in [(memory_config,MemoryConfig),(shared_config,SharedConfig)]:
             if config is not None:
                 if not isinstance(config,kind):raise ValueError('Invalid memory service configuration')
                 config.validate()
+        if atomic_config is not None:
+            if not isinstance(atomic_config,AtomicConfig) or memory_config is None:raise ValueError('Global atomics need atomic and sector configurations')
+            atomic_config.validate()
         self.count=(memory_config or shared_config).sm_count
         if any(c and c.sm_count!=self.count for c in [memory_config,shared_config]): raise ValueError('Memory service SM counts disagree')
         self.capacity=memory_config.lsu_slots_per_sm if memory_config else shared_config.request_slots_per_sm
@@ -48,7 +59,7 @@ class MemorySystem:
             if not isinstance(readiness,dict) or set(readiness)!={'lsu','global','shared'} or not isinstance(readiness['lsu'],list) or len(readiness['lsu'])!=self.count or any(type(v) is not int or v<0 for v in readiness['lsu']):
                 raise ValueError('Malformed common LSU readiness')
             if (readiness['global'] is None)!=(memory_config is None) or (readiness['shared'] is None)!=(shared_config is None): raise ValueError('Memory readiness route mismatch')
-        self.global_service=SectorMemoryService(memory_config) if memory_config else None
+        self.global_service=(AtomicMemoryService(memory_config,atomic_config) if atomic_config else SectorMemoryService(memory_config)) if memory_config else None
         if self.global_service and readiness is not None:self.global_service.restore_port_readiness(readiness['global'])
         self.shared_service=SharedMemoryService(shared_config,readiness['shared'] if readiness else None) if shared_config else None
         self.next_port=list(readiness['lsu']) if readiness else [0]*self.count
@@ -56,7 +67,7 @@ class MemorySystem:
         self.used=[0]*self.count;self.cycle=0;self.requests={};self.finished={};self.resource_records=[];self.stats=Counter();self.peak=0
 
     def fragments(self,request):
-        if isinstance(request,SectorRequest):return {'global':request}
+        if isinstance(request,(SectorRequest,GlobalAtomicRequest)):return {'global':request}
         if isinstance(request,SharedRequest):return {'shared':request}
         if isinstance(request,CompositeRequest):return {'global':request.global_fragment,'shared':request.shared_fragment}
         raise ValueError('Missing typed memory request')
@@ -66,8 +77,11 @@ class MemorySystem:
         for name,fragment in fragments.items():
             provider=self.global_service if name=='global' else self.shared_service
             if provider is None:raise ValueError('Undeclared '+name+' memory service')
-            if not isinstance(fragment,SectorRequest if name=='global' else SharedRequest):raise ValueError('Invalid typed memory fragment')
-            fragment.validate(provider.config)
+            if not isinstance(fragment,(SectorRequest,GlobalAtomicRequest) if name=='global' else SharedRequest):raise ValueError('Invalid typed memory fragment')
+            if isinstance(fragment,GlobalAtomicRequest):
+                if not isinstance(provider,AtomicMemoryService):raise ValueError('Undeclared global atomic service')
+                fragment.validate(provider.config,provider.atomic_config)
+            else:fragment.validate(provider.config)
         if len({fragment.operation for fragment in fragments.values()})!=1:raise ValueError('Mixed instruction operations disagree')
 
     def submit(self,identity,sm,request):
@@ -80,7 +94,8 @@ class MemorySystem:
             self.stats['admission_blocked_probes']+=1;return False
         # Every route is validated and preflighted before any reservation.
         for name,fragment in fragments.items():
-            if name=='global':accepted=providers[name].submit(identity,sm,fragment.sectors,operation=fragment.operation,bypass_l1=fragment.bypass_l1)
+            if isinstance(fragment,GlobalAtomicRequest):accepted=providers[name].submit_atomic(identity,sm,fragment)
+            elif name=='global':accepted=providers[name].submit(identity,sm,fragment.sectors,operation=fragment.operation,bypass_l1=fragment.bypass_l1)
             else:accepted=providers[name].submit(identity,sm,fragment)
             if not accepted:raise AssertionError('Preflighted fragment was partially admitted')
         interval=max(p.config.lsu_interval if name=='global' else p.config.request_interval for name,p in providers.items())
@@ -139,4 +154,5 @@ class MemorySystem:
             'dram_reads':p.dram_records,'writebacks':p.writeback_records,'store_commits':p.commit_records,
             'resource_records':p.resource_records,'lookup_records':p.lookup_records,
             'initial_port_readiness':self.initial['global'] if self.initial else None,'next_port_readiness':p.port_readiness(),
-            'final_snapshot':p.snapshot(),'closed':p.closed}
+            'final_snapshot':p.snapshot(),'closed':p.closed,
+            'atomic_service':p.atomic_report() if isinstance(p,AtomicMemoryService) else None}

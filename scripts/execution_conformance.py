@@ -25,10 +25,14 @@ def verify_execution(cache, out, replay_from=None):
     from sm_shared_components import verify_sm_shared
     from shared_memory_service import SharedConfig,load_shared_config
     from memory_system_reference import verify_captured_memory
+    from global_atomic_service import AtomicConfig,load_atomic_config
+    from global_atomic_components import verify_global_atomic_components
+    from sm_atomic_components import verify_sm_atomics
     out = Path(out).resolve(); out.mkdir(parents=True, exist_ok=True)
     checks = verify_execution_components()
     checks.extend(verify_sm_memory()); checks.extend(verify_sector_memory()); checks.extend(verify_cta_timing())
     checks.extend(verify_shared_components());checks.extend(verify_sm_shared())
+    checks.extend(verify_global_atomic_components());checks.extend(verify_sm_atomics())
     def digest(path): return hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
     report = {'kind': 'hand-solved SM execution and independently audited CUDA schedule replay; uncalibrated',
               'passed': False, 'checks': checks, 'cases': [], 'hardware_cycles': False,
@@ -59,18 +63,20 @@ def verify_execution(cache, out, replay_from=None):
         code, path = run_program(args, cache, compiled_from=compiled.get(str(source)))
         compiled.setdefault(str(source), path); check(name + ' complete numerical reference', code == 0)
         return path
-    for n in ['shared_memory_service.py','memory_system.py']:report['model_sha256'][n]=digest(ROOT/'scripts'/n)
-    for n in ['shared_memory_components.py','shared_service_reference.py','sm_shared_components.py','memory_system_reference.py','conformance/shared_bank_timing.cu']:report['reference_sha256'][n]=digest(ROOT/'tests'/n)
-    def audit(name, path, config=None, compiler=None, memory=None,shared=None):
-        result = analyze_execution(path, config, compiler, memory,shared); graph = analyze_dependencies(path)
+    for n in ['shared_memory_service.py','memory_system.py','global_atomic_service.py']:report['model_sha256'][n]=digest(ROOT/'scripts'/n)
+    for n in ['shared_memory_components.py','shared_service_reference.py','sm_shared_components.py','memory_system_reference.py','conformance/shared_bank_timing.cu',
+        'global_atomic_components.py','global_atomic_reference.py','sm_atomic_components.py','conformance/global_atomic_timing.cu']:report['reference_sha256'][n]=digest(ROOT/'tests'/n)
+    def audit(name, path, config=None, compiler=None, memory=None,shared=None,atomic=None):
+        result = analyze_execution(path, config, compiler, memory,shared,atomic); graph = analyze_dependencies(path)
         check(name + ' independent hazard/port/queue/admission/retirement interval audit', verify_schedule(result, graph) and verify_cta_dependencies([json.loads(row) for row in (path/'execution-events.jsonl').read_text().splitlines()],graph))
-        if shared:check(name+' independent original captured byte routing',verify_captured_memory([json.loads(row) for row in (path/'execution-events.jsonl').read_text().splitlines()],result))
+        if shared or atomic:check(name+' independent original captured byte routing',verify_captured_memory([json.loads(row) for row in (path/'execution-events.jsonl').read_text().splitlines()],result))
         (path / (name + '-sm-execution.json')).write_text(json.dumps(result, indent=2))
         report['cases'].append({'name': name, 'event_sha256': result['event_sha256'], 'ptx_sha256': result['ptx_sha256'],
                                 'artifact_directory': path.name, 'timed_memory': memory is not None,
                                 'config_sha256': hashlib.sha256(json.dumps(result['config'], sort_keys=True).encode()).hexdigest(),
                                 'memory_config_sha256': hashlib.sha256(json.dumps(result['memory_config'], sort_keys=True).encode()).hexdigest() if memory else None,
                                 'shared_config_sha256':hashlib.sha256(json.dumps(result['shared_config'],sort_keys=True).encode()).hexdigest() if shared else None,
+                                'atomic_config_sha256':hashlib.sha256(json.dumps(result['atomic_config'],sort_keys=True).encode()).hexdigest() if atomic else None,
                                 'model_cycles': result['model_cycles'], 'issues': len(graph['nodes']),
                                 'compiler_artifact_sha256': result['compiler_artifact_sha256'],
                                 'physical_register_allocation_verified': result['physical_register_allocation_verified']})
@@ -174,6 +180,27 @@ def verify_execution(cache, out, replay_from=None):
                     len(bank_graph['cta_phases'])==12)
         shared_path=out/'shared assumptions.json';shared_path.write_text(json.dumps(SharedConfig().record()))
         check('shared configuration round trip preserves all assumptions',load_shared_config(shared_path).record()==SharedConfig().record())
+        for gpu in ['a100','h100']:
+            for schedule in ['deterministic','random','adversarial']:
+                atomic_name='global-atomics-'+gpu+'-'+schedule
+                atomic_path=run(atomic_name,ROOT/'tests/conformance/global_atomic_timing.cu',gpu,schedule,workers=4)
+                compile_resources(atomic_path,cache);atomic_compiler=atomic_path/'compiler-resources'
+                atomics,atomic_graph=audit(atomic_name,atomic_path,compiler=atomic_compiler,memory=memory,shared=SharedConfig(),atomic=AtomicConfig())
+                audit(atomic_name+'-finite',atomic_path,compiler=atomic_compiler,
+                    memory=replace(memory,lsu_slots_per_sm=1,mshrs=1,l2_slots=1,l2_queue=1,cache_sets=1,cache_ways=1,writeback_slots=4),
+                    shared=SharedConfig(bank_slots=1,bank_queue=1,request_slots_per_sm=1),atomic=AtomicConfig(queue=1,slots=1))
+                audit(atomic_name+'-two-sm',atomic_path,config=replace(base,sm_count=2),compiler=atomic_compiler,
+                    memory=replace(memory,sm_count=2),shared=SharedConfig(sm_count=2),atomic=AtomicConfig())
+                check(atomic_name+' exact distinct lane updates, mixed routing and operator results',
+                    sum(l['memory_service']['atomic_service']['stats']['committed_updates'] for l in atomics['launches'])==5952 and
+                    any(len(r['routes'])==2 for l in atomics['launches'] for r in l['memory_system']['requests']) and
+                    len(atomic_graph['cta_phases'])==12 and 'comparisons=6600 launches=4' in (atomic_path/'stdout.log').read_text())
+        atomic_path=out/'atomic assumptions.json';atomic_path.write_text(json.dumps(AtomicConfig().record()))
+        check('atomic configuration round trip preserves declared assumptions',load_atomic_config(atomic_path).record()==AtomicConfig().record())
+        for label,mutation in [('unknown RMW field',lambda d:d.update(guessed=True)),('unverified atomic calibration',lambda d:d.update(provenance_kind='measured')),
+            ('boolean RMW schema',lambda d:d.update(schema=True))]:
+            data=AtomicConfig().record();mutation(data);atomic_path.write_text(json.dumps(data));reject(label,lambda:load_atomic_config(atomic_path))
+        atomic_path.write_text(json.dumps(AtomicConfig().record()))
         for label,mutation in [
             ('early release',lambda r:r['launches'][0]['cta_barrier_service']['phases'][0].update(start_cycle=0)),
             ('missing memory prefix',lambda r:r['launches'][0]['cta_barrier_service']['phases'][0].update(memory_prior_issues=[])),

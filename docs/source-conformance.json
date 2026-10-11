@@ -144,6 +144,17 @@
       "passed": true
     },
     {
+      "case": "global_atomic_timing",
+      "source": "global_atomic_timing",
+      "profile": "a100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "workers": 4,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "a100",
@@ -320,6 +331,17 @@
       "passed": true
     },
     {
+      "case": "global_atomic_timing",
+      "source": "global_atomic_timing",
+      "profile": "a100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "workers": 4,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "a100",
@@ -496,6 +518,17 @@
       "passed": true
     },
     {
+      "case": "global_atomic_timing",
+      "source": "global_atomic_timing",
+      "profile": "a100",
+      "scheduler": "random",
+      "seed": 17,
+      "workers": 4,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "a100",
@@ -672,6 +705,17 @@
       "passed": true
     },
     {
+      "case": "global_atomic_timing",
+      "source": "global_atomic_timing",
+      "profile": "h100",
+      "scheduler": "deterministic",
+      "seed": 17,
+      "workers": 4,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "h100",
@@ -848,6 +892,17 @@
       "passed": true
     },
     {
+      "case": "global_atomic_timing",
+      "source": "global_atomic_timing",
+      "profile": "h100",
+      "scheduler": "adversarial",
+      "seed": 17,
+      "workers": 4,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
       "case": "missing_release",
       "source": "atomic_protocol",
       "profile": "h100",
@@ -1015,6 +1070,17 @@
     {
       "case": "shared_bank_timing",
       "source": "shared_bank_timing",
+      "profile": "h100",
+      "scheduler": "random",
+      "seed": 17,
+      "workers": 4,
+      "expected_race": false,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "global_atomic_timing",
+      "source": "global_atomic_timing",
       "profile": "h100",
       "scheduler": "random",
       "seed": 17,
@@ -1069,5 +1135,5 @@
     }
   ],
   "passed": true,
-  "total_checks": 96
+  "total_checks": 102
 }

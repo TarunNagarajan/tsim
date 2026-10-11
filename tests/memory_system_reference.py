@@ -1,6 +1,7 @@
 """Independent common LSU reservation and fragment-response join audit."""
 from collections import defaultdict
 from shared_service_reference import verify_shared_service
+from global_atomic_reference import verify_global_atomics
 
 
 def verify_captured_memory(events,report):
@@ -20,6 +21,10 @@ def verify_captured_memory(events,report):
             if name=='global':
                 expected={byte//32 for e in accesses for byte in range(int(e['address'],16),int(e['address'],16)+e['bytes'])}
                 assert list(fragment['sectors'])==sorted(expected), 'Captured global byte sectors'
+                if fragment['operation']=='atomic':
+                    expected=sorted((e['lane'],e['element'],int(e['address'],16),e['bytes']) for e in accesses)
+                    actual=sorted((a['lane'],a['element'],a['address'],a['width']) for a in fragment['accesses'])
+                    assert actual==expected, 'Captured global scalar RMW bytes'
             else:
                 expected=sorted((e['lane'],e['element'],int(e['address'],16)-0x6ffe00000000,e['bytes']) for e in accesses)
                 actual=sorted((a['lane'],a['element'],a['offset'],a['width']) for a in fragment['accesses'])
@@ -54,6 +59,7 @@ def verify_memory_system(system,rows,global_service,shared_service,start,end,pre
         starts[r['sm']].append(r)
     assert set(global_requests)=={r['sequence'] for r in global_rows} and set(shared_requests)=={r['sequence'] for r in shared_rows}, 'No invented route fragments'
     if shared_service:assert verify_shared_service(shared_service,shared_rows,start,end)
+    if global_service and global_service.get('atomic_service'):assert verify_global_atomics(global_service,start,end,global_rows)
     count=(global_service or shared_service)['config']['sm_count']
     capacity=(global_service['config']['lsu_slots_per_sm'] if global_service else shared_service['config']['request_slots_per_sm'])
     assert system['capacity_per_sm']==capacity, 'Common capacity assumption'

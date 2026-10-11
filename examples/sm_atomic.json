@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "provenance_kind": "assumption",
+  "queue": 8,
+  "slots": 4,
+  "interval": 1,
+  "latency": 4,
+  "max_updates_per_request": 32,
+  "provenance": "Synthetic global L2 scalar RMW service with finite FIFO/word locks/line pins; unconditional dirtying and no data/coherence/calibration"
+}

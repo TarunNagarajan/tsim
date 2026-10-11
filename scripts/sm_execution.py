@@ -18,7 +18,8 @@ from memory_model import positive_integer, analyze_transactions
 from cache_hierarchy import decode_policy, PTX as CACHE_POLICY_SOURCE
 from sector_memory_service import MemoryConfig, SectorMemoryService
 from shared_memory_service import SharedConfig, SharedRequest
-from memory_system import SectorRequest, CompositeRequest, MemorySystem
+from memory_system import SectorRequest, CompositeRequest, MemorySystem,memory_record
+from global_atomic_service import AtomicConfig,GlobalAtomicRequest
 from cta_barrier_timing import BarrierService, captured_phases
 
 @dataclass(frozen=True)
@@ -91,10 +92,10 @@ class Issue:
     pipeline: str
     dependencies: tuple = ()  # (earlier issue sequence, RAW/WAW/WAR)
     control: bool = False
-    memory: SectorRequest | SharedRequest | CompositeRequest | None = None
+    memory: SectorRequest | SharedRequest | GlobalAtomicRequest | CompositeRequest | None = None
 
 def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=None, pipeline_readiness=None, memory_readiness=None,
-                    phases=(), barrier_readiness=None, shared_config=None, system_readiness=None):
+                    phases=(), barrier_readiness=None, shared_config=None, system_readiness=None,atomic_config=None):
     """Discrete-event simulation with reads at issue and writes at retirement.
 
     RAW and WAW await preceding retirement. WAR awaits preceding operand read
@@ -108,16 +109,18 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
         if not isinstance(memory_config, MemoryConfig): raise ValueError('Missing timed memory configuration')
         memory_config.validate()
         if memory_config.sm_count != config.sm_count: raise ValueError('Memory service and scheduler SM counts disagree')
-        service = SectorMemoryService(memory_config)
-        if memory_readiness is not None: service.restore_port_readiness(memory_readiness)
+        if shared_config is None and atomic_config is None:
+            service = SectorMemoryService(memory_config)
+            if memory_readiness is not None: service.restore_port_readiness(memory_readiness)
     elif memory_readiness is not None: raise ValueError('Memory port deadlines require a memory service')
     if shared_config is not None:
         if not isinstance(shared_config,SharedConfig):raise ValueError('Missing shared memory configuration')
         shared_config.validate()
         if shared_config.sm_count!=config.sm_count:raise ValueError('Shared service and scheduler SM counts disagree')
+    if shared_config is not None or atomic_config is not None:
         if memory_readiness is not None:raise ValueError('Joint memory uses common system readiness')
-        service=MemorySystem(memory_config,shared_config,system_readiness)
-    elif system_readiness is not None:raise ValueError('Common memory readiness requires shared configuration')
+        service=MemorySystem(memory_config,shared_config,system_readiness,atomic_config)
+    elif system_readiness is not None:raise ValueError('Common memory readiness requires a routed configuration')
     if type(origin) is not int or origin < 0: raise ValueError('Invalid launch cycle origin')
     if not resource_ceiling(profile, footprint)['blocks_per_sm']: raise ValueError('Block cannot reside on an empty modeled SM')
     if not issues: raise ValueError('Empty launch issue stream')
@@ -260,7 +263,7 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
                         record = {'sequence': issue.sequence, 'block': list(issue.block), 'warp': issue.warp,
                                   'sm': sm, 'partition': partition, 'pipeline': issue.pipeline,
                                   'issue_cycle': cycle, 'complete_cycle': None if issue.memory else cycle + pipe.latency}
-                        if issue.memory: record['memory'] = asdict(issue.memory)
+                        if issue.memory: record['memory'] = memory_record(issue.memory)
                         records.append(record); scheduled[issue.sequence] = record
                         state['next'] = cycle + pipe.interval; state['inflight'] += 1
                         state['peak'] = max(state['peak'], state['inflight'])
@@ -288,7 +291,7 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
         if service.requests: raise AssertionError('Instruction completion preceded memory response')
         service.finish(); cycle = max(cycle, service.cycle)
         if isinstance(service,MemorySystem):
-            memory_report=service.global_report();shared_report=service.shared_service.report();system_report=service.report()
+            memory_report=service.global_report();shared_report=service.shared_service.report() if service.shared_service else None;system_report=service.report()
         else: memory_report = {'config': memory_config.record(), 'stats': dict(service.stats), 'peaks': dict(service.peak),
                          'requests': list(service.finished.values()), 'dram_reads': service.dram_records,
                          'writebacks': service.writeback_records, 'store_commits': service.commit_records,
@@ -328,7 +331,8 @@ def classify_issue(event, node, request=None):
     if base in ['bra', 'ret']: return 'control', True
     if base in ['shfl', 'vote', 'redux', 'match']: return 'collective', False
     if base in ['ld', 'st', 'atom', 'red']:
-        if base in ['atom','red'] and not isinstance(request,SharedRequest):raise ValueError('Atomic timing requires a captured shared bank request')
+        if base in ['atom','red'] and not (isinstance(request,(SharedRequest,GlobalAtomicRequest)) or isinstance(request,CompositeRequest) and isinstance(request.global_fragment,GlobalAtomicRequest) and request.shared_fragment.operation=='atomic'):
+            raise ValueError('Atomic timing requires a captured atomic service request')
         if any(part in opcode.split('.') for part in ['volatile', 'acquire', 'release', 'relaxed', 'sc']):
             raise ValueError('Memory ordering requires a declared service/readiness model')
         return ('parameter' if '.param.' in opcode else 'memory'), False
@@ -337,7 +341,7 @@ def classify_issue(event, node, request=None):
         raise ValueError('Floating type requires an additional declared pipeline class')
     return ('fp32' if 'f32' in opcode.split('.') else 'alu'), False
 
-def analyze_execution(run_directory, config=None, compiler_directory=None, memory_config=None, shared_config=None):
+def analyze_execution(run_directory, config=None, compiler_directory=None, memory_config=None, shared_config=None,atomic_config=None):
     config = config or default_config(); config.validate()
     if memory_config is not None:
         if not isinstance(memory_config, MemoryConfig): raise ValueError('Missing timed memory configuration')
@@ -347,6 +351,9 @@ def analyze_execution(run_directory, config=None, compiler_directory=None, memor
         if not isinstance(shared_config,SharedConfig):raise ValueError('Missing shared memory configuration')
         shared_config.validate()
         if shared_config.sm_count!=config.sm_count:raise ValueError('Shared service and scheduler SM counts disagree')
+    if atomic_config is not None:
+        if not isinstance(atomic_config,AtomicConfig) or memory_config is None:raise ValueError('Global atomics need atomic and sector configurations')
+        atomic_config.validate()
     run = Path(run_directory).resolve()
     graph = analyze_dependencies(run); residency = analyze_residency(run, compiler_directory)
     if graph['event_sha256'] != residency['event_sha256']: raise ValueError('Architecture inputs refer to different event streams')
@@ -371,6 +378,16 @@ def analyze_execution(run_directory, config=None, compiler_directory=None, memor
         for record in transactions['requests']:
             if record['space'] == 'param': continue
             sequence=record['issue']
+            if atomic_config is not None and record['space']=='global' and record['operation']=='atomic':
+                instruction=re.sub(r'^\s*@\s*!?\s*\S+\s+','',record['instruction']).strip();opcode=re.match(r'[A-Za-z][A-Za-z0-9_.:$]*',instruction)[0]
+                atomic=r'(?:atom|red)\.(?:global\.)?(?:add|min|max|inc|dec|and|or|xor|exch|cas)\.[busf](?:32|64)'
+                if not re.fullmatch(atomic,opcode):raise ValueError('Unsupported global atomic opcode: '+opcode)
+                fragment=GlobalAtomicRequest.captured([a for a in memory_accesses[sequence] if a['space']=='global'])
+                fragment.validate(memory_config,atomic_config);previous=requests.get(sequence)
+                if previous is not None and not isinstance(previous,SharedRequest):raise ValueError('Duplicate atomic global fragment')
+                requests[sequence]=CompositeRequest(fragment,previous) if previous else fragment
+                policies.append({'issue':sequence,'launch':record['launch'],'policy':asdict(decode_policy(record['instruction'],'atomic')),'sectors':len(fragment.sectors),'atomic_updates':len(fragment.accesses)})
+                continue
             if shared_config is not None and record['space']=='shared':
                 instruction=re.sub(r'^\s*@\s*!?\s*\S+\s+','',record['instruction']).strip();opcode=re.match(r'[A-Za-z][A-Za-z0-9_.:$]*',instruction)[0]
                 normal=r'(?:ld|st)\.(?:shared\.)?(?:v[24]\.)?(?:[busf](?:8|16|32|64)|b128)'
@@ -379,7 +396,7 @@ def analyze_execution(run_directory, config=None, compiler_directory=None, memor
                 fragment=SharedRequest.captured(record['operation'],record['block'],[a for a in memory_accesses[sequence] if a['space']=='shared'])
                 fragment.validate(shared_config)
                 previous=requests.get(sequence)
-                if previous is not None and not isinstance(previous,SectorRequest):raise ValueError('Duplicate shared memory fragment')
+                if previous is not None and not isinstance(previous,(SectorRequest,GlobalAtomicRequest)):raise ValueError('Duplicate shared memory fragment')
                 requests[sequence]=CompositeRequest(previous,fragment) if previous is not None else fragment
                 continue
             if record['space'] != 'global' or record['operation'] not in ['load', 'store']:
@@ -420,19 +437,20 @@ def analyze_execution(run_directory, config=None, compiler_directory=None, memor
         footprint = BlockFootprint(**record['footprint'])
         phases = captured_phases(graph, record['launch'])
         result = simulate_launch(profile, footprint, plan, config, origin, memory_config, pipeline_readiness, memory_readiness,
-                                 phases, barrier_readiness,shared_config,system_readiness)
+                                 phases, barrier_readiness,shared_config,system_readiness,atomic_config)
         result.update(launch=record['launch'], kernel=record['kernel'], register_provenance=record['register_provenance'], footprint=record['footprint'],
                       ptx_estimated_registers_per_thread=record['ptx_estimated_registers_per_thread'], compiler_allocation=record['compiler_allocation'])
         results.append(result); origin = result['end_cycle']
         pipeline_readiness = result['next_pipeline_readiness']
-        memory_readiness = result['memory_service']['next_port_readiness'] if memory_config and shared_config is None else None
-        system_readiness=result['memory_system']['next_port_readiness'] if shared_config else None
+        memory_readiness = result['memory_service']['next_port_readiness'] if memory_config and shared_config is None and atomic_config is None else None
+        system_readiness=result['memory_system']['next_port_readiness'] if shared_config or atomic_config else None
         barrier_readiness = result['cta_barrier_service']['next_port_readiness']
     return {'schema': 1, 'kind': 'configured SM execution replay of observed PTX paths; uncalibrated model cycles',
             'event_sha256': graph['event_sha256'], 'ptx_sha256': graph['ptx_sha256'], 'config': config.record(),
             'profile': residency['profile'], 'model_cycles': origin, 'launches': results,
             'memory_config': memory_config.record() if memory_config else None, 'memory_policies': policies,
             'shared_config':shared_config.record() if shared_config else None,
+            'atomic_config':atomic_config.record() if atomic_config else None,
             'memory_policy_source': CACHE_POLICY_SOURCE if memory_config else None,
             'physical_register_allocation_verified': residency['physical_register_allocation_verified'],
             'compiler_artifact_sha256': residency['compiler_artifact_sha256'],
@@ -451,9 +469,12 @@ def analyze_execution(run_directory, config=None, compiler_directory=None, memor
                             ['memory instructions use fixed configured latency tokens'] if not shared_config else []) +
                            (['Shared PTX spans use finite 32-bank word queues, ordinary same-word merging, CTA-owned scalar atomic word locks and asynchronous responses',
                              'Common LSU requests are indivisible; each slot and dependent instruction waits for every global/shared fragment response',
-                             'Shared bank work and common port sharing are synthetic assumptions, without SASS splitting or measured hardware latency'] if shared_config else []),
+                             'Shared bank work and common port sharing are synthetic assumptions, without SASS splitting or measured hardware latency'] if shared_config else []) +
+                           (['Global scalar RMW updates retain lane/byte identity after sector availability, with finite queues/ports/slots, overlapping word exclusion and pinned cache lines',
+                             'Each global atomic conservatively dirties its sector; no actual conditional-write or data/coherence outcome is inferred'] if atomic_config else []),
             'limits': ['no regeneration of SIMT paths, complete rendezvous/control readiness or independent-thread scheduling',
-                       ('timed service supports configured global load/store and shared byte-span/atomic traffic; data/coherence/ordering and other spaces remain open' if shared_config else
+                       ('timed service supports configured global load/store and scalar RMW plus optional shared bank traffic; data/coherence/ordering and other spaces remain open' if atomic_config else
+                        'timed service supports configured global load/store and shared byte-span/atomic traffic; data/coherence/ordering and other spaces remain open' if shared_config else
                         'timed service supports weak global ca/cg loads and wb/cg stores; data/coherence/ordering, atomics and other spaces remain open' if memory_config else
                         'memory latency is a configured instruction token; enable an explicit memory configuration for staged global load/store service'),
                        'virtual dependencies do not establish complete opcode extraction or physical-register/SASS dependencies',

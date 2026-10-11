@@ -62,7 +62,8 @@ def verify_schedule(report, graph):
         assert launch['execution_end_cycle'] == execution_end, 'Execution and CTA drain boundary'
         memory_rows=launch['issues']
         if launch.get('memory_system'):
-            assert launch['shared_service']['config']==report['shared_config'], 'Shared configuration identity'
+            if launch['shared_service']:assert launch['shared_service']['config']==report['shared_config'], 'Shared configuration identity'
+            if launch['memory_service'] and launch['memory_service'].get('atomic_service'):assert launch['memory_service']['atomic_service']['config']==report['atomic_config'], 'Atomic configuration identity'
             memory_rows=verify_memory_system(launch['memory_system'],launch['issues'],launch['memory_service'],launch['shared_service'],
                 launch['start_cycle'],launch['end_cycle'],previous_system)
             previous_system=launch['memory_system']['next_port_readiness']

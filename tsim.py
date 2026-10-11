@@ -90,6 +90,7 @@ def parser():
     s.add_argument('--config', type=Path)
     s.add_argument('--memory-config', type=Path, help='Use conserved global load/store sectors and staged cache/writeback queues')
     s.add_argument('--shared-config', type=Path, help='Use actual shared byte spans, finite bank queues and common LSU completion joins')
+    s.add_argument('--atomic-config', type=Path, help='Use actual global scalar RMW lane updates, finite word locks and pinned cache lines')
     s.add_argument('--compiler-resources', type=Path)
     s.add_argument('--out', type=Path)
     s = sub.add_parser('execution-conformance', help='Verify hand-solved SM execution and actual CUDA capture replay')
@@ -245,6 +246,7 @@ def main():
         if getattr(args, 'config', None): converted += ['--config', linux_path(args.config.resolve())]
         if getattr(args, 'memory_config', None): converted += ['--memory-config', linux_path(args.memory_config.resolve())]
         if getattr(args, 'shared_config', None): converted += ['--shared-config', linux_path(args.shared_config.resolve())]
+        if getattr(args, 'atomic_config', None): converted += ['--atomic-config', linux_path(args.atomic_config.resolve())]
         if getattr(args, 'compiler_resources', None): converted += ['--compiler-resources', linux_path(args.compiler_resources.resolve())]
         if getattr(args, 'profile', None): converted += ['--profile', linux_path(args.profile.resolve())]
         if getattr(args, 'out', None): converted += ['--out', linux_path(args.out.resolve())]
@@ -339,9 +341,11 @@ def main():
         from sm_execution import analyze_execution, load_config
         from sector_memory_service import load_memory_config
         from shared_memory_service import load_shared_config
+        from global_atomic_service import load_atomic_config
         report = analyze_execution(args.run_directory, load_config(args.config) if args.config else None, args.compiler_resources,
                                    load_memory_config(args.memory_config) if args.memory_config else None,
-                                   load_shared_config(args.shared_config) if args.shared_config else None)
+                                   load_shared_config(args.shared_config) if args.shared_config else None,
+                                   load_atomic_config(args.atomic_config) if args.atomic_config else None)
         target = args.out or args.run_directory / 'sm-execution.json'
         target.write_text(json.dumps(report, indent=2))
         print('Configured SM execution report: ' + str(target.resolve()))
