@@ -7,6 +7,7 @@ from collections import defaultdict
 from math import isclose
 from sector_service_reference import verify_service
 from cta_timing_reference import verify_cta_service
+from memory_system_reference import verify_memory_system
 
 def verify_schedule(report, graph):
     nodes = {n['sequence']: n for n in graph['nodes']}
@@ -47,7 +48,7 @@ def verify_schedule(report, graph):
             assert 0 <= active <= pipe['capacity'], 'Pipeline capacity'
             peaks[key] = max(peaks[key], active)
         assert active == 0, 'Pipeline drain'
-    previous_end = 0; previous_pipeline = previous_memory = previous_barrier = None
+    previous_end = 0; previous_pipeline = previous_memory = previous_barrier = previous_system = None
     lsu_starts = defaultdict(list); l2_starts, backing_starts = [], []
     for launch in report['launches']:
         assert launch['start_cycle'] == previous_end, 'Sequential launch origin'
@@ -59,12 +60,18 @@ def verify_schedule(report, graph):
         previous_barrier = launch['cta_barrier_service']['next_port_readiness']
         execution_end = max([instruction_end] + list(barrier_ends.values()))
         assert launch['execution_end_cycle'] == execution_end, 'Execution and CTA drain boundary'
+        memory_rows=launch['issues']
+        if launch.get('memory_system'):
+            assert launch['shared_service']['config']==report['shared_config'], 'Shared configuration identity'
+            memory_rows=verify_memory_system(launch['memory_system'],launch['issues'],launch['memory_service'],launch['shared_service'],
+                launch['start_cycle'],launch['end_cycle'],previous_system)
+            previous_system=launch['memory_system']['next_port_readiness']
         if launch['memory_service']:
             service = launch['memory_service']; assert service['config'] == report['memory_config'], 'Memory configuration identity'
             assert service['initial_port_readiness'] == previous_memory, 'Persistent memory readiness'
             initial = previous_memory or {'lsu': [0] * count, 'l2': 0, 'backing': 0}
             previous_memory = service['next_port_readiness']
-            assert verify_service(service, launch['issues'], launch['start_cycle'], launch['end_cycle'])
+            assert verify_service(service, memory_rows, launch['start_cycle'], launch['end_cycle'])
             for sm in range(count):
                 starts = [r['submit_cycle'] for r in service['requests'] if r['sm'] == sm]
                 assert not starts or min(starts) >= initial['lsu'][sm], 'Prior LSU deadline'

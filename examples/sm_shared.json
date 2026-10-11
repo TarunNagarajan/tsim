@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "provenance_kind": "assumption",
+  "sm_count": 1,
+  "request_slots_per_sm": 8,
+  "request_interval": 1,
+  "front_latency": 1,
+  "bank_queue": 4,
+  "bank_slots": 2,
+  "bank_interval": 1,
+  "bank_latency": 2,
+  "atomic_latency": 4,
+  "return_latency": 2,
+  "max_request_bytes": 4096,
+  "provenance": "Synthetic logical PTX word service with finite bank queues; no SASS splitting, data values or hardware calibration"
+}

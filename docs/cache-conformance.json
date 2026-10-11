@@ -82,7 +82,7 @@
   "hardware_cycles": false,
   "component_sha256": {
     "scripts/cache_hierarchy.py": "d079e1db84282d26e89d8e8c5be23b83fd26767d43b317b61e0ff8d73666d019",
-    "scripts/memory_model.py": "61b9c29ddcfb52f3776b2f0cccce4a29212ad4c2aaddae93a19f63ef6e260e7d"
+    "scripts/memory_model.py": "46b3019f9e86b603989fb1d045f678359a6079b37ba2b522a58565b2fc9759e5"
   },
   "total_checks": 76
 }

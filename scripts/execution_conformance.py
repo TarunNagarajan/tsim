@@ -21,9 +21,14 @@ def verify_execution(cache, out, replay_from=None):
     from sm_memory_components import verify_sm_memory
     from sector_memory_components import verify_sector_memory
     from cta_timing_components import verify_cta_timing
+    from shared_memory_components import verify_shared_components
+    from sm_shared_components import verify_sm_shared
+    from shared_memory_service import SharedConfig,load_shared_config
+    from memory_system_reference import verify_captured_memory
     out = Path(out).resolve(); out.mkdir(parents=True, exist_ok=True)
     checks = verify_execution_components()
     checks.extend(verify_sm_memory()); checks.extend(verify_sector_memory()); checks.extend(verify_cta_timing())
+    checks.extend(verify_shared_components());checks.extend(verify_sm_shared())
     def digest(path): return hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
     report = {'kind': 'hand-solved SM execution and independently audited CUDA schedule replay; uncalibrated',
               'passed': False, 'checks': checks, 'cases': [], 'hardware_cycles': False,
@@ -54,14 +59,18 @@ def verify_execution(cache, out, replay_from=None):
         code, path = run_program(args, cache, compiled_from=compiled.get(str(source)))
         compiled.setdefault(str(source), path); check(name + ' complete numerical reference', code == 0)
         return path
-    def audit(name, path, config=None, compiler=None, memory=None):
-        result = analyze_execution(path, config, compiler, memory); graph = analyze_dependencies(path)
+    for n in ['shared_memory_service.py','memory_system.py']:report['model_sha256'][n]=digest(ROOT/'scripts'/n)
+    for n in ['shared_memory_components.py','shared_service_reference.py','sm_shared_components.py','memory_system_reference.py','conformance/shared_bank_timing.cu']:report['reference_sha256'][n]=digest(ROOT/'tests'/n)
+    def audit(name, path, config=None, compiler=None, memory=None,shared=None):
+        result = analyze_execution(path, config, compiler, memory,shared); graph = analyze_dependencies(path)
         check(name + ' independent hazard/port/queue/admission/retirement interval audit', verify_schedule(result, graph) and verify_cta_dependencies([json.loads(row) for row in (path/'execution-events.jsonl').read_text().splitlines()],graph))
+        if shared:check(name+' independent original captured byte routing',verify_captured_memory([json.loads(row) for row in (path/'execution-events.jsonl').read_text().splitlines()],result))
         (path / (name + '-sm-execution.json')).write_text(json.dumps(result, indent=2))
         report['cases'].append({'name': name, 'event_sha256': result['event_sha256'], 'ptx_sha256': result['ptx_sha256'],
                                 'artifact_directory': path.name, 'timed_memory': memory is not None,
                                 'config_sha256': hashlib.sha256(json.dumps(result['config'], sort_keys=True).encode()).hexdigest(),
                                 'memory_config_sha256': hashlib.sha256(json.dumps(result['memory_config'], sort_keys=True).encode()).hexdigest() if memory else None,
+                                'shared_config_sha256':hashlib.sha256(json.dumps(result['shared_config'],sort_keys=True).encode()).hexdigest() if shared else None,
                                 'model_cycles': result['model_cycles'], 'issues': len(graph['nodes']),
                                 'compiler_artifact_sha256': result['compiler_artifact_sha256'],
                                 'physical_register_allocation_verified': result['physical_register_allocation_verified']})
@@ -147,6 +156,24 @@ def verify_execution(cache, out, replay_from=None):
         shared=run('cta-shared-fixed',ROOT/'examples/shared_reduce.cu')
         audit('cta-shared-fixed',shared)
         reject('shared timed service is refused until bank completion is modeled',lambda:analyze_execution(shared,memory_config=memory),'global load/store')
+        audit('cta-shared-banked',shared,memory=memory,shared=SharedConfig())
+        for gpu in ['a100','h100']:
+            for schedule in ['deterministic','random','adversarial']:
+                name='shared-banks-'+gpu+'-'+schedule
+                bank_path=run(name,ROOT/'tests/conformance/shared_bank_timing.cu',gpu,schedule,workers=4)
+                compile_resources(bank_path,cache);bank_compiler=bank_path/'compiler-resources'
+                banked,bank_graph=audit(name,bank_path,compiler=bank_compiler,memory=memory,shared=SharedConfig())
+                audit(name+'-finite',bank_path,compiler=bank_compiler,memory=replace(memory,lsu_slots_per_sm=1,mshrs=1,l2_slots=1,l2_queue=1),
+                    shared=SharedConfig(bank_slots=1,bank_queue=1,request_slots_per_sm=1))
+                audit(name+'-two-sm',bank_path,config=replace(base,sm_count=2),compiler=bank_compiler,memory=replace(memory,sm_count=2),shared=SharedConfig(sm_count=2))
+                check(name+' actual mixed/vector/subword/wide/atomic traffic and CTA handoffs',
+                    any(len(r['routes'])==2 for l in banked['launches'] for r in l['memory_system']['requests']) and
+                    {1,2,4,8}<={a['width'] for l in banked['launches'] for r in l['shared_service']['requests'] for a in r['request']['accesses']} and
+                    any(a['element']==3 for l in banked['launches'] for r in l['shared_service']['requests'] for a in r['request']['accesses']) and
+                    any(j['atomic'] and len(j['words'])==2 for l in banked['launches'] for j in l['shared_service']['jobs']) and
+                    len(bank_graph['cta_phases'])==12)
+        shared_path=out/'shared assumptions.json';shared_path.write_text(json.dumps(SharedConfig().record()))
+        check('shared configuration round trip preserves all assumptions',load_shared_config(shared_path).record()==SharedConfig().record())
         for label,mutation in [
             ('early release',lambda r:r['launches'][0]['cta_barrier_service']['phases'][0].update(start_cycle=0)),
             ('missing memory prefix',lambda r:r['launches'][0]['cta_barrier_service']['phases'][0].update(memory_prior_issues=[])),

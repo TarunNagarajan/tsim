@@ -24,7 +24,7 @@ def verify_source(cache, out, replay_from=None):
               'shared_race_model': 'passed', 'cases': cases, 'passed': False}
     probes = ['warp_collectives', 'device_calls', 'numeric_edges', 'memory_spaces',
               'atomic_protocol', 'transitive_publication', 'counted_barrier', 'rmw_publication', 'acquire_pattern',
-              'cta_barrier_phases', 'cta_timing']
+              'cta_barrier_phases', 'cta_timing', 'shared_bank_timing']
     # The negative variants preserve the communication protocol and remove
     # exactly one ordering edge. Strict checking also catches equal-value stores.
     variants = [(name, name, [], False) for name in probes] + [
@@ -51,7 +51,7 @@ def verify_source(cache, out, replay_from=None):
                 for name, source, options, negative in variants:
                     folder = out / (name + '-' + gpu + '-' + scheduler)
                     args = argparse.Namespace(source=ROOT / 'tests/conformance' / (source + '.cu'),
-                        gpu=gpu, scheduler=scheduler, seed=17, threads=4 if source in ['cta_barrier_phases','cta_timing'] else 1, race=True, strict=True,
+                        gpu=gpu, scheduler=scheduler, seed=17, threads=4 if source in ['cta_barrier_phases','cta_timing','shared_bank_timing'] else 1, race=True, strict=True,
                         trace=False, trace_limit=200000, timeout=45, out=folder, nvcc_arg=options)
                     code, path = run_program(args, cache, compiled_from=compiled.get(name))
                     compiled.setdefault(name, path)

@@ -17,6 +17,8 @@ from sm_residency import BlockFootprint, SMResidency, analyze_residency, profile
 from memory_model import positive_integer, analyze_transactions
 from cache_hierarchy import decode_policy, PTX as CACHE_POLICY_SOURCE
 from sector_memory_service import MemoryConfig, SectorMemoryService
+from shared_memory_service import SharedConfig, SharedRequest
+from memory_system import SectorRequest, CompositeRequest, MemorySystem
 from cta_barrier_timing import BarrierService, captured_phases
 
 @dataclass(frozen=True)
@@ -82,19 +84,6 @@ def load_config(path):
     return config
 
 @dataclass(frozen=True)
-class SectorRequest:
-    operation: str
-    sectors: tuple
-    bypass_l1: bool = False
-
-    def validate(self, config):
-        if self.operation not in ['load', 'store'] or type(self.bypass_l1) is not bool: raise ValueError('Unsupported modeled sector request')
-        if not isinstance(self.sectors, tuple) or not self.sectors: raise ValueError('Missing immutable sector request')
-        if any(type(s) is not int or s < 0 for s in self.sectors): raise ValueError('Invalid modeled sector identity')
-        if len(set(self.sectors)) != len(self.sectors) or len(self.sectors) > config.max_sectors_per_request:
-            raise ValueError('Invalid or excessive modeled sector request width')
-
-@dataclass(frozen=True)
 class Issue:
     sequence: int
     block: tuple
@@ -102,10 +91,10 @@ class Issue:
     pipeline: str
     dependencies: tuple = ()  # (earlier issue sequence, RAW/WAW/WAR)
     control: bool = False
-    memory: SectorRequest | None = None
+    memory: SectorRequest | SharedRequest | CompositeRequest | None = None
 
 def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=None, pipeline_readiness=None, memory_readiness=None,
-                    phases=(), barrier_readiness=None):
+                    phases=(), barrier_readiness=None, shared_config=None, system_readiness=None):
     """Discrete-event simulation with reads at issue and writes at retirement.
 
     RAW and WAW await preceding retirement. WAR awaits preceding operand read
@@ -122,6 +111,13 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
         service = SectorMemoryService(memory_config)
         if memory_readiness is not None: service.restore_port_readiness(memory_readiness)
     elif memory_readiness is not None: raise ValueError('Memory port deadlines require a memory service')
+    if shared_config is not None:
+        if not isinstance(shared_config,SharedConfig):raise ValueError('Missing shared memory configuration')
+        shared_config.validate()
+        if shared_config.sm_count!=config.sm_count:raise ValueError('Shared service and scheduler SM counts disagree')
+        if memory_readiness is not None:raise ValueError('Joint memory uses common system readiness')
+        service=MemorySystem(memory_config,shared_config,system_readiness)
+    elif system_readiness is not None:raise ValueError('Common memory readiness requires shared configuration')
     if type(origin) is not int or origin < 0: raise ValueError('Invalid launch cycle origin')
     if not resource_ceiling(profile, footprint)['blocks_per_sm']: raise ValueError('Block cannot reside on an empty modeled SM')
     if not issues: raise ValueError('Empty launch issue stream')
@@ -135,9 +131,15 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
         if type(issue.warp) is not int or not 0 <= issue.warp < footprint.warps: raise ValueError('Warp outside block footprint')
         if issue.pipeline not in config.pipelines or type(issue.control) is not bool: raise ValueError('Unknown pipeline or control flag')
         if issue.memory is not None:
-            if service is None or issue.pipeline != 'memory' or issue.control or not isinstance(issue.memory, SectorRequest):
-                raise ValueError('Sector request requires a timed memory issue')
-            issue.memory.validate(memory_config)
+            if service is None or issue.pipeline != 'memory' or issue.control:
+                raise ValueError('Memory request requires a timed memory issue')
+            if isinstance(service,MemorySystem):
+                service.validate(issue.memory)
+                shared=service.fragments(issue.memory).get('shared')
+                if shared and shared.block!=issue.block:raise ValueError('Shared request crosses CTA ownership')
+            else:
+                if not isinstance(issue.memory,SectorRequest):raise ValueError('Sector request requires a timed memory issue')
+                issue.memory.validate(memory_config)
         elif service is not None and issue.pipeline == 'memory': raise ValueError('Timed memory issue lacks conserved address sectors')
         by_id[issue.sequence] = issue
         streams.setdefault((issue.block, issue.warp), []).append(issue)
@@ -249,8 +251,8 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
                         wakeups.append(state['next']); counts['pipeline_interval_blocked_probes'] += 1
                     elif state['inflight'] == pipe.capacity:
                         counts['pipeline_capacity_blocked_probes'] += 1
-                    elif issue.memory is not None and not service.submit(issue.sequence, sm, issue.memory.sectors,
-                                                                         operation=issue.memory.operation, bypass_l1=issue.memory.bypass_l1):
+                    elif issue.memory is not None and not (service.submit(issue.sequence,sm,issue.memory) if isinstance(service,MemorySystem) else
+                            service.submit(issue.sequence,sm,issue.memory.sectors,operation=issue.memory.operation,bypass_l1=issue.memory.bypass_l1)):
                         wake = service.next_admission(sm)
                         if wake is not None and wake > cycle: wakeups.append(wake)
                         counts['memory_admission_blocked_probes'] += 1
@@ -281,11 +283,13 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
         for sm, resident in enumerate(residents): areas[sm] += resident.used_warps * (following - cycle)
         cycle = following
     if pending or completions or any(resident.live for resident in residents): raise AssertionError('Execution resource conservation failed')
-    instruction_end = max(record['complete_cycle'] for record in records); execution_end = cycle; memory_report = None
+    instruction_end = max(record['complete_cycle'] for record in records); execution_end = cycle; memory_report = shared_report = system_report = None
     if service is not None:
         if service.requests: raise AssertionError('Instruction completion preceded memory response')
         service.finish(); cycle = max(cycle, service.cycle)
-        memory_report = {'config': memory_config.record(), 'stats': dict(service.stats), 'peaks': dict(service.peak),
+        if isinstance(service,MemorySystem):
+            memory_report=service.global_report();shared_report=service.shared_service.report();system_report=service.report()
+        else: memory_report = {'config': memory_config.record(), 'stats': dict(service.stats), 'peaks': dict(service.peak),
                          'requests': list(service.finished.values()), 'dram_reads': service.dram_records,
                          'writebacks': service.writeback_records, 'store_commits': service.commit_records,
                          'resource_records': service.resource_records, 'lookup_records': service.lookup_records,
@@ -294,6 +298,7 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
     duration = cycle - origin
     return {'start_cycle': origin, 'end_cycle': cycle, 'model_cycles': duration, 'issues': records,
             'instruction_end_cycle': instruction_end, 'memory_service': memory_report,
+            'shared_service':shared_report, 'memory_system':system_report,
             'execution_end_cycle': execution_end, 'cta_barrier_service': barriers.report(),
             'initial_pipeline_readiness': pipeline_readiness,
             'next_pipeline_readiness': [{'sm': sm, 'pipeline': name, 'partition': partition, 'next_issue_cycle': state['next']}
@@ -305,12 +310,14 @@ def simulate_launch(profile, footprint, issues, config, origin=0, memory_config=
                                for sm, states in enumerate(pipeline_states) for (name, partition), state in sorted(states.items())],
             'final_residency': [resident.snapshot() for resident in residents]}
 
-def classify_issue(event, node):
+def classify_issue(event, node, request=None):
     instruction = re.sub(r'^\s*@\s*!?\s*\S+\s+', '', event['instruction']).strip()
-    opcode = instruction.split()[0]; base = opcode.split('.')[0]
+    match=re.match(r'[A-Za-z][A-Za-z0-9_.:$]*',instruction)
+    if not match:raise ValueError('Missing execution opcode')
+    opcode = match[0]; base = opcode.split('.')[0]
     if base not in ['mov', 'add', 'sub', 'addc', 'subc', 'mad', 'madc', 'mul', 'and', 'or', 'xor', 'not',
                     'shl', 'shr', 'bfi', 'bfe', 'setp', 'selp', 'cvt', 'cvta', 'fns', 'bra', 'ret', 'ld', 'st',
-                    'shfl', 'vote', 'redux', 'match', 'fma', 'bar', 'barrier']:
+                    'shfl', 'vote', 'redux', 'match', 'fma', 'bar', 'barrier', 'atom', 'red']:
         raise ValueError('No declared execution pipeline for ' + opcode)
     if node.get('conservative_selection_reads'): raise ValueError('Execution requires exact schema-2 parked reads')
     if node['live_ins'] or node.get('undefined_results'): raise ValueError('Execution requires known register origins and defined collective sources')
@@ -320,7 +327,8 @@ def classify_issue(event, node):
     if node.get('collective_wait') or not event['execution_mask']: return 'control', True
     if base in ['bra', 'ret']: return 'control', True
     if base in ['shfl', 'vote', 'redux', 'match']: return 'collective', False
-    if base in ['ld', 'st']:
+    if base in ['ld', 'st', 'atom', 'red']:
+        if base in ['atom','red'] and not isinstance(request,SharedRequest):raise ValueError('Atomic timing requires a captured shared bank request')
         if any(part in opcode.split('.') for part in ['volatile', 'acquire', 'release', 'relaxed', 'sc']):
             raise ValueError('Memory ordering requires a declared service/readiness model')
         return ('parameter' if '.param.' in opcode else 'memory'), False
@@ -329,12 +337,16 @@ def classify_issue(event, node):
         raise ValueError('Floating type requires an additional declared pipeline class')
     return ('fp32' if 'f32' in opcode.split('.') else 'alu'), False
 
-def analyze_execution(run_directory, config=None, compiler_directory=None, memory_config=None):
+def analyze_execution(run_directory, config=None, compiler_directory=None, memory_config=None, shared_config=None):
     config = config or default_config(); config.validate()
     if memory_config is not None:
         if not isinstance(memory_config, MemoryConfig): raise ValueError('Missing timed memory configuration')
         memory_config.validate()
         if memory_config.sm_count != config.sm_count: raise ValueError('Memory service and scheduler SM counts disagree')
+    if shared_config is not None:
+        if not isinstance(shared_config,SharedConfig):raise ValueError('Missing shared memory configuration')
+        shared_config.validate()
+        if shared_config.sm_count!=config.sm_count:raise ValueError('Shared service and scheduler SM counts disagree')
     run = Path(run_directory).resolve()
     graph = analyze_dependencies(run); residency = analyze_residency(run, compiler_directory)
     if graph['event_sha256'] != residency['event_sha256']: raise ValueError('Architecture inputs refer to different event streams')
@@ -342,6 +354,7 @@ def analyze_execution(run_directory, config=None, compiler_directory=None, memor
     if hashlib.sha256(event_bytes).hexdigest() != graph['event_sha256']: raise ValueError('Execution stream changed during analysis')
     events = [json.loads(row) for row in event_bytes.decode().splitlines()]
     launches, raw, active = {}, {}, None
+    memory_accesses={}
     for event in events:
         if event['type'] == 'launch':
             if active is not None: raise ValueError('Overlapping launches require stream readiness capture')
@@ -350,29 +363,44 @@ def analyze_execution(run_directory, config=None, compiler_directory=None, memor
         elif event['type'] == 'issue':
             if event['launch'] != active: raise ValueError('Issue outside sequential launch envelope')
             raw[event['sequence']] = event
+        elif event['type']=='memory':memory_accesses.setdefault(event['issue'],[]).append(event)
     requests, policies = {}, []
-    if memory_config is not None:
+    if memory_config is not None or shared_config is not None:
         transactions = analyze_transactions(run)
         if transactions['event_sha256'] != graph['event_sha256']: raise ValueError('Timed addresses refer to a different event stream')
         for record in transactions['requests']:
             if record['space'] == 'param': continue
+            sequence=record['issue']
+            if shared_config is not None and record['space']=='shared':
+                instruction=re.sub(r'^\s*@\s*!?\s*\S+\s+','',record['instruction']).strip();opcode=re.match(r'[A-Za-z][A-Za-z0-9_.:$]*',instruction)[0]
+                normal=r'(?:ld|st)\.(?:shared\.)?(?:v[24]\.)?(?:[busf](?:8|16|32|64)|b128)'
+                atomic=r'(?:atom|red)\.(?:shared\.)?(?:add|min|max|inc|dec|and|or|xor|exch|cas)\.[busf](?:32|64)'
+                if not re.fullmatch(normal if record['operation']!='atomic' else atomic,opcode):raise ValueError('Unsupported shared service opcode: '+opcode)
+                fragment=SharedRequest.captured(record['operation'],record['block'],[a for a in memory_accesses[sequence] if a['space']=='shared'])
+                fragment.validate(shared_config)
+                previous=requests.get(sequence)
+                if previous is not None and not isinstance(previous,SectorRequest):raise ValueError('Duplicate shared memory fragment')
+                requests[sequence]=CompositeRequest(previous,fragment) if previous is not None else fragment
+                continue
             if record['space'] != 'global' or record['operation'] not in ['load', 'store']:
                 raise ValueError('Timed sector service requires global load/store requests')
-            sequence = record['issue']
-            if sequence in requests: raise ValueError('Timed sector service requires one conserved memory group per issue')
+            if memory_config is None:raise ValueError('Undeclared global memory service')
+            previous=requests.get(sequence)
+            if previous is not None and not isinstance(previous,SharedRequest): raise ValueError('Timed sector service requires one conserved memory group per issue')
             policy = decode_policy(record['instruction'], record['operation'])
             supported = {'load': ['ca', 'cg'], 'store': ['wb', 'cg']}
             if policy.hints or policy.noncoherent or policy.ordering != 'weak' or policy.scope or policy.cache_operator not in supported[record['operation']]:
                 raise ValueError('Unsupported timed cache policy: ' + policy.opcode)
             sectors = tuple(int(s, 16) for s in record['sector_ids'])
             request = SectorRequest(record['operation'], sectors, policy.cache_operator != 'ca')
-            request.validate(memory_config); requests[sequence] = request
+            request.validate(memory_config); requests[sequence] = CompositeRequest(request,previous) if previous is not None else request
             policies.append({'issue': sequence, 'launch': record['launch'], 'policy': asdict(policy), 'sectors': len(sectors)})
     plans = {identity: [] for identity in launches}; live = {}
     for node in graph['nodes']:
         event = raw[node['sequence']]; launch = launches[event['launch']]
         if event['frame'] != 0 or event['function'] != event['kernel']: raise ValueError('Frame/control transfers require additional readiness semantics')
-        pipeline, control = classify_issue(event, node)
+        request = requests.get(event['sequence'])
+        pipeline, control = classify_issue(event, node, request)
         key = (event['launch'], tuple(event['block']), event['warp'])
         if key not in live:
             threads = launch['block'][0] * launch['block'][1] * launch['block'][2]
@@ -381,29 +409,30 @@ def analyze_execution(run_directory, config=None, compiler_directory=None, memor
         instruction = re.sub(r'^\s*@\s*!?\s*\S+\s+', '', event['instruction']).strip()
         if instruction.split()[0].split('.')[0] == 'ret': live[key] &= ~event['execution_mask']
         dependencies = tuple(sorted({(edge['source'], edge['kind']) for edge in node['edges']}))
-        request = requests.get(event['sequence'])
-        if memory_config is not None and (pipeline == 'memory') != (request is not None):
+        if (memory_config is not None or shared_config is not None) and (pipeline == 'memory') != (request is not None):
             raise ValueError('Timed memory issue disagrees with conserved physical-address capture')
         plans[event['launch']].append(Issue(event['sequence'], tuple(event['block']), event['warp'], pipeline, dependencies, control, request))
     if any(live.values()): raise ValueError('Captured warp does not retire every kernel lane')
-    results = []; origin = 0; profile = profile_for(residency['profile']['gpu']); pipeline_readiness = memory_readiness = barrier_readiness = None
+    results = []; origin = 0; profile = profile_for(residency['profile']['gpu']); pipeline_readiness = memory_readiness = barrier_readiness = system_readiness = None
     for record in residency['launches']:
         plan = plans[record['launch']]
         if len({issue.block for issue in plan}) != record['grid_blocks']: raise ValueError('Missing block issue stream')
         footprint = BlockFootprint(**record['footprint'])
         phases = captured_phases(graph, record['launch'])
         result = simulate_launch(profile, footprint, plan, config, origin, memory_config, pipeline_readiness, memory_readiness,
-                                 phases, barrier_readiness)
+                                 phases, barrier_readiness,shared_config,system_readiness)
         result.update(launch=record['launch'], kernel=record['kernel'], register_provenance=record['register_provenance'], footprint=record['footprint'],
                       ptx_estimated_registers_per_thread=record['ptx_estimated_registers_per_thread'], compiler_allocation=record['compiler_allocation'])
         results.append(result); origin = result['end_cycle']
         pipeline_readiness = result['next_pipeline_readiness']
-        memory_readiness = result['memory_service']['next_port_readiness'] if memory_config else None
+        memory_readiness = result['memory_service']['next_port_readiness'] if memory_config and shared_config is None else None
+        system_readiness=result['memory_system']['next_port_readiness'] if shared_config else None
         barrier_readiness = result['cta_barrier_service']['next_port_readiness']
     return {'schema': 1, 'kind': 'configured SM execution replay of observed PTX paths; uncalibrated model cycles',
             'event_sha256': graph['event_sha256'], 'ptx_sha256': graph['ptx_sha256'], 'config': config.record(),
             'profile': residency['profile'], 'model_cycles': origin, 'launches': results,
             'memory_config': memory_config.record() if memory_config else None, 'memory_policies': policies,
+            'shared_config':shared_config.record() if shared_config else None,
             'memory_policy_source': CACHE_POLICY_SOURCE if memory_config else None,
             'physical_register_allocation_verified': residency['physical_register_allocation_verified'],
             'compiler_artifact_sha256': residency['compiler_artifact_sha256'],
@@ -419,9 +448,13 @@ def analyze_execution(run_directory, config=None, compiler_directory=None, memor
                              'requested-sector fills, read-for-ownership store misses, clean/dirty LRU replacement and FIFO backing service',
                              'global stores bypass L1; no L1 data coherence or weak-memory outcomes are inferred',
                              'cold caches per launch; dirty evictions and terminal drains retain backing reservations until completion'] if memory_config else
-                            ['memory instructions use fixed configured latency tokens']),
+                            ['memory instructions use fixed configured latency tokens'] if not shared_config else []) +
+                           (['Shared PTX spans use finite 32-bank word queues, ordinary same-word merging, CTA-owned scalar atomic word locks and asynchronous responses',
+                             'Common LSU requests are indivisible; each slot and dependent instruction waits for every global/shared fragment response',
+                             'Shared bank work and common port sharing are synthetic assumptions, without SASS splitting or measured hardware latency'] if shared_config else []),
             'limits': ['no regeneration of SIMT paths, complete rendezvous/control readiness or independent-thread scheduling',
-                       ('timed service supports weak global ca/cg loads and wb/cg stores; data/coherence/ordering, atomics and other spaces remain open' if memory_config else
+                       ('timed service supports configured global load/store and shared byte-span/atomic traffic; data/coherence/ordering and other spaces remain open' if shared_config else
+                        'timed service supports weak global ca/cg loads and wb/cg stores; data/coherence/ordering, atomics and other spaces remain open' if memory_config else
                         'memory latency is a configured instruction token; enable an explicit memory configuration for staged global load/store service'),
                        'virtual dependencies do not establish complete opcode extraction or physical-register/SASS dependencies',
                        'compiler allocation affects admission only; generated cubins are not executed',

@@ -82,10 +82,11 @@
   "passed": true,
   "hardware_cycles": false,
   "component_sha256": {
-    "scripts/memory_model.py": "61b9c29ddcfb52f3776b2f0cccce4a29212ad4c2aaddae93a19f63ef6e260e7d",
+    "scripts/memory_model.py": "46b3019f9e86b603989fb1d045f678359a6079b37ba2b522a58565b2fc9759e5",
     "scripts/execution_events.py": "7767db1d5aa70d820f46fb0c0aea11b1703a0cb379aed0491a55374f1f2c5595",
     "scripts/collective_events.py": "c102cc7ec18e1f2f437399ddf4a538480f7971b43fcdef4eb1d007030714d4e5",
-    "scripts/cta_barrier_events.py": "cbffaf834184d5ab4fe93514d15e67d332a13236a3fe67942f8074b6fba7c764"
+    "scripts/cta_barrier_events.py": "cbffaf834184d5ab4fe93514d15e67d332a13236a3fe67942f8074b6fba7c764",
+    "scripts/shared_memory_service.py": "49b87db97cdab06c016b7ebea1c94b1f565649894836208afeadb26221b2399f"
   },
   "total_checks": 77
 }

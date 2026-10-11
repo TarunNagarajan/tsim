@@ -230,7 +230,11 @@ def analyze_transactions(run_directory):
                         record['sector_bytes'] = len(sectors) * 32
                         if space == 'local': record['ownership'] = 'private to launch/block/warp/lane; word-striped model'
                     elif space == 'shared':
-                        record.update(shared_scalar_request(accesses, operation))
+                        if all(a['bytes']==4 and a['element']==0 for a in accesses):
+                            record.update(shared_scalar_request(accesses, operation))
+                        else:
+                            from shared_memory_service import SharedRequest, shared_topology
+                            record.update(shared_topology(SharedRequest.captured(operation,issue['block'],accesses)))
                     elif space == 'constant':
                         if operation != 'load': raise ValueError('Constant memory is read-only')
                         record['distinct_constant_addresses'] = constant_scalar_request(accesses)
@@ -249,6 +253,6 @@ def analyze_transactions(run_directory):
                                             'physical_base_and_partition_hash': 'unverified'},
                            'constant_requests': {'kind': 'public distinct-address rule; scalar 32-bit subset', 'source': PROGRAMMING + '#device-memory-accesses'},
                            'cache_component': {'kind': 'configurable LRU/set-index/fill assumptions; not wired to GPU hierarchy', 'sector_and_line_source': NSIGHT}},
-            'limits': ['PTX can lower to multiple SASS operations', 'shared topology limited to scalar aligned 32-bit accesses',
+            'limits': ['PTX can lower to multiple SASS operations', 'wide shared accesses use logical byte-span word work, without predicting SASS splitting',
                        'atomic updates are counted without latency predictions', 'parameter ABI traffic excluded',
                        'local physical placement is unverified', 'SM/cache hierarchy and timing remain open']}

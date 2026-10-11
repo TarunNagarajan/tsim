@@ -131,6 +131,14 @@
       ],
       "status": "tested subset",
       "boundary": "Converged warp phases; host arithmetic reference; timing verified independently as an uncalibrated model"
+    },
+    {
+      "feature": "Shared bank traffic with mixed generic memory routing",
+      "status": "tested subset",
+      "cases": [
+        "shared_bank_timing"
+      ],
+      "boundary": "CUDA host arithmetic verifies vector4/subword/64-bit/broadcast/shared scalar32/64 atomics and mixed global/shared generic loads through two CTA handoffs; timing remains explicitly synthetic"
     }
   ],
   "architecture_models": [
@@ -190,14 +198,16 @@
     {
       "feature": "Configured SM execution replay",
       "evidence": "execution-conformance.json",
-      "checks": 320,
+      "checks": 476,
       "analytical_component_checks": 52,
-      "audited_schedules": 87,
+      "audited_schedules": 106,
       "status": "uncalibrated modeled subset",
-      "boundary": "Observed paths, SDK admission/placement, virtual hazards, finite CTA phase releases and prior-memory completion; staged global queues/writebacks; full scoreboard/data/coherence/other spaces and calibration open",
+      "boundary": "Observed paths, SDK admission, virtual hazards, finite CTA releases; staged global queues/writebacks plus shared logical byte-word/bank/atomic service with indivisible common LSU response joins; data/coherence/other spaces/SASS splitting/calibration open",
       "asynchronous_sm_checks": 30,
       "global_store_component_checks": 29,
-      "cta_component_checks": 35
+      "cta_component_checks": 35,
+      "shared_component_checks": 85,
+      "common_lsu_sm_checks": 20
     },
     {
       "feature": "Staged global load/store and dirty writeback service",
@@ -220,6 +230,14 @@
       "checks": 320,
       "status": "uncalibrated modeled subset",
       "boundary": "Actual phase causes, pre-arrival memory acknowledgements, finite SM release service, reuse reset and saved-result writes; no visibility/coherence or calibrated latency claim"
+    },
+    {
+      "feature": "Shared bank completion and indivisible global/shared LSU joins",
+      "evidence": "shared-bank-conformance.json",
+      "checks": 105,
+      "audited_schedules": 19,
+      "status": "uncalibrated modeled subset",
+      "boundary": "Actual scalar/vector/subword byte spans, finite word-bank/atomic locks, common LSU capacity and last-fragment retirement through CTA/resident tails; no values/coherence/SASS splitting/calibration"
     }
   ]
 }

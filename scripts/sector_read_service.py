@@ -82,6 +82,11 @@ class SectorReadService:
         priority = {'writeback': 0, 'dram': 1, 'data': 2, 'l1': 3, 'l2': 4}[stage]
         heapq.heappush(self._events, (when, priority, self._serial, stage, payload))
 
+    def can_submit(self, sm):
+        """Read-only preflight for an indivisible mixed-space request."""
+        if type(sm) is not int or not 0 <= sm < self.config.sm_count: raise ValueError('Invalid read-service SM')
+        return self._used_lsu[sm] < self.config.lsu_slots_per_sm and self._next_lsu[sm] <= self.cycle
+
     def submit(self, identity, sm, sectors, *, bypass_l1=False):
         """Attempt admission at the current cycle, after advance(cycle).
 
